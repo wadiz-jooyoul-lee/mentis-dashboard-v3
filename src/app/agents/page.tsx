@@ -9,6 +9,8 @@ import IveAvatar from "@/components/IveAvatar";
 import { iveColor } from "@/lib/ive";
 import ResceneAvatar from "@/components/ResceneAvatar";
 import { resceneColor } from "@/lib/rescene";
+import AespaAvatar from "@/components/AespaAvatar";
+import { aespaColor } from "@/lib/aespa";
 import { dobbyColor } from "@/lib/dobby";
 
 const { Title, Paragraph, Text } = Typography;
@@ -23,7 +25,7 @@ type Agent = {
   birth?: string;
   position?: string;
   // 지정 시 도비 아이콘 대신 이름(멤버)에 맞는 그룹 아바타를 그린다(IVE·리센느는 실사진).
-  avatar?: "bts" | "fromis" | "ive" | "rescene";
+  avatar?: "bts" | "fromis" | "ive" | "rescene" | "aespa";
 };
 
 // hue가 골고루 퍼지도록 선정(20~336). 성격·좋아하는 것은 재미로 붙인 소개용.
@@ -84,6 +86,15 @@ const RESCENE: Agent[] = [
   { name: "제나", avatar: "rescene", realName: "김가영", birth: "2008-11-27", position: "비주얼 센터 · 막내", expression: "happy", personality: "경주 출신 ‘신라공주’ 막내. 트로트를 사랑하고 스포일러를 흘리는 스포 요정.", likes: "트로트 · 틱톡 찍기 · 핑크골드" },
 ];
 
+// aespa(에스파) 멤버 — 본명·생년월일·포지션은 실제 프로필. 아바타는 멤버마다 사진 한 장(로컬 전용)이다.
+// 성격은 공개된 그룹 내 역할만 짧게 적었고, 호불호는 출처를 확인하지 못해 비워 뒀다.
+const AESPA: Agent[] = [
+  { name: "카리나", avatar: "aespa", realName: "유지민", birth: "2000-04-11", position: "리더", expression: "happy", personality: "팀을 이끄는 책임감 강한 리더.", likes: "-" },
+  { name: "윈터", avatar: "aespa", realName: "김민정", birth: "2001-01-01", position: "보컬", expression: "happy", personality: "조용하지만 무대에서는 승부사.", likes: "-" },
+  { name: "지젤", avatar: "aespa", realName: "우치나가 에리", birth: "2000-10-30", position: "래퍼", expression: "happy", personality: "여러 언어를 오가는 솔직한 분위기 메이커.", likes: "-" },
+  { name: "닝닝", avatar: "aespa", realName: "닝이줘", birth: "2002-10-23", position: "보컬 · 막내", expression: "happy", personality: "자신감 넘치는 막내 보컬.", likes: "-" },
+];
+
 function AgentCard({ a }: { a: Agent }) {
   // 그룹 멤버는 시그니처 색 + 오리지널 아바타, 그 외 도비 에이전트는 해시 색 + 도비 아이콘.
   const sig =
@@ -95,6 +106,8 @@ function AgentCard({ a }: { a: Agent }) {
       ? iveColor(a.name)
       : a.avatar === "rescene"
       ? resceneColor(a.name)
+      : a.avatar === "aespa"
+      ? aespaColor(a.name)
       : null;
   const color = sig || dobbyColor(a.name);
   return (
@@ -108,6 +121,8 @@ function AgentCard({ a }: { a: Agent }) {
           <IveAvatar member={a.name} size={56} />
         ) : a.avatar === "rescene" ? (
           <ResceneAvatar member={a.name} size={56} />
+        ) : a.avatar === "aespa" ? (
+          <AespaAvatar member={a.name} size={56} />
         ) : (
           <DobbyIcon size={56} expression={a.expression} color={color} />
         )}
@@ -220,6 +235,21 @@ export default function AgentsPage() {
 
       <Row gutter={[16, 16]}>
         {RESCENE.map((a) => (
+          <Col key={a.name} xs={24} sm={12} md={8} lg={6}>
+            <AgentCard a={a} />
+          </Col>
+        ))}
+      </Row>
+
+      <Title level={3} style={{ marginTop: 40 }}>
+        에스파 (aespa)
+      </Title>
+      <Paragraph type="secondary">
+        재미로 추가한 aespa 멤버 에이전트. 본명·생년월일·포지션은 실제 프로필을 담았고, 아바타는 멤버마다 사진 한 장(로컬 전용)을 모든 상태에 씁니다.
+      </Paragraph>
+
+      <Row gutter={[16, 16]}>
+        {AESPA.map((a) => (
           <Col key={a.name} xs={24} sm={12} md={8} lg={6}>
             <AgentCard a={a} />
           </Col>
