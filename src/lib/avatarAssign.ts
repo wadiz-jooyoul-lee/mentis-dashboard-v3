@@ -1,19 +1,20 @@
 /**
- * 오더(이슈)의 에이전트들에게 아바타 그룹(BTS·프로미스나인·IVE·리센느·도비)을 배정한다.
+ * 오더(이슈)의 에이전트들에게 아바타 그룹(BTS·프로미스나인·IVE·리센느·에스파·도비)을 배정한다.
  * 규칙:
  *  - 한 오더의 에이전트는 같은 그룹으로 묶어 배정한다(그룹 응집).
  *  - 그룹 멤버가 오더의 에이전트 수보다 적으면 다음 그룹에서 이어 채운다(도움).
  *    /do 오더는 켜진 담당자만 상태표에 행을 갖고 그 수만큼만 배정한다. 처음 그룹을 고를 때
  *    켜진 담당자 수보다 멤버가 적은 그룹은 뺀다(orchestration.ts pickBalancedGroup) — 여섯이 다 켜지면 여섯 명 이상인 그룹.
- *  - 오더별 primary 그룹은 20씩(BTS:프로미스:IVE:리센느:도비) 균등으로 결정적으로 고른다.
+ *  - 오더별 primary 그룹은 여섯 그룹(BTS:프로미스:IVE:리센느:에스파:도비)에 고르게(17·17·16·17·17·16) 결정적으로 고른다.
  *    → 여러 오더에 걸쳐 대략 그 비율로 분포. (도비는 무한 풀이라 소진되지 않는다.)
  */
 import { BTS_AVATARS } from "@/components/BtsAvatar";
 import { FROMIS_AVATARS } from "@/components/Fromis9Avatar";
 import { IVE_AVATARS } from "@/lib/ive";
 import { RESCENE_AVATARS } from "@/lib/rescene";
+import { AESPA_AVATARS } from "@/lib/aespa";
 
-export type AvatarGroup = "bts" | "fromis" | "ive" | "rescene" | "dobby";
+export type AvatarGroup = "bts" | "fromis" | "ive" | "rescene" | "aespa" | "dobby";
 export type AssignedAvatar = { group: AvatarGroup; member?: string };
 
 /** 오케스트레이터(오더를 지휘하는 메인 세션) 전용 슬러그. 에픽 그룹 멤버 하나로 핀 고정된다. */
@@ -23,16 +24,18 @@ const BTS = Object.keys(BTS_AVATARS); // 7명
 const FROMIS = Object.keys(FROMIS_AVATARS); // 5명
 const IVE = Object.keys(IVE_AVATARS); // 6명
 const RESCENE = Object.keys(RESCENE_AVATARS); // 5명
+const AESPA = Object.keys(AESPA_AVATARS); // 4명
 const POOL: Record<AvatarGroup, string[]> = {
   bts: BTS,
   fromis: FROMIS,
   ive: IVE,
   rescene: RESCENE,
+  aespa: AESPA,
   dobby: [],
 };
 
 /** 전체 그룹 목록. 그룹 균형(decay) 계산·순회용. */
-export const AVATAR_GROUPS: AvatarGroup[] = ["bts", "fromis", "ive", "rescene", "dobby"];
+export const AVATAR_GROUPS: AvatarGroup[] = ["bts", "fromis", "ive", "rescene", "aespa", "dobby"];
 
 /** FNV-1a 해시(결정적 tiebreak용). */
 export function avatarHash(s: string): number {
@@ -54,19 +57,20 @@ export function groupFirstMember(g: AvatarGroup): AssignedAvatar {
   return POOL[g].length ? { group: g, member: POOL[g][0] } : { group: "dobby" };
 }
 
-// 20씩 균등 primary 그룹(오더키로 결정적). 그룹 균형 강제 시 forcedPrimary로 대체.
+// 여섯 그룹에 고르게 나눈 primary 그룹(오더키로 결정적). 그룹 균형 강제 시 forcedPrimary로 대체.
 function primaryGroup(epicKey: string): AvatarGroup {
   const r = avatarHash(epicKey) % 100;
-  return r < 20 ? "bts" : r < 40 ? "fromis" : r < 60 ? "ive" : r < 80 ? "rescene" : "dobby";
+  return r < 17 ? "bts" : r < 34 ? "fromis" : r < 50 ? "ive" : r < 67 ? "rescene" : r < 84 ? "aespa" : "dobby";
 }
 
 // primary가 소진되면 이어 채울 순서. 도비는 항상 마지막(무한).
 const FILL_ORDER: Record<AvatarGroup, AvatarGroup[]> = {
-  bts: ["bts", "fromis", "ive", "rescene", "dobby"],
-  fromis: ["fromis", "ive", "rescene", "bts", "dobby"],
-  ive: ["ive", "fromis", "rescene", "bts", "dobby"],
-  rescene: ["rescene", "ive", "fromis", "bts", "dobby"],
-  dobby: ["dobby", "bts", "fromis", "ive", "rescene"],
+  bts: ["bts", "fromis", "ive", "rescene", "aespa", "dobby"],
+  fromis: ["fromis", "ive", "rescene", "aespa", "bts", "dobby"],
+  ive: ["ive", "fromis", "aespa", "rescene", "bts", "dobby"],
+  rescene: ["rescene", "aespa", "ive", "fromis", "bts", "dobby"],
+  aespa: ["aespa", "rescene", "ive", "fromis", "bts", "dobby"],
+  dobby: ["dobby", "bts", "fromis", "ive", "rescene", "aespa"],
 };
 
 /**
@@ -91,6 +95,7 @@ export function assignOrderAvatars(
     fromis: new Set(),
     ive: new Set(),
     rescene: new Set(),
+    aespa: new Set(),
     dobby: new Set(),
   };
   const map = new Map<string, AssignedAvatar>();

@@ -6,6 +6,7 @@ import BtsAvatar from "@/components/BtsAvatar";
 import Fromis9Avatar from "@/components/Fromis9Avatar";
 import IveAvatar from "@/components/IveAvatar";
 import ResceneAvatar from "@/components/ResceneAvatar";
+import AespaAvatar from "@/components/AespaAvatar";
 import DobbyIcon, { dobbyExpression } from "@/components/DobbyIcon";
 import { dobbyColor } from "@/lib/dobby";
 import type { AssignedAvatar } from "@/lib/avatarAssign";
@@ -17,6 +18,7 @@ const GROUP_NAME: Record<string, string> = {
   fromis: "프로미스나인",
   ive: "아이브",
   rescene: "리센느",
+  aespa: "에스파",
   dobby: "도비",
 };
 
@@ -187,6 +189,8 @@ export default function GroupAvatar({
         <IveAvatar member={avatar.member} size={size} state={face} />
       ) : avatar?.group === "rescene" && avatar.member ? (
         <ResceneAvatar member={avatar.member} size={size} state={face} />
+      ) : avatar?.group === "aespa" && avatar.member ? (
+        <AespaAvatar member={avatar.member} size={size} state={face} />
       ) : (
         <DobbyIcon size={size} expression={dobbyExpression(face ?? "")} color={dobbyColor(slug)} />
       ),

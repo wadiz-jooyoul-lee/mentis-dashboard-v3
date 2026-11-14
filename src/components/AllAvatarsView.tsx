@@ -8,6 +8,8 @@ import IveAvatar, { IVE_AVATARS } from "@/components/IveAvatar";
 import { iveColor } from "@/lib/ive";
 import ResceneAvatar, { RESCENE_AVATARS } from "@/components/ResceneAvatar";
 import { resceneColor } from "@/lib/rescene";
+import AespaAvatar, { AESPA_AVATARS } from "@/components/AespaAvatar";
+import { aespaColor } from "@/lib/aespa";
 import DobbyIcon, { dobbyExpression } from "@/components/DobbyIcon";
 import { dobbyColor } from "@/lib/dobby";
 
@@ -15,18 +17,21 @@ const { Title, Paragraph, Text } = Typography;
 
 // 에이전트 상태 어휘(순서). 표정이 바뀌는 상태만 캡션을 붙인다.
 const STATES = ["대기", "분석", "구현", "리뷰", "완료"];
-// BTS·IVE·리센느는 실사진 5표정(5상태 전부), 프로미스는 SVG로 대기·구현만 바뀐다.
+// BTS·IVE·리센느는 실사진 5표정(5상태 전부), 프로미스는 SVG로 대기·구현만 바뀐다. 에스파는 사진이 한 장이라 바뀌지 않는다.
 const CAPTION_BTS: Record<string, string> = { 대기: "졸림", 분석: "생각", 구현: "집중", 리뷰: "호기심", 완료: "기쁨" };
 const CAPTION_FROMIS: Record<string, string> = { 대기: "심심", 구현: "집중/헐레벌떡(랜덤)" };
 const CAPTION_IVE: Record<string, string> = { 대기: "기본", 분석: "생각", 구현: "놀람", 리뷰: "호기심", 완료: "활짝" };
 const CAPTION_RESCENE: Record<string, string> = { 대기: "기본", 분석: "생각", 구현: "미소", 리뷰: "호기심", 완료: "세리머니" };
 
-type Kind = "bts" | "fromis" | "ive" | "rescene";
+const CAPTION_AESPA: Record<string, string> = {};
+
+type Kind = "bts" | "fromis" | "ive" | "rescene" | "aespa";
 const CAPTIONS: Record<Kind, Record<string, string>> = {
   bts: CAPTION_BTS,
   fromis: CAPTION_FROMIS,
   ive: CAPTION_IVE,
   rescene: CAPTION_RESCENE,
+  aespa: CAPTION_AESPA,
 };
 
 function MemberRow({
@@ -61,6 +66,8 @@ function MemberRow({
                 <IveAvatar member={member} size={52} state={s} />
               ) : kind === "rescene" ? (
                 <ResceneAvatar member={member} size={52} state={s} />
+              ) : kind === "aespa" ? (
+                <AespaAvatar member={member} size={52} state={s} />
               ) : (
                 <Fromis9Avatar member={member} size={52} state={s} />
               )}
@@ -81,6 +88,7 @@ export default function AllAvatarsView() {
   const fromis = Object.keys(FROMIS_AVATARS);
   const ive = Object.keys(IVE_AVATARS);
   const rescene = Object.keys(RESCENE_AVATARS);
+  const aespa = Object.keys(AESPA_AVATARS);
   return (
     <div>
       <Breadcrumb
@@ -124,6 +132,13 @@ export default function AllAvatarsView() {
       </Title>
       {rescene.map((m) => (
         <MemberRow key={m} member={m} color={resceneColor(m) ?? "#888"} kind="rescene" />
+      ))}
+
+      <Title level={3} style={{ marginTop: 24 }}>
+        에스파 (aespa)
+      </Title>
+      {aespa.map((m) => (
+        <MemberRow key={m} member={m} color={aespaColor(m) ?? "#888"} kind="aespa" />
       ))}
 
       <Title level={3} style={{ marginTop: 24 }}>
