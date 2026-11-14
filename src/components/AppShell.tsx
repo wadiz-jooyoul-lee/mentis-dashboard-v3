@@ -41,7 +41,8 @@ export default function AppShell({ children, demo = false }: { children: React.R
   const pathname = usePathname();
   return (
     <CanActProvider>
-    <InProgressBackupTrigger />
+    {/* 데모 모드에서는 메타가 fixture라 백업을 두드리지 않는다(서버도 409로 막는다). */}
+    {!demo && <InProgressBackupTrigger />}
     <NextActionNotifier />
     <Layout style={{ minHeight: "100vh" }}>
       <Header

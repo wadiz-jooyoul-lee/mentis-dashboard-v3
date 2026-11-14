@@ -27,6 +27,9 @@ export async function POST(req: Request) {
   const denied = denyRemote(req); // 백업 실행은 이 맥 전용
   if (denied) return denied;
   const r = runOrchestrationBackupAll();
+  if (r.reason === "demo") {
+    return NextResponse.json({ ok: false, error: "데모 모드 — 백업은 실제 대시보드에서만 실행됩니다" }, { status: 409 });
+  }
   if (!r.ok && r.reason === "already_running") {
     return NextResponse.json({ ok: true, running: true }, { status: 202 });
   }
