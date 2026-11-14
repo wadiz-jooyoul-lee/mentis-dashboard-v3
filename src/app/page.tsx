@@ -31,6 +31,7 @@ export default function Home() {
           src={heroImage}
           alt="대기·분석·구현·리뷰·완료 다섯 단계가 적힌 보드 앞에서 각 단계를 맡은 에이전트들이 일하는 일러스트"
           sizes="(max-width: 608px) 100vw, 560px"
+          loading="eager"
           style={{
             width: "100%",
             height: "auto",
