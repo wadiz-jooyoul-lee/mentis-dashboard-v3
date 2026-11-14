@@ -17,12 +17,13 @@ export type PhaseKey =
   | "통합"
   | "배포"
   | "검증"
+  | "완성"
   | "해결"
   | "종료"
   | "unknown";
 
-/** 단계 띠 여덟 칸. 종료는 띠에 그리지 않는다. */
-export const PHASE_ORDER: PhaseKey[] = ["착수", "설계", "구현", "리뷰", "통합", "배포", "검증", "해결"];
+/** 단계 띠 아홉 칸. 종료는 띠에 그리지 않는다. 완성은 자동으로 할 일이 끝나 사람이 결과를 확인할 차례다(/do 오더). */
+export const PHASE_ORDER: PhaseKey[] = ["착수", "설계", "구현", "리뷰", "통합", "배포", "검증", "완성", "해결"];
 
 /** /do 오더에 켤 수 있는 담당자 여섯(표시 이름, 정해진 순서). go-dobby 의 DOBBY_V2_ROLES 와 같다. */
 export const ROLE_NAMES = ["기획자", "개발자", "산출자", "리뷰어", "배포담당", "테스터"] as const;
@@ -52,7 +53,7 @@ export function hasProducer(roles: string[] | null | undefined): boolean {
 export type BandCell = { key: PhaseKey; label: string };
 
 /**
- * 단계 띠의 칸. 담당자 줄이 없으면 여덟 칸 그대로다.
+ * 단계 띠의 칸. 담당자 줄이 없으면 아홉 칸 그대로다.
  * 줄이 있으면 켜진 담당자에 맞춘다: 리뷰어가 없으면 리뷰 칸, 배포담당이 없으면 통합 칸, 개발자가 없으면 배포 칸,
  * 테스터가 없으면 검증 칸을 그리지 않는다. 개발자가 없으면 구현 칸의 이름이 "산출"이다.
  */
@@ -68,6 +69,7 @@ export function phaseBand(roles: string[] | null | undefined): BandCell[] {
   if (has("배포담당")) cells.push({ key: "통합", label: "통합" });
   if (has("개발자") && has("배포담당")) cells.push({ key: "배포", label: "배포" });
   if (has("테스터")) cells.push({ key: "검증", label: "검증" });
+  cells.push({ key: "완성", label: "완성" });
   cells.push({ key: "해결", label: "해결" });
   return cells;
 }
@@ -79,7 +81,8 @@ export function phaseName(raw: string | null, roles?: string[] | null): string {
 }
 
 /**
- * 단계값(착수·설계·설계확인·구현·산출·리뷰·수정·통합·배포·검증·실패분석·보류·해결·종료)을 띠 칸으로 접는다.
+ * 단계값(착수·설계·설계확인·구현·산출·리뷰·수정·통합·배포·검증·완성·실패분석·보류·해결·종료)을 띠 칸으로 접는다.
+ * 옛 단계값 완료(담당자 상태값을 단계로 잘못 적은 것)는 완성 칸이다(go-dobby dobby_norm_phase 와 같다).
  * 설계확인은 설계, 수정은 리뷰, 보류는 검증 칸이다. 옛 값 분석은 설계, 산출은 구현 칸으로 읽는다.
  * 실패분석은 담당자 줄이 있는 오더면 설계 칸(기획자가 설계를 다시 본다), 없는 오더면 지금까지처럼 검증 칸이다.
  */
@@ -88,6 +91,7 @@ export function phaseKey(raw: string | null, roles?: string[] | null): PhaseKey 
   if (!s) return "unknown";
   if (/종료/.test(s)) return "종료";
   if (/해결/.test(s)) return "해결";
+  if (/완성/.test(s) || s === "완료") return "완성";
   if (roles && /실패/.test(s)) return "설계";
   if (/검증|실패|보류/.test(s)) return "검증";
   if (/배포/.test(s)) return "배포";
@@ -117,6 +121,7 @@ export function phaseBadge(key: PhaseKey): BadgeStatus {
   switch (key) {
     case "종료":
     case "해결":
+    case "완성":
       return "success";
     case "리뷰":
       return "warning";

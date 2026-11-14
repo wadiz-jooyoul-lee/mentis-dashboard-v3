@@ -55,17 +55,29 @@ function isAutonomous(mode: string | null): boolean {
   return /^B\b/i.test(m) || m.includes("자율");
 }
 
-/** 작업 상태: dobby-end로 워크트리 삭제=종료, dobby-resolve로 해결=해결됨, 그 외=작업중. */
+/**
+ * 작업 상태: dobby-end로 워크트리 삭제=종료, dobby-resolve로 해결=해결됨,
+ * 자동으로 할 일이 끝나 사람이 결과를 확인할 차례=완성(/do 오더), 그 외=작업중.
+ */
 function workStatus(r: EpicSummary): { text: string; color: string } {
   if (r.worktreeRemoved || r.phase === "종료") return { text: "종료", color: "default" };
   if (r.phase === "해결") return { text: "해결됨", color: "success" };
+  if (r.phase === "완성") return { text: "완성", color: "cyan" };
   return { text: "작업중", color: "processing" };
 }
 
-const STATUS_MARK: Record<string, string> = { 작업중: "rgba(105, 177, 255, 0.45)", 해결됨: "rgba(149, 222, 100, 0.5)", 종료: "rgba(0, 0, 0, 0.12)" };
+/** 아직 해결하지 않은 오더인가(작업중·완성). 완성은 사람이 결과를 확인하고 해결할 차례라 해결 버튼을 그대로 보인다. */
+const isOpen = (r: EpicSummary) => ["작업중", "완성"].includes(workStatus(r).text);
 
-/** 작업상태 필터 값. "전체"는 종료를 뺀 모두(작업중·해결됨). */
-type StatusFilter = "전체" | "작업중" | "해결됨" | "종료";
+const STATUS_MARK: Record<string, string> = {
+  작업중: "rgba(105, 177, 255, 0.45)",
+  완성: "rgba(54, 207, 201, 0.5)",
+  해결됨: "rgba(149, 222, 100, 0.5)",
+  종료: "rgba(0, 0, 0, 0.12)",
+};
+
+/** 작업상태 필터 값. "전체"는 종료를 뺀 모두(작업중·완성·해결됨). "작업중"은 완성도 함께 보인다(사람이 확인할 차례라서). */
+type StatusFilter = "전체" | "작업중" | "완성" | "해결됨" | "종료";
 
 /** 개발/비개발(work-type) 스코프. "전체"는 스코프 없음. code=개발·nonsource=비개발. */
 type KindFilter = "전체" | "code" | "nonsource";
@@ -159,7 +171,8 @@ export default function OrchestrationList({
   const filtered = epics.filter((r) => {
     const matchQ =
       !q || r.epicKey.toLowerCase().includes(q) || (r.title ?? "").toLowerCase().includes(q);
-    const matchS = status === "전체" ? workStatus(r).text !== "종료" : workStatus(r).text === status;
+    const matchS =
+      status === "전체" ? workStatus(r).text !== "종료" : status === "작업중" ? isOpen(r) : workStatus(r).text === status;
     return matchQ && (matchS || pinned.has(r.epicKey));
   }).sort((a, b) => Number(pinned.has(b.epicKey)) - Number(pinned.has(a.epicKey)) || compare(a, b));
 
@@ -203,7 +216,7 @@ export default function OrchestrationList({
       dataIndex: "epicKey",
       key: "epicKey",
       width: 170,
-      // 작업 상태는 칸 대신 키 뒤 크레파스 자국 색으로 보인다(작업중 파랑·해결됨 초록·종료 회색).
+      // 작업 상태는 칸 대신 키 뒤 크레파스 자국 색으로 보인다(작업중 파랑·완성 청록·해결됨 초록·종료 회색).
       onCell: (r: EpicSummary) => ({ ...openCell(r), title: workStatus(r).text }),
       render: (key: string, r: EpicSummary) => (
         <Space size={8}>
@@ -313,7 +326,7 @@ export default function OrchestrationList({
       title: "해결",
       key: "resolve",
       render: (_: unknown, r: EpicSummary) => {
-        const resolved = workStatus(r).text !== "작업중";
+        const resolved = !isOpen(r);
         return (
           <span onClick={(e) => e.stopPropagation()} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
             <ResolveButton epicKey={r.epicKey} resolved={resolved} />
@@ -393,7 +406,8 @@ export default function OrchestrationList({
                       style={{ width: 200 }}
                       options={[
                         { value: "전체", label: "전체 상태(종료 제외)" },
-                        { value: "작업중", label: "작업중" },
+                        { value: "작업중", label: "작업중(완성 포함)" },
+                        { value: "완성", label: "완성" },
                         { value: "해결됨", label: "해결됨" },
                         { value: "종료", label: "종료" },
                       ]}
@@ -442,7 +456,7 @@ export default function OrchestrationList({
                       dateOf={(r) => r.lastActivity}
                       columns={columns}
                       rowKey="epicKey"
-                          rowClassName={(r) => (workStatus(r).text !== "작업중" ? "row-resolved" : "")}
+                          rowClassName={(r) => (isOpen(r) ? "" : "row-resolved")}
                       emptyText="진행 중인 오더가 없습니다"
                       pageSize={10}
                       storageKey="orders-by-date"
