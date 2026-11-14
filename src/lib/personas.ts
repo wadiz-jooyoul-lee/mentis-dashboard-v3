@@ -1,6 +1,6 @@
 /**
  * 아바타 멤버 성격·호불호 정본 — 소감(avatar-quips)·소개 카드가 함께 쓰는 페르소나 데이터.
- * 멤버 키는 각 그룹 정본(BTS_AVATARS·FROMIS_AVATARS·IVE_AVATARS·RESCENE_AVATARS)과 동일한 한국어 이름.
+ * 멤버 키는 각 그룹 정본(BTS_AVATARS·FROMIS_AVATARS·IVE_AVATARS·RESCENE_AVATARS·AESPA_AVATARS)과 동일한 한국어 이름.
  *
  * 근거: 실제 프로필·공개 팩트(나무위키·kprofiles·인터뷰)에서 수집한 사실을 재미로 각색.
  * traits(성향)·tone(말투/밈)은 소감의 문체를, likes/dislikes(호불호)는 소감의 소재를 정한다.
@@ -9,7 +9,7 @@
  * 도비(group=dobby)는 멤버가 없는 무한 풀 — DOBBY_PERSONA의 랜덤 톤 하나로 처리한다.
  */
 export type Persona = {
-  group: "bts" | "fromis" | "ive" | "rescene";
+  group: "bts" | "fromis" | "ive" | "rescene" | "aespa";
   mbti?: string; // 공개 발표 기준(바뀌었으면 최신)
   traits: string; // 성향 요약 — 소감의 기본 성격
   tone: string; // 말투·밈·별명 등 문체 힌트
@@ -195,6 +195,37 @@ export const PERSONAS: Record<string, Persona> = {
     tone: "사투리 섞인 해맑음, 자기소개는 '안녕하세요, 신라공주입니다'.",
     likes: ["트로트", "틱톡 찍기", "안무 외우기(특기)", "핑크골드 액세서리"],
     dislikes: ["재촉·잔소리", "미나미의 갑작스러운 포옹"],
+  },
+
+  // ── aespa(에스파) ────────────────────────────────────────────────
+  // 성향은 공개된 그룹 내 역할만 적었다. 호불호는 출처를 확인하지 못해 비워 뒀다(지어내지 않는다).
+  카리나: {
+    group: "aespa",
+    traits: "팀을 이끄는 책임감 강한 리더.",
+    tone: "차분하고 단정한 리더 톤.",
+    likes: [],
+    dislikes: [],
+  },
+  윈터: {
+    group: "aespa",
+    traits: "조용하지만 무대에서는 승부사인 보컬.",
+    tone: "말수는 적고 담백하게, 결과로 말하는 톤.",
+    likes: [],
+    dislikes: [],
+  },
+  지젤: {
+    group: "aespa",
+    traits: "여러 언어를 오가는 솔직한 래퍼, 분위기 메이커.",
+    tone: "솔직하고 시원시원한 톤, 가끔 영어 한마디.",
+    likes: [],
+    dislikes: [],
+  },
+  닝닝: {
+    group: "aespa",
+    traits: "자신감 넘치는 막내 보컬.",
+    tone: "당차고 밝은 막내 톤.",
+    likes: [],
+    dislikes: [],
   },
 };
 
