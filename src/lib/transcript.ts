@@ -209,6 +209,8 @@ const STEP_NAMES: [RegExp, (m: RegExpMatchArray) => string][] = [
   [/^round-(\d+)$/, (m) => `${m[1]}차 리뷰`],
   [/^fix-(\d+)$/, (m) => `${m[1]}차 수정`],
   [/^fix-test-/, () => "검증 실패 수정"],
+  [/^produce$/, () => "산출"],
+  [/^produce-fix-(\d+)$/, (m) => `${m[1]}차 산출 수정`],
   [/^integrate$/, () => "통합"],
   [/^verify$/, () => "검증"],
 ];
@@ -317,6 +319,8 @@ export type ConsoleStatus =
       live?: boolean;
       /** 소스 설명 라벨. */
       label?: string;
+      /** /do 자동 실행(run.sh) 잡. 세션을 스스로 이어 띄우므로 "이어서"와 피드백 전달을 막는다. */
+      autoRun?: boolean;
     };
 
 function transcriptView(p: string, label: string): ConsoleStatus {

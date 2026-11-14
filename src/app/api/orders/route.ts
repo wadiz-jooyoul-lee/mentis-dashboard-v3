@@ -41,6 +41,7 @@ import { readQuips, orderSignature, staleSlugs } from "@/lib/quips";
 import { ORDER_KEY_RE, isOrderKey } from "@/lib/keys";
 import { setPin } from "@/lib/pins";
 import { nextActions, runNextAction, type NextAction } from "@/lib/nextAction";
+import { isDemoMode } from "@/lib/demo";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -53,6 +54,11 @@ export const runtime = "nodejs";
 export async function POST(req: NextRequest) {
   const denied = denyRemote(req); // 실행·변경은 이 맥 전용(분기 13개를 입구에서 한 번에)
   if (denied) return denied;
+  // 데모 모드: 메타가 시나리오 플레이어의 fixture라, 헤드리스 claude를 띄우면
+  // 진짜 분석·실행이 돌아 데모 파일을 덮어쓴다. 입구에서 전부 막는다(진행은 /api/demo 로만).
+  if (isDemoMode()) {
+    return NextResponse.json({ ok: false, error: "데모 모드 — 실행 대신 헤더의 데모 컨트롤을 쓰세요" }, { status: 409 });
+  }
   const body = await req.json().catch(() => ({}));
   const jobId = String(body?.key ?? "").trim();
 
@@ -109,7 +115,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, key: r.jobId }, { status: 202 });
   }
 
-  // 다음 할 일 버튼: { next: 동작, key, env?, value? } — value 는 부탁 카드의 답 — 셸 헬퍼로 상태를 바꾸고 필요하면 자동 실행을 띄운다.
+  // 다음 할 일 버튼: { next: 동작, key, env?, value? } — 셸 헬퍼로 상태를 바꾸고 필요하면 자동 실행을 띄운다.
+  // 질문에 답하기는 { next: "ask", key, value } — value 는 답(예·아니오, 방법 이름이나 적은 글, 했어요, 멈추기).
   if (body?.next) {
     const r = await runNextAction(
       String(body?.key ?? ""),
@@ -118,7 +125,16 @@ export async function POST(req: NextRequest) {
       body?.value != null ? String(body.value) : undefined
     );
     if (!r.ok) return NextResponse.json({ ok: false, error: r.reason }, { status: 409 });
-    return NextResponse.json({ ok: true, key: r.jobId ?? null }, { status: 202 });
+    // 질문에 답했을 때만 restarted(자동 실행을 다시 띄웠는가)와 note(다시 띄우지 못한 이유)가 붙는다.
+    return NextResponse.json(
+      {
+        ok: true,
+        key: r.jobId ?? null,
+        ...(r.restarted !== undefined ? { restarted: r.restarted } : {}),
+        ...(r.note ? { note: r.note } : {}),
+      },
+      { status: 202 }
+    );
   }
 
   // 워크트리 삭제(dobby-end와 동일 절차): 제거 전 code-changes/ 스냅샷 + 브랜치 보존.
@@ -284,7 +300,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ targets: prTargets(prKey) });
   }
 
-  // 이미 만들어진 환경별 PR: ?prExisting={오더키} → { prs: { "{repo}|{branch}": [...] } }
+  // 이미 만들어진 환경별 PR: ?prExisting={오더키} → { prs: { "{repo}|{branch}": { "{환경 브랜치}": { current: [...], previous: [...] } } } }
+  //   current 는 지금 PR(열린 PR, 없으면 가장 최근에 머지된 PR), previous 는 접어 둘 이전 PR(닫힌 PR 에는 닫힌 이유 reason).
   const prExKey = (sp.get("prExisting") ?? "").trim();
   if (prExKey) {
     if (!ORDER_KEY_RE.test(prExKey)) {
