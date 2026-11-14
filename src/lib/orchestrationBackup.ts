@@ -11,6 +11,7 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { getMetaDir } from "@/lib/issues";
 import { goDobbyLib } from "@/lib/jobs";
+import { isDemoMode } from "@/lib/demo";
 
 const DEST =
   process.env.ORCHESTRATION_BACKUP_DIR ||
@@ -405,6 +406,9 @@ export function maybeRunInProgressBackup(
   slot: InProgressSlot | null;
   reason?: string;
 } {
+  // 데모 모드: 백업 스크립트가 서버의 ORCHESTRATION_META_PATH(.demo-meta)를 물려받아
+  // 데모 fixture를 실제 백업 폴더의 오늘 회차로 저장하고, 그 회차를 "이미 함"으로 막아 버린다.
+  if (isDemoMode()) return { ok: false, ran: false, slot: null, reason: "demo" };
   const slot = currentSlot(now) ?? (manual ? "am" : null);
   if (!slot) return { ok: true, ran: false, slot: null, reason: "before_10" };
   const s = getInProgressStatus(now);
@@ -432,6 +436,8 @@ export function maybeRunInProgressBackup(
 
 /** `dobby-meta-backup.sh --all`을 백그라운드(detached)로 실행. */
 export function runOrchestrationBackupAll(): { ok: boolean; reason?: string } {
+  // 데모 모드: 데모 fixture가 실제 백업 폴더에 쌓이지 않게 막는다(maybeRunInProgressBackup과 같은 이유).
+  if (isDemoMode()) return { ok: false, reason: "demo" };
   if (isOrchestrationBackupRunning()) return { ok: false, reason: "already_running" };
   const lib = goDobbyLib();
   if (!lib) return { ok: false, reason: "no_plugin" };

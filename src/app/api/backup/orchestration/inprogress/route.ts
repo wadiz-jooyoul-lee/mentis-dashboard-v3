@@ -30,5 +30,8 @@ export async function POST(req: Request) {
   // ?manual=1 은 화면의 "지금 실행" 버튼. 회차 시각 전이라도 그날 첫 회차로 만든다.
   const manual = new URL(req.url).searchParams.get("manual") === "1";
   const r = maybeRunInProgressBackup(new Date(), manual);
+  if (r.reason === "demo") {
+    return NextResponse.json({ ...r, error: "데모 모드 — 백업은 실제 대시보드에서만 실행됩니다" }, { status: 409 });
+  }
   return NextResponse.json(r, { status: r.ok ? 200 : 400 });
 }
