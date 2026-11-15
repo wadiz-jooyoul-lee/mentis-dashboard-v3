@@ -9,6 +9,7 @@ import os from "node:os";
 import { spawn, execFileSync } from "node:child_process";
 import { getMetaDir, getWorkspaceDir, getReposRoot } from "@/lib/issues";
 import { ORDER_KEY_RE, isJiraIssueKey } from "@/lib/keys";
+import { BRANCH_RE as INTAKE_BRANCH_RE, checkIntake, intakeCommand, jiraKeyOf, requestMarkdown, usesRequestFile, type IntakeEnv, type IntakeKind } from "@/lib/intake";
 import { fieldLine } from "@/lib/md";
 import { openAskTitle } from "@/lib/ask";
 import { isProductOrderKey } from "@/lib/orderRoles";
@@ -262,27 +263,23 @@ export const DO_AUTO_ENVS = ["dev", "rc1", "rc4"] as const;
  * 그래서 DOBBY_V2_CHAINED 로 알려 띄우지 않게 하고, 이 잡이 이어서 run.sh 를 실행한다.
  * 설계가 확정되지 않았으면(사람 판단 필요·사전 확인 실패) run.sh 가 곧바로 그 이유로 멈춘다.
  */
-export type DoKind = "dev" | "doc" | "research" | "light";
+export type DoKind = IntakeKind;
 export interface DoOptions {
-  /** 사람이 접수 때 고른 종류. 없으면 설계가 스스로 정한다(대시보드 실행 탭). */
+  /** 사람이 접수 때 고른 종류(실행 탭·오피스 업무 맡기기). 없으면 이미 있는 오더를 다시 띄우는 실행이다(오더 콘솔). */
   kind?: DoKind;
   /** 기준 브랜치. 개발·문서만 받는다. */
   base?: string;
-  /** light 의 미리 분석한 내용. */
+  /** 내용. Jira 이슈가 없으면 필수(request.md 로 넘긴다), light 는 미리 분석한 내용. */
   note?: string;
 }
-const DO_KIND_ARG: Record<Exclude<DoKind, "light">, string> = { dev: "개발", doc: "문서", research: "조사" };
 /** 브랜치 이름: 영숫자·점·밑줄·빗금·하이픈만, ".." 과 앞 하이픈 금지. 명령 인자에 그대로 들어가므로 좁게 받는다. */
-const BRANCH_RE = /^(?!-)(?!.*\.\.)[A-Za-z0-9._/-]{1,100}$/;
-const LIGHT_NOTE_MAX = 2000;
+const BRANCH_RE = INTAKE_BRANCH_RE;
 
 /**
- * 오더 실행 명령을 만든다. 접수 창(오피스)의 미리 보기와 같은 규칙이다. 맞지 않으면 reason.
- * - 종류 없음: `/do {target} auto [env=]` (대시보드 실행 탭, 지금까지와 같음)
- * - 개발·문서·조사: `/do {키} auto 종류={…} [base=] [env= — 개발만]`
- * - light: `/do {키} light auto [env=] {분석}` — 한 세션에서 확인 없이 끝까지 간다
+ * 종류 없이 띄우는 실행의 명령: `/do {target} auto [base=] [env=]`. 오더 콘솔이 이미 있는 오더를 다시 띄울 때 쓴다.
+ * 종류를 고른 접수는 `startDo` 가 접수 규칙(lib/intake)으로 따로 만든다.
  */
-export function buildDoPrompt(target: string, env: string, o: DoOptions = {}): { prompt: string; key: string } | { reason: string } {
+export function buildDoPrompt(target: string, env: string, o: Pick<DoOptions, "base"> = {}): { prompt: string; key: string } | { reason: string } {
   const t = target.trim();
   if (!t) return { reason: "empty" };
   const key = deriveJobId(t);
@@ -293,21 +290,62 @@ export function buildDoPrompt(target: string, env: string, o: DoOptions = {}): {
   }
   const base = (o.base ?? "").trim();
   if (base && !BRANCH_RE.test(base)) return { reason: "기준 브랜치 이름이 올바르지 않습니다" };
-  if (!o.kind) return { prompt: `/do ${t} auto${base ? ` base=${base}` : ""}${e ? ` env=${e}` : ""}`, key };
-  if (!isJiraIssueKey(key)) return { reason: "종류를 골라 시작하는 실행은 Jira 이슈 키나 주소로만 받습니다" };
-  if (o.kind === "light") {
-    const note = (o.note ?? "").trim();
-    if (!note) return { reason: "미리 분석한 내용을 적어 주세요" };
-    if (note.length > LIGHT_NOTE_MAX) return { reason: `미리 분석한 내용은 ${LIGHT_NOTE_MAX}자까지입니다` };
-    if (base) return { reason: "가벼운 수정은 기준 브랜치를 받지 않습니다" };
-    return { prompt: `/do ${key} light auto${e ? ` env=${e}` : ""} ${note}`, key };
+  return { prompt: `/do ${t} auto${base ? ` base=${base}` : ""}${e ? ` env=${e}` : ""}`, key };
+}
+
+/** 오늘 날짜의 작업 키 머리: TASK-{YYMMDD} */
+export function taskKeyPrefix(at: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `TASK-${p(at.getFullYear() % 100)}${p(at.getMonth() + 1)}${p(at.getDate())}`;
+}
+
+/** 순번을 글자로: 1→a … 26→z, 27→aa */
+function seqLetters(n: number): string {
+  let out = "";
+  for (let x = n; x > 0; x = Math.floor((x - 1) / 26)) out = String.fromCharCode(97 + ((x - 1) % 26)) + out;
+  return out;
+}
+
+/**
+ * Jira 이슈 없는 접수에 작업 키(TASK-{YYMMDD}{a,b,…})를 잡는다.
+ * 끝을 숫자가 아니라 글자로 둔다. `-숫자` 로 끝나면 오피스가 "상위 이슈-하위 번호"(FE1-123-1)로 읽어 같은 날 접수를 한 묶음으로 보고,
+ * 숫자만 붙이면(TASK-26111501) Jira 키 모양이 된다.
+ * 오더 폴더를 만들어 키를 차지한다(두 접수가 동시에 와도 mkdir 이 한쪽만 성공한다).
+ * 잡 기록·휴지통(.discarded/{키}--…)에 남은 키도 피한다. 보드는 status.md 가 있는 폴더만 보이므로 빈 폴더는 보드에 뜨지 않는다.
+ */
+export function allocateTaskKey(at: Date = new Date(), metaRoot: string = getMetaDir()): string | null {
+  const prefix = taskKeyPrefix(at);
+  fs.mkdirSync(metaRoot, { recursive: true });
+  let discarded: string[] = [];
+  try {
+    discarded = fs.readdirSync(path.join(metaRoot, ".discarded"));
+  } catch {
+    /* 휴지통 없음 */
   }
-  if (o.kind !== "dev" && e) return { reason: "문서와 조사는 배포·검증을 하지 않습니다. 환경을 고르지 않습니다" };
-  if (o.kind === "research" && base) return { reason: "조사는 저장소를 바꾸지 않아 기준 브랜치를 받지 않습니다" };
-  const parts = [`/do ${key} auto 종류=${DO_KIND_ARG[o.kind]}`];
-  if (base) parts.push(`base=${base}`);
-  if (e) parts.push(`env=${e}`);
-  return { prompt: parts.join(" "), key };
+  for (let n = 1; n <= 702; n++) {
+    const key = `${prefix}${seqLetters(n)}`;
+    if (fs.existsSync(path.join(metaRoot, ".mentis-jobs", key))) continue;
+    if (discarded.some((d) => d.startsWith(`${key}--`))) continue;
+    try {
+      fs.mkdirSync(path.join(metaRoot, key));
+      return key;
+    } catch {
+      /* 이미 있음 — 다음 번호 */
+    }
+  }
+  return null;
+}
+
+/** 키를 잡으려고 만든 폴더를 실행이 시작되지 못했을 때 되돌린다(request.md 만 있을 때만) */
+function releaseTaskKey(key: string, metaRoot: string): void {
+  const dir = path.join(metaRoot, key);
+  try {
+    const left = fs.readdirSync(dir).filter((f) => f !== "request.md");
+    if (left.length) return;
+    fs.rmSync(dir, { recursive: true, force: true });
+  } catch {
+    /* noop */
+  }
 }
 
 /** light 는 세션 하나가 커밋·배포까지 한다. 접수 창의 동의를 세션에 전한다(run.sh 의 승인 지시와 같은 뜻). */
@@ -320,19 +358,64 @@ function lightConsent(env: string): string {
   );
 }
 
+type Prepared = { key: string; prompt: string; release?: () => void } | { reason: string };
+
+/**
+ * 종류를 고른 접수(실행 탭·오피스 업무 맡기기)를 실행할 수 있게 준비한다.
+ * - Jira 이슈가 있으면 그 키, 없으면 작업 키를 새로 잡는다.
+ * - 내용은 오더 폴더의 request.md 로 넘긴다(light 는 지금처럼 명령 뒤에 붙인다).
+ * - 이미 시작한 오더(status.md 있음)에 내용을 덧붙이려 하면 거절한다 — 그때는 오더 화면의 변경 접수를 쓴다.
+ */
+export function prepareIntake(target: string, env: string, opts: DoOptions & { kind: DoKind }, metaRoot: string = getMetaDir(), now: Date = new Date()): Prepared {
+  const c = checkIntake({ kind: opts.kind, target, env: env.trim() as IntakeEnv, base: opts.base, note: opts.note });
+  if (!c.ok) return { reason: c.error };
+  const needsFile = usesRequestFile(c);
+  let key = c.jiraKey;
+  let release: (() => void) | undefined;
+  if (key) {
+    if (needsFile && fs.existsSync(path.join(metaRoot, key, "status.md"))) {
+      return { reason: "이미 시작한 오더입니다. 덧붙일 내용은 오더 화면에서 변경으로 접수해 주세요" };
+    }
+  } else {
+    const k = allocateTaskKey(now, metaRoot);
+    if (!k) return { reason: "오늘 만들 수 있는 작업 키를 다 썼습니다" };
+    key = k;
+    release = () => releaseTaskKey(k, metaRoot);
+  }
+  if (needsFile) {
+    try {
+      fs.mkdirSync(path.join(metaRoot, key), { recursive: true });
+      fs.writeFileSync(path.join(metaRoot, key, "request.md"), requestMarkdown(c, key, now));
+    } catch {
+      release?.();
+      return { reason: "접수 내용(request.md)을 저장하지 못했습니다" };
+    }
+  }
+  return { key, prompt: intakeCommand(c, key), release };
+}
+
 export function startDo(target: string, env: string, opts: DoOptions = {}): { ok: boolean; reason?: string; jobId?: string; prompt?: string } {
-  const built = buildDoPrompt(target, env, opts);
-  if ("reason" in built) return { ok: false, reason: built.reason };
-  const { key, prompt } = built;
-  if (isRunning(key)) return { ok: false, reason: "already_running" };
+  const e = env.trim();
+  // 종류를 고른 접수에서 이미 돌고 있는 Jira 이슈면 request.md 를 쓰기 전에 거절한다
+  if (opts.kind) {
+    const jira = jiraKeyOf(target);
+    if (jira && isRunning(jira)) return { ok: false, reason: "already_running" };
+  }
   const script = v2RunScript();
   if (!script) return { ok: false, reason: "go-dobby 플러그인에서 run.sh 를 찾지 못했습니다" };
+  const built: Prepared = opts.kind ? prepareIntake(target, e, { ...opts, kind: opts.kind }) : buildDoPrompt(target, e, opts);
+  if ("reason" in built) return { ok: false, reason: built.reason };
+  const { key, prompt } = built;
+  if (isRunning(key)) {
+    built.release?.();
+    return { ok: false, reason: "already_running" };
+  }
   const workspace = getWorkspaceDir();
   const first = [
     shq(claudeBin()), "-p", shq(prompt),
     "--permission-mode", "bypassPermissions", "--output-format", "stream-json", "--verbose",
     "--add-dir", shq(workspace), "--add-dir", shq(getReposRoot()),
-    ...(opts.kind === "light" ? ["--append-system-prompt", shq(lightConsent(env.trim()))] : []),
+    ...(opts.kind === "light" ? ["--append-system-prompt", shq(lightConsent(e))] : []),
   ].join(" ");
   // light 도 뒤에 run.sh 를 잇는다. light 가 끝까지 갔으면 run.sh 는 완성을 보고 바로 멈추고,
   // 일반 실행으로 넘겼거나 질문을 남겼으면 run.sh 가 그 자리부터 이어 간다.

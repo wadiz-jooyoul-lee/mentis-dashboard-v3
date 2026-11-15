@@ -48,7 +48,7 @@ export const runtime = "nodejs";
 
 /**
  * 실행/재개/복원.
- * - 실행: { target, env?, kind?, base?, note? } — `/do` 자동 실행. kind(dev·doc·research·light)는 오피스 접수 창이 보낸다(buildDoPrompt).
+ * - 실행: { target, env?, kind?, base?, note? } — `/do` 자동 실행. kind(dev·doc·research·light)는 실행 탭과 오피스 업무 맡기기가 보낸다(lib/intake). Jira 이슈가 없으면(target 비움) 작업 키를 새로 잡아 key 로 돌려준다.
  * - 재개/복원: { key, resume|unarchive } — key는 잡 id.
  */
 export async function POST(req: NextRequest) {
@@ -200,13 +200,14 @@ export async function POST(req: NextRequest) {
 
   // 실행: `/do {target} auto [env=]` 설계 세션 → 같은 잡에서 run.sh 자동 실행
   const target = String(body?.target ?? body?.key ?? "").trim();
-  if (!target) {
-    return NextResponse.json({ ok: false, error: "empty" }, { status: 400 });
-  }
-  // 오피스 접수 창: kind(dev·doc·research·light), base, note 를 함께 보낸다. 명령 글은 받지 않고 값으로만 만든다
+  // 접수(실행 탭·오피스 업무 맡기기): kind, base, note 를 함께 보낸다. 명령 글은 받지 않고 값으로만 만든다. 종류가 없으면 이미 있는 오더를 다시 띄운다(오더 콘솔)
   const kinds = ["dev", "doc", "research", "light"] as const;
   const kind = kinds.find((k) => k === body?.kind);
   if (body?.kind !== undefined && !kind) return NextResponse.json({ ok: false, error: "모르는 종류입니다" }, { status: 400 });
+  // 종류를 고른 접수는 Jira 이슈 없이(target 비움) 와도 된다 — 작업 키를 새로 잡는다
+  if (!target && !kind) {
+    return NextResponse.json({ ok: false, error: "empty" }, { status: 400 });
+  }
   const r = startDo(target, String(body?.env ?? ""), {
     kind,
     base: typeof body?.base === "string" ? body.base : undefined,
