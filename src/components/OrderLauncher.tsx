@@ -152,7 +152,7 @@ export default function OrderLauncher({ initialJobs }: { initialJobs: JobWithKey
     <Card size="small" title={<Space><PlayCircleOutlined />오더 실행 (/do 자동)</Space>}>
       <Space orientation="vertical" size={12} style={{ width: "100%" }}>
         <Paragraph type="secondary" style={{ margin: 0 }}>
-          일의 종류를 고르고, Jira 이슈가 있으면 이슈를 넣고 없으면 내용만 적어 맡깁니다. Jira 이슈가 없으면 작업 키(TASK-날짜+글자, 예: TASK-261115a)를 새로 만듭니다.
+          일의 종류를 고르고, Jira 이슈가 있으면 이슈를 넣고 없으면 내용만 적어 맡깁니다. Jira 이슈가 없으면 작업 키(TASK-1, TASK-2처럼 차례로 이어지는 번호)를 새로 만듭니다.
           설계 세션이 설계를 스스로 확정하고, 이어서 같은 잡이 단계마다 새 세션으로 진행합니다. 사람 판단이 필요하면 질문을 남긴 채 답을 기다리며, 질문은 알림 카드와 오더 화면 맨 위에 뜹니다.
           <br />
           <Text type="warning">주의: 헤드리스 claude를 bypassPermissions로 실행합니다(로컬 신뢰 환경 전용).</Text>

@@ -7,7 +7,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { checkIntake, intakeCommand, jiraKeyOf, type Intake } from "../src/lib/intake";
-import { allocateTaskKey, prepareIntake, taskKeyPrefix } from "../src/lib/jobs";
+import { allocateTaskKey, prepareIntake } from "../src/lib/jobs";
 
 let fail = 0;
 const eq = (name: string, got: unknown, want: unknown) => {
@@ -55,20 +55,25 @@ eq("jiraKeyOf 소문자", jiraKeyOf("fe1-1"), "");
 const root = fs.mkdtempSync(path.join(os.tmpdir(), "intake-"));
 try {
   const at = new Date(2026, 10, 15, 14, 5);
-  eq("키 머리", taskKeyPrefix(at), "TASK-261115");
-  eq("첫 키", allocateTaskKey(at, root), "TASK-261115a");
-  eq("둘째 키(폴더 있음)", allocateTaskKey(at, root), "TASK-261115b");
-  fs.mkdirSync(path.join(root, ".mentis-jobs", "TASK-261115c"), { recursive: true });
-  fs.mkdirSync(path.join(root, ".discarded", "TASK-261115d--20261115-1200"), { recursive: true });
-  eq("잡 기록·휴지통 건너뜀", allocateTaskKey(at, root), "TASK-261115e");
+  fs.mkdirSync(path.join(root, "TASK-261115a"));
+  fs.mkdirSync(path.join(root, "TASK-payment-api"));
+  eq("첫 키는 1(옛 키는 번호로 치지 않음)", allocateTaskKey(root), "TASK-1");
+  eq("둘째 키", allocateTaskKey(root), "TASK-2");
+  fs.mkdirSync(path.join(root, ".mentis-jobs", "TASK-3"), { recursive: true });
+  fs.mkdirSync(path.join(root, ".mentis-jobs", "quips-TASK-90"), { recursive: true });
+  fs.mkdirSync(path.join(root, ".discarded", "TASK-4--20261115-1200"), { recursive: true });
+  eq("잡 기록·휴지통 번호 다음", allocateTaskKey(root), "TASK-5");
+  fs.rmSync(path.join(root, "TASK-2"), { recursive: true });
+  eq("지운 번호는 다시 쓰지 않음", allocateTaskKey(root), "TASK-6");
+  eq("두 자리로 이어짐", (() => { fs.mkdirSync(path.join(root, "TASK-9")); return allocateTaskKey(root); })(), "TASK-10");
 
   const p = prepareIntake("", "", { kind: "research", note: "결제 실패 원인을 알아봐 줘" }, root, at);
-  eq("접수 키", "key" in p ? p.key : p.reason, "TASK-261115f");
-  eq("접수 명령", "prompt" in p ? p.prompt : "", "/do TASK-261115f auto 종류=조사");
-  const req = fs.readFileSync(path.join(root, "TASK-261115f", "request.md"), "utf8");
+  eq("접수 키", "key" in p ? p.key : p.reason, "TASK-11");
+  eq("접수 명령", "prompt" in p ? p.prompt : "", "/do TASK-11 auto 종류=조사");
+  const req = fs.readFileSync(path.join(root, "TASK-11", "request.md"), "utf8");
   eq("request.md 내용", req.includes("## 조사 의뢰\n\n결제 실패 원인을 알아봐 줘") && req.includes("- **Jira**: 없음"), true);
   if ("release" in p) p.release?.();
-  eq("되돌리면 폴더 지움", fs.existsSync(path.join(root, "TASK-261115f")), false);
+  eq("되돌리면 폴더 지움", fs.existsSync(path.join(root, "TASK-11")), false);
 
   const j = prepareIntake("FE1-55", "", { kind: "doc", note: "덧붙임" }, root, at);
   eq("이슈 + 덧붙일 말 키", "key" in j ? j.key : j.reason, "FE1-55");
@@ -83,8 +88,7 @@ try {
   const lite = prepareIntake("FE1-77", "", { kind: "light", note: "고칠 곳" }, root, at);
   eq("가벼운 수정은 request.md 안 씀", fs.existsSync(path.join(root, "FE1-77")), false);
   eq("가벼운 수정 명령", "prompt" in lite ? lite.prompt : "", "/do FE1-77 light auto 고칠 곳");
-  for (let n = 0; n < 21; n++) allocateTaskKey(at, root);
-  eq("27번째는 aa", allocateTaskKey(at, root), "TASK-261115aa");
+  eq("되돌린 번호는 다시 씀", allocateTaskKey(root), "TASK-11");
 } finally {
   fs.rmSync(root, { recursive: true, force: true });
 }
