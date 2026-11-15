@@ -48,7 +48,7 @@ export const runtime = "nodejs";
 
 /**
  * 실행/재개/복원.
- * - 실행: { target } — 이슈 키·URL·문서·요구사항(+ base=/agents=/mode=). dobby-order 뒤에 그대로 전달.
+ * - 실행: { target, env?, kind?, base?, note? } — `/do` 자동 실행. kind(dev·doc·research·light)는 오피스 접수 창이 보낸다(buildDoPrompt).
  * - 재개/복원: { key, resume|unarchive } — key는 잡 id.
  */
 export async function POST(req: NextRequest) {
@@ -203,9 +203,17 @@ export async function POST(req: NextRequest) {
   if (!target) {
     return NextResponse.json({ ok: false, error: "empty" }, { status: 400 });
   }
-  const r = startDo(target, String(body?.env ?? ""));
+  // 오피스 접수 창: kind(dev·doc·research·light), base, note 를 함께 보낸다. 명령 글은 받지 않고 값으로만 만든다
+  const kinds = ["dev", "doc", "research", "light"] as const;
+  const kind = kinds.find((k) => k === body?.kind);
+  if (body?.kind !== undefined && !kind) return NextResponse.json({ ok: false, error: "모르는 종류입니다" }, { status: 400 });
+  const r = startDo(target, String(body?.env ?? ""), {
+    kind,
+    base: typeof body?.base === "string" ? body.base : undefined,
+    note: typeof body?.note === "string" ? body.note : undefined,
+  });
   if (!r.ok) return NextResponse.json({ ok: false, error: r.reason }, { status: 409 });
-  return NextResponse.json({ ok: true, key: r.jobId }, { status: 202 });
+  return NextResponse.json({ ok: true, key: r.jobId, command: r.prompt }, { status: 202 });
 }
 
 /** 정지(기본) 또는 보관(action=archive). 데이터는 삭제하지 않는다. */

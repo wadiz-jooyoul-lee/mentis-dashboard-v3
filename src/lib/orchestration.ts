@@ -820,6 +820,10 @@ export type EpicDetail = {
   phase: PhaseKey;
   /** /do 오더(상태 문서에 `## 지난 세션` 표가 있음). 담당자 다섯을 그린다. */
   isV2: boolean;
+  /** 진행 방식(`- **진행 방식**:` 줄, 예: `light`·`light auto`·`light (중단 — …)`). 없으면 null. */
+  runMode: string | null;
+  /** 사람이 접수 때 고른 종류(`- **접수 종류**:` 줄의 개발·문서·조사). 없으면 null. */
+  intake: string | null;
   /** 자동 실행 표지 줄과 실제 프로세스 생존. 줄이 없으면 null. */
   autoRun: AutoRun | null;
   /** 아직 답을 받지 못한 질문(ask.json)의 제목. 없으면 null. */
@@ -1686,6 +1690,8 @@ export function getEpic(epicKey: string, opts: EpicLoadOpts = {}): EpicDetail | 
     phaseRaw: st?.phaseRaw ?? null,
     phase: st?.phase ?? "unknown",
     isV2: isV2Status(statusMd),
+    runMode: statusMd?.match(/^[ \t]*-[ \t]*\*\*진행 방식\*\*:[ \t]*(.+)$/m)?.[1].trim() ?? null,
+    intake: statusMd?.match(/^[ \t]*-[ \t]*\*\*접수 종류\*\*:[ \t]*(개발|문서|조사)/m)?.[1] ?? null,
     autoRun: autoRunState(st?.autoRunLine ?? null),
     openAsk: openAskTitle(epicKey),
     sessions: liveSessions(epicKey),
