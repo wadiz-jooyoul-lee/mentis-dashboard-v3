@@ -3,7 +3,7 @@
  * 오피스 `lib/dobby/doCommand.ts` 와 본문이 같아야 한다. 고치면 두 곳을 함께 고치고 각 저장소의 접수 시험을 돌린다.
  *
  * 사람은 일의 종류를 고르고, Jira 이슈가 있으면 이슈를 넣고, 없으면 내용만 적는다.
- * Jira 이슈가 없으면 대시보드가 작업 키(TASK-{YYMMDD}{a,b,…})를 만든다. 사람이 TASK- 키를 칠 일은 없다.
+ * Jira 이슈가 없으면 대시보드가 작업 키(TASK-1, TASK-2, …)를 만든다. 사람이 TASK- 키를 칠 일은 없다.
  * 내용은 명령 글에 넣지 않고 오더 폴더의 request.md 로 넘긴다(가벼운 수정만 지금처럼 명령 뒤에 붙인다).
  */
 export type IntakeKind = "dev" | "doc" | "research" | "light";

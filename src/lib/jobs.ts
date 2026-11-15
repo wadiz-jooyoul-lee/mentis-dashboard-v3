@@ -293,39 +293,43 @@ export function buildDoPrompt(target: string, env: string, o: Pick<DoOptions, "b
   return { prompt: `/do ${t} auto${base ? ` base=${base}` : ""}${e ? ` env=${e}` : ""}`, key };
 }
 
-/** 오늘 날짜의 작업 키 머리: TASK-{YYMMDD} */
-export function taskKeyPrefix(at: Date): string {
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `TASK-${p(at.getFullYear() % 100)}${p(at.getMonth() + 1)}${p(at.getDate())}`;
+const TASK_NUM_RE = /^TASK-(\d+)(?:--.*)?$/;
+
+/** 폴더 이름들에서 가장 큰 작업 번호(TASK-{n}). 휴지통 이름(TASK-3--20261115-1200)도 읽는다 */
+function maxTaskNumber(names: string[]): number {
+  let max = 0;
+  for (const name of names) {
+    const m = TASK_NUM_RE.exec(name);
+    if (m) max = Math.max(max, Number(m[1]));
+  }
+  return max;
 }
 
-/** 순번을 글자로: 1→a … 26→z, 27→aa */
-function seqLetters(n: number): string {
-  let out = "";
-  for (let x = n; x > 0; x = Math.floor((x - 1) / 26)) out = String.fromCharCode(97 + ((x - 1) % 26)) + out;
-  return out;
+function listDir(dir: string): string[] {
+  try {
+    return fs.readdirSync(dir);
+  } catch {
+    return [];
+  }
 }
 
 /**
- * Jira 이슈 없는 접수에 작업 키(TASK-{YYMMDD}{a,b,…})를 잡는다.
- * 끝을 숫자가 아니라 글자로 둔다. `-숫자` 로 끝나면 오피스가 "상위 이슈-하위 번호"(FE1-123-1)로 읽어 같은 날 접수를 한 묶음으로 보고,
- * 숫자만 붙이면(TASK-26111501) Jira 키 모양이 된다.
- * 오더 폴더를 만들어 키를 차지한다(두 접수가 동시에 와도 mkdir 이 한쪽만 성공한다).
- * 잡 기록·휴지통(.discarded/{키}--…)에 남은 키도 피한다. 보드는 status.md 가 있는 폴더만 보이므로 빈 폴더는 보드에 뜨지 않는다.
+ * Jira 이슈 없는 접수에 작업 키(TASK-1, TASK-2, …)를 잡는다.
+ * 번호는 1부터 차례로 이어진다 — 오더 폴더·잡 기록·휴지통에 남은 가장 큰 번호의 다음 번호다(지운 번호를 다시 쓰지 않는다).
+ * 옛 키(TASK-261115a·TASK-slug)는 번호로 치지 않는다.
+ * 오더 폴더를 만들어 키를 차지한다(두 접수가 동시에 와도 mkdir 이 한쪽만 성공하고, 진 쪽은 다음 번호로 간다).
+ * 보드는 status.md 가 있는 폴더만 보이므로 빈 폴더는 보드에 뜨지 않는다.
  */
-export function allocateTaskKey(at: Date = new Date(), metaRoot: string = getMetaDir()): string | null {
-  const prefix = taskKeyPrefix(at);
+export function allocateTaskKey(metaRoot: string = getMetaDir()): string | null {
   fs.mkdirSync(metaRoot, { recursive: true });
-  let discarded: string[] = [];
-  try {
-    discarded = fs.readdirSync(path.join(metaRoot, ".discarded"));
-  } catch {
-    /* 휴지통 없음 */
-  }
-  for (let n = 1; n <= 702; n++) {
-    const key = `${prefix}${seqLetters(n)}`;
-    if (fs.existsSync(path.join(metaRoot, ".mentis-jobs", key))) continue;
-    if (discarded.some((d) => d.startsWith(`${key}--`))) continue;
+  const start =
+    Math.max(
+      maxTaskNumber(listDir(metaRoot)),
+      maxTaskNumber(listDir(path.join(metaRoot, ".mentis-jobs"))),
+      maxTaskNumber(listDir(path.join(metaRoot, ".discarded"))),
+    ) + 1;
+  for (let n = start; n < start + 1000; n++) {
+    const key = `TASK-${n}`;
     try {
       fs.mkdirSync(path.join(metaRoot, key));
       return key;
@@ -377,8 +381,8 @@ export function prepareIntake(target: string, env: string, opts: DoOptions & { k
       return { reason: "이미 시작한 오더입니다. 덧붙일 내용은 오더 화면에서 변경으로 접수해 주세요" };
     }
   } else {
-    const k = allocateTaskKey(now, metaRoot);
-    if (!k) return { reason: "오늘 만들 수 있는 작업 키를 다 썼습니다" };
+    const k = allocateTaskKey(metaRoot);
+    if (!k) return { reason: "작업 키를 만들지 못했습니다" };
     key = k;
     release = () => releaseTaskKey(k, metaRoot);
   }
