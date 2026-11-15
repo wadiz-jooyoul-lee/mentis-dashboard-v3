@@ -549,7 +549,21 @@ export default function OrchestrationBoard({
       hasDesign={epic?.hasDesignDoc ?? false}
       hasQa={!!epic?.qa}
       orderKind={epic?.orderKind ?? null}
-      extra={<QuipsControl epicKey={epicKey} />}
+      extra={
+        <>
+          {epic?.runMode?.startsWith("light") && (
+            <Tooltip title={epic.runMode.includes("중단") ? `light 로 시작했다가 일반 실행으로 넘김 — ${epic.runMode}` : epic.runMode === "light auto" ? "한 세션 실행 · 리뷰 없음 · 사람 확인 없이 스스로 판단" : "한 세션 실행 · 리뷰 없음 · 사람 확인 한 번"}>
+              <Tag color="gold">{epic.runMode.includes("중단") ? "light 중단" : epic.runMode === "light auto" ? "light auto" : "light"}</Tag>
+            </Tooltip>
+          )}
+          {epic?.intake && (
+            <Tooltip title="사람이 접수 때 고른 종류">
+              <Tag>접수: {epic.intake}</Tag>
+            </Tooltip>
+          )}
+          <QuipsControl epicKey={epicKey} />
+        </>
+      }
     />
   );
 

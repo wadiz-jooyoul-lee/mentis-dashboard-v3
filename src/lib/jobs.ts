@@ -262,27 +262,82 @@ export const DO_AUTO_ENVS = ["dev", "rc1", "rc4"] as const;
  * 그래서 DOBBY_V2_CHAINED 로 알려 띄우지 않게 하고, 이 잡이 이어서 run.sh 를 실행한다.
  * 설계가 확정되지 않았으면(사람 판단 필요·사전 확인 실패) run.sh 가 곧바로 그 이유로 멈춘다.
  */
-export function startDo(target: string, env: string): { ok: boolean; reason?: string; jobId?: string } {
+export type DoKind = "dev" | "doc" | "research" | "light";
+export interface DoOptions {
+  /** 사람이 접수 때 고른 종류. 없으면 설계가 스스로 정한다(대시보드 실행 탭). */
+  kind?: DoKind;
+  /** 기준 브랜치. 개발·문서만 받는다. */
+  base?: string;
+  /** light 의 미리 분석한 내용. */
+  note?: string;
+}
+const DO_KIND_ARG: Record<Exclude<DoKind, "light">, string> = { dev: "개발", doc: "문서", research: "조사" };
+/** 브랜치 이름: 영숫자·점·밑줄·빗금·하이픈만, ".." 과 앞 하이픈 금지. 명령 인자에 그대로 들어가므로 좁게 받는다. */
+const BRANCH_RE = /^(?!-)(?!.*\.\.)[A-Za-z0-9._/-]{1,100}$/;
+const LIGHT_NOTE_MAX = 2000;
+
+/**
+ * 오더 실행 명령을 만든다. 접수 창(오피스)의 미리 보기와 같은 규칙이다. 맞지 않으면 reason.
+ * - 종류 없음: `/do {target} auto [env=]` (대시보드 실행 탭, 지금까지와 같음)
+ * - 개발·문서·조사: `/do {키} auto 종류={…} [base=] [env= — 개발만]`
+ * - light: `/do {키} light auto [env=] {분석}` — 한 세션에서 확인 없이 끝까지 간다
+ */
+export function buildDoPrompt(target: string, env: string, o: DoOptions = {}): { prompt: string; key: string } | { reason: string } {
   const t = target.trim();
-  if (!t) return { ok: false, reason: "empty" };
+  if (!t) return { reason: "empty" };
   const key = deriveJobId(t);
-  if (!ORDER_KEY_RE.test(key)) return { ok: false, reason: "이슈 키나 이슈 주소로 시작해 주세요" };
+  if (!ORDER_KEY_RE.test(key)) return { reason: "이슈 키나 이슈 주소로 시작해 주세요" };
   const e = env.trim();
   if (e && !(DO_AUTO_ENVS as readonly string[]).includes(e)) {
-    return { ok: false, reason: `자동 배포 환경은 ${DO_AUTO_ENVS.join("·")} 중 하나입니다` };
+    return { reason: `자동 배포 환경은 ${DO_AUTO_ENVS.join("·")} 중 하나입니다` };
   }
+  const base = (o.base ?? "").trim();
+  if (base && !BRANCH_RE.test(base)) return { reason: "기준 브랜치 이름이 올바르지 않습니다" };
+  if (!o.kind) return { prompt: `/do ${t} auto${base ? ` base=${base}` : ""}${e ? ` env=${e}` : ""}`, key };
+  if (!isJiraIssueKey(key)) return { reason: "종류를 골라 시작하는 실행은 Jira 이슈 키나 주소로만 받습니다" };
+  if (o.kind === "light") {
+    const note = (o.note ?? "").trim();
+    if (!note) return { reason: "미리 분석한 내용을 적어 주세요" };
+    if (note.length > LIGHT_NOTE_MAX) return { reason: `미리 분석한 내용은 ${LIGHT_NOTE_MAX}자까지입니다` };
+    if (base) return { reason: "가벼운 수정은 기준 브랜치를 받지 않습니다" };
+    return { prompt: `/do ${key} light auto${e ? ` env=${e}` : ""} ${note}`, key };
+  }
+  if (o.kind !== "dev" && e) return { reason: "문서와 조사는 배포·검증을 하지 않습니다. 환경을 고르지 않습니다" };
+  if (o.kind === "research" && base) return { reason: "조사는 저장소를 바꾸지 않아 기준 브랜치를 받지 않습니다" };
+  const parts = [`/do ${key} auto 종류=${DO_KIND_ARG[o.kind]}`];
+  if (base) parts.push(`base=${base}`);
+  if (e) parts.push(`env=${e}`);
+  return { prompt: parts.join(" "), key };
+}
+
+/** light 는 세션 하나가 커밋·배포까지 한다. 접수 창의 동의를 세션에 전한다(run.sh 의 승인 지시와 같은 뜻). */
+function lightConsent(env: string): string {
+  return (
+    "이 실행은 사용자가 접수 창에서 미리 승인한 light 자동 실행이다. 오더 작업 브랜치에 커밋하고 푸시하는 것은 이미 동의를 받았으니 다시 묻지 말고 진행한다." +
+    (env
+      ? ` ${env} 의 PR·리뷰봇 반영·머지·빌드·argocd sync 도 이미 동의를 받았다. stage·cloud_live 는 이 승인에 들어가지 않는다. 리뷰봇과 빌드는 light 절차대로 셸에서 기다린다.`
+      : " 배포 환경을 고르지 않았으므로 정식 배포 브랜치로의 PR·머지·배포는 하지 않는다.")
+  );
+}
+
+export function startDo(target: string, env: string, opts: DoOptions = {}): { ok: boolean; reason?: string; jobId?: string; prompt?: string } {
+  const built = buildDoPrompt(target, env, opts);
+  if ("reason" in built) return { ok: false, reason: built.reason };
+  const { key, prompt } = built;
   if (isRunning(key)) return { ok: false, reason: "already_running" };
   const script = v2RunScript();
   if (!script) return { ok: false, reason: "go-dobby 플러그인에서 run.sh 를 찾지 못했습니다" };
   const workspace = getWorkspaceDir();
-  const prompt = `/do ${t} auto${e ? ` env=${e}` : ""}`;
-  const design = [
+  const first = [
     shq(claudeBin()), "-p", shq(prompt),
     "--permission-mode", "bypassPermissions", "--output-format", "stream-json", "--verbose",
     "--add-dir", shq(workspace), "--add-dir", shq(getReposRoot()),
+    ...(opts.kind === "light" ? ["--append-system-prompt", shq(lightConsent(env.trim()))] : []),
   ].join(" ");
-  spawnBashJob(key, `DOBBY_V2_CHAINED=1 ${design}; ${runShPipeline(script, key)}`);
-  return { ok: true, jobId: key };
+  // light 도 뒤에 run.sh 를 잇는다. light 가 끝까지 갔으면 run.sh 는 완성을 보고 바로 멈추고,
+  // 일반 실행으로 넘겼거나 질문을 남겼으면 run.sh 가 그 자리부터 이어 간다.
+  spawnBashJob(key, `DOBBY_V2_CHAINED=1 ${first}; ${runShPipeline(script, key)}`);
+  return { ok: true, jobId: key, prompt };
 }
 
 /** 구현 내용(explainer.md) 생성: `/dobby-explain {키}`를 백그라운드로 실행. 잡 id는 `explain-{키}`. */
