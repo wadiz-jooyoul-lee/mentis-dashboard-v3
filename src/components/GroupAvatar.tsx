@@ -43,6 +43,11 @@ const ENTER_MS: [number, number] = [0, 5000]; // 첫 등장 — 카드마다 엇
 const SHOW_MS: [number, number] = [8000, 14000];
 const REST_MS: [number, number] = [3000, 7000];
 
+// 말풍선 겹침 순서. 위쪽 고정 머리띠(앱 100, 오더 90)보다 낮아야 스크롤할 때 머리띠 뒤로 숨는다
+const QUIP_Z = 80;
+// 말풍선 안쪽 여백. antd 기본(12px)보다 줄여 카드를 덜 가린다
+const BUBBLE_PAD = { padding: "6px 8px" };
+
 const rand = ([lo, hi]: [number, number]) => lo + Math.random() * (hi - lo);
 
 /**
@@ -77,7 +82,6 @@ function useAutoQuip(quips: Quip[], enabled: boolean) {
   const [quip, setQuip] = useState<Quip | null>(null);
   const quipsRef = useRef(quips);
   quipsRef.current = quips;
-  const holdRef = useRef(false); // 호버 중이면 읽는 중이므로 붙잡아 둔다
 
   useEffect(() => {
     if (!enabled) return;
@@ -98,7 +102,6 @@ function useAutoQuip(quips: Quip[], enabled: boolean) {
       at(rand(SHOW_MS), hide);
     };
     const hide = () => {
-      if (holdRef.current) return at(1000, hide);
       setQuip(null);
       at(rand(REST_MS), show);
     };
@@ -113,7 +116,7 @@ function useAutoQuip(quips: Quip[], enabled: boolean) {
     //    최신 소감은 quipsRef 로 본다.
   }, [enabled]);
 
-  return { quip, holdRef };
+  return { quip };
 }
 
 /** 칸반 밖(리뷰·오케스트레이터·코드 변경)용. 호버할 때마다 하나를 새로 고른다. */
@@ -161,6 +164,7 @@ export default function GroupAvatar({
   quips = [],
   mode = "hover",
   placement,
+  hidden = false,
   showGroup = false,
 }: {
   slug: string;
@@ -174,6 +178,8 @@ export default function GroupAvatar({
   mode?: "hover" | "auto";
   /** mode="auto"일 때 말풍선 방향. 생략하면 antd 기본값. */
   placement?: QuipPlacement;
+  /** mode="auto"일 때 스스로 뜬 말풍선을 잠시 숨긴다(카드에 마우스를 올린 동안). */
+  hidden?: boolean;
   /** true면 말풍선 헤더를 멤버/역할 대신 **그룹 이름**(방탄소년단·프로미스나인·아이브·도비)으로 표시. */
   showGroup?: boolean;
 }) {
@@ -231,8 +237,8 @@ export default function GroupAvatar({
       : undefined;
 
   const content = (
-    <div style={{ fontSize: 13, lineHeight: 1.4 }}>
-      {header && <div style={{ fontWeight: 600, marginBottom: quip?.text ? 4 : 0 }}>{header}</div>}
+    <div style={{ fontSize: 11, lineHeight: 1.35 }}>
+      {header && <div style={{ fontWeight: 600, marginBottom: quip?.text ? 2 : 0 }}>{header}</div>}
       {quip?.text && (
         <div style={clamp}>
           {MOOD_EMOJI[quip.mood] ?? "💬"} {quip.text}
@@ -244,23 +250,15 @@ export default function GroupAvatar({
   if (speaks) {
     return (
       <Popover
-        open={!!quip}
+        open={!!quip && !hidden}
         placement={placement}
+        zIndex={QUIP_Z}
         // 스스로 떠 있는 말풍선이 마우스를 가로채면 그 자리의 카드를 누를 수 없다.
-        overlayStyle={{ maxWidth: 320, pointerEvents: "none" }}
+        overlayStyle={{ maxWidth: 200, pointerEvents: "none" }}
+        styles={{ container: BUBBLE_PAD }}
         content={content}
       >
-        <span
-          style={{ display: "inline-flex" }}
-          onMouseEnter={() => {
-            auto.holdRef.current = true; // 읽는 중에 사라지지 않게 붙잡는다
-          }}
-          onMouseLeave={() => {
-            auto.holdRef.current = false;
-          }}
-        >
-          {icon}
-        </span>
+        <span style={{ display: "inline-flex" }}>{icon}</span>
       </Popover>
     );
   }
@@ -270,7 +268,9 @@ export default function GroupAvatar({
       trigger="hover"
       onOpenChange={hover.onOpenChange}
       placement={placement}
-      overlayStyle={{ maxWidth: 320 }}
+      zIndex={QUIP_Z}
+      overlayStyle={{ maxWidth: 240 }}
+      styles={{ container: BUBBLE_PAD }}
       content={content}
     >
       <span style={{ display: "inline-flex", cursor: "help" }}>{icon}</span>
