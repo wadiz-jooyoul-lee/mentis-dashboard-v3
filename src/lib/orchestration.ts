@@ -822,6 +822,8 @@ export type EpicDetail = {
   isV2: boolean;
   /** 진행 방식(`- **진행 방식**:` 줄, 예: `light`·`light auto`·`light (중단 — …)`). 없으면 null. */
   runMode: string | null;
+  /** 결과 문서 줄(`- **결과 문서**:` 대기·작성 중·완료 · 시각). 자동 배포 오더가 배포와 함께 쓰는 동안 단계 띠의 통합 칸도 켠다. 없으면 null. */
+  docsLine: string | null;
   /** 사람이 접수 때 고른 종류(`- **접수 종류**:` 줄의 개발·문서·조사). 없으면 null. */
   intake: string | null;
   /** 자동 실행 표지 줄과 실제 프로세스 생존. 줄이 없으면 null. */
@@ -1691,6 +1693,7 @@ export function getEpic(epicKey: string, opts: EpicLoadOpts = {}): EpicDetail | 
     phase: st?.phase ?? "unknown",
     isV2: isV2Status(statusMd),
     runMode: statusMd?.match(/^[ \t]*-[ \t]*\*\*진행 방식\*\*:[ \t]*(.+)$/m)?.[1].trim() ?? null,
+    docsLine: statusMd?.match(/^[ \t]*-[ \t]*\*\*결과 문서\*\*:[ \t]*(.+)$/m)?.[1].trim() ?? null,
     intake: statusMd?.match(/^[ \t]*-[ \t]*\*\*접수 종류\*\*:[ \t]*(개발|문서|조사)/m)?.[1] ?? null,
     autoRun: autoRunState(st?.autoRunLine ?? null),
     openAsk: openAskTitle(epicKey),

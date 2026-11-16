@@ -207,6 +207,7 @@ function ProgressBar({ parts, total, label }: { parts: BarPart[]; total: number;
 /**
  * 단계 띠: 단계값을 칸에 접어 그린다. 겹친 단계(설계확인·수정·보류 등)는 칸 아래 작은 글씨로.
  * 칸은 켜진 담당자에 맞춘다(담당자 줄이 없는 오더는 여덟 칸 그대로) — parseOrderStatus.phaseBand.
+ * 결과 문서를 배포와 함께 쓰는 동안(결과 문서 줄이 대기·작성 중)에는 지난 통합 칸도 켠다.
  */
 function PhaseBand({
   phase,
@@ -214,21 +215,25 @@ function PhaseBand({
   roles,
   retroHref,
   retroDone,
+  docs,
 }: {
   phase: string;
   raw: string;
   roles: string[] | null;
   retroHref: string;
   retroDone: boolean;
+  docs: string | null;
 }) {
   const cells = phaseBand(roles);
   const cur = cells.findIndex((c) => c.key === phase);
   const name = phaseName(raw, roles);
+  const docsAt = /^(대기|작성 중)/.test(docs ?? "") ? cells.findIndex((c) => c.key === "통합") : -1;
+  const docsCell = docsAt >= 0 && docsAt < cur ? docsAt : -1;
   return (
     <div style={{ display: "flex", gap: 4 }}>
       {cells.map((c, i) => {
-        const active = i === cur;
-        const sub = active && name && name !== c.label ? name : null;
+        const active = i === cur || i === docsCell;
+        const sub = i === docsCell ? "결과 문서 작성 중" : active && name && name !== c.label ? name : null;
         return (
           <div
             key={c.key}
@@ -801,6 +806,7 @@ export default function OrchestrationBoard({
               roles={roles}
               retroHref={`/orchestration/${epicKey}/retro`}
               retroDone={epic?.hasRetroDoc ?? false}
+              docs={epic?.docsLine ?? null}
             />
             {mover && (
               <Alert
