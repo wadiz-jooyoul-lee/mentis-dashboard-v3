@@ -3,6 +3,7 @@ import {
   startDo,
   startExplain,
   startRetro,
+  startPerf,
   startDataSpec,
   startDataRun,
   startQuips,
@@ -74,6 +75,13 @@ export async function POST(req: NextRequest) {
     const block = getEpic(String(body?.key ?? ""))?.retroBlock;
     if (block) return NextResponse.json({ ok: false, error: block }, { status: 409 });
     const r = startRetro(String(body?.key ?? ""), !!body?.regen);
+    if (!r.ok) return NextResponse.json({ ok: false, error: r.reason }, { status: 409 });
+    return NextResponse.json({ ok: true, key: r.jobId }, { status: 202 });
+  }
+
+  // 성능 측정: /dobby-perf {키} [regen]. 진행 중인 오더도 잴 수 있어 잠그지 않는다.
+  if (body?.perf) {
+    const r = startPerf(String(body?.key ?? ""), !!body?.regen);
     if (!r.ok) return NextResponse.json({ ok: false, error: r.reason }, { status: 409 });
     return NextResponse.json({ ok: true, key: r.jobId }, { status: 202 });
   }

@@ -45,6 +45,7 @@ function routeFor(key: string, tab: string): string {
   if (tab === "artifact") return `/orchestration/${key}/artifact`;
   if (tab === "data") return `/orchestration/${key}/data`;
   if (tab === "retro") return `/orchestration/${key}/retro`;
+  if (tab === "perf") return `/orchestration/${key}/perf`;
   if (tab === "docs") return `/orchestration/${key}/docs`;
   if (tab === "deliverables") return `/orchestration/${key}/deliverables`;
   return `/orchestration/${key}`;
@@ -61,6 +62,7 @@ function activeTab(pathname: string): string {
   if (pathname.endsWith("/artifact")) return "artifact";
   if (pathname.endsWith("/data")) return "data";
   if (pathname.endsWith("/retro")) return "retro";
+  if (pathname.endsWith("/perf")) return "perf";
   if (pathname.endsWith("/docs")) return "docs";
   if (pathname.endsWith("/deliverables")) return "deliverables";
   return "board";
@@ -139,6 +141,7 @@ export default function OrderHeader({
         { key: "artifact", label: "아티팩트" },
         ...dataTab,
         { key: "retro", label: "회고" },
+        { key: "perf", label: "성능" },
       ]
     : [
         ...baseTabs,
@@ -147,6 +150,7 @@ export default function OrderHeader({
         { key: "artifact", label: "아티팩트" },
         ...dataTab,
         { key: "retro", label: "회고" },
+        { key: "perf", label: "성능" },
       ];
 
   return (
