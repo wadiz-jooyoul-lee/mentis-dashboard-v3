@@ -10,6 +10,7 @@ import {
   ClusterOutlined,
   ShareAltOutlined,
   BarChartOutlined,
+  ChromeOutlined,
 } from "@ant-design/icons";
 import type { Section } from "@/lib/sections";
 import { AREA_LABELS, AREA_ORDER } from "@/lib/sections";
@@ -25,6 +26,7 @@ const ICONS = {
   ClusterOutlined: ClusterOutlined,
   ShareAltOutlined: ShareAltOutlined,
   BarChartOutlined: BarChartOutlined,
+  ChromeOutlined: ChromeOutlined,
 };
 
 const METRIC_COLOR: Record<string, string> = {

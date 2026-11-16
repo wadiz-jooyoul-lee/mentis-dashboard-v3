@@ -22,7 +22,8 @@ export type Section = {
     | "DeploymentUnitOutlined"
     | "ClusterOutlined"
     | "ShareAltOutlined"
-    | "BarChartOutlined";
+    | "BarChartOutlined"
+    | "ChromeOutlined";
   /** 소속 영역 */
   area: SectionArea;
   /** false면 "준비 중"으로 비활성 표시 */
@@ -79,6 +80,15 @@ export const sections: Section[] = [
     description: "FE1·FE2·클라이언트팀 이슈 조사(dobby-jobs) — 바뀐 이슈, 담당자별 진행, 내 오더와 겹침",
     path: "/team-jobs",
     icon: "DeploymentUnitOutlined",
+    area: "orchestration",
+    enabled: true,
+  },
+  {
+    key: "chrome",
+    title: "테스트 브라우저",
+    description: "세션들이 띄운 Chrome for Testing — 사용 여부 확인과 쉬는 크롬 정리",
+    path: "/chrome",
+    icon: "ChromeOutlined",
     area: "orchestration",
     enabled: true,
   },
