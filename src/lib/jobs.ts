@@ -450,6 +450,19 @@ export function startRetro(
   return { ok: true, jobId };
 }
 
+/** 성능 측정(perf.json): `/dobby-perf {키} [regen]`를 백그라운드로 실행. 잡 id는 `perf-{키}`. */
+export function startPerf(
+  key: string,
+  regen = false
+): { ok: boolean; reason?: string; jobId?: string } {
+  const k = key.trim();
+  if (!ORDER_KEY_RE.test(k)) return { ok: false, reason: "invalid_key" };
+  const jobId = `perf-${k}`;
+  if (isRunning(jobId)) return { ok: false, reason: "already_running" };
+  spawnClaude(jobId, ["-p", `/dobby-perf ${k}${regen ? " regen" : ""}`], false);
+  return { ok: true, jobId };
+}
+
 /** 데이터 탭 작업: 명세 만들기(`data-spec-{키}`)와 수집 한 회차(`data-{키}`). 같은 오더에서 둘 중 하나라도 돌면 거절한다. */
 function startData(key: string, cmd: "spec" | "run"): { ok: boolean; reason?: string; jobId?: string } {
   const k = key.trim();

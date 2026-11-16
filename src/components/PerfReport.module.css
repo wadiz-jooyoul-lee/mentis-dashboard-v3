@@ -1,0 +1,604 @@
+.root {
+  --p-text: #1f2328;
+  --p-sub: #5b6470;
+  --p-faint: #8a929c;
+  --p-line: #e4e7ec;
+  --p-card: #ffffff;
+  --p-soft: #f6f7f9;
+  --p-good: #16794c;
+  --p-good-bg: #e3f5ec;
+  --p-warn: #c2570c;
+  --p-warn-bg: #fdebdc;
+  --p-base: #c9ced6;
+  --p-accent: #3b5bdb;
+  --p-impl: #4c6ef5;
+  --p-review: #9c36b5;
+  --p-merge: #0c8599;
+  --p-deploy: #e8890c;
+  --p-verify: #2f9e44;
+  --p-etc: #868e96;
+  --p-wait: rgba(240, 140, 0, 0.55);
+  --p-cut: rgba(120, 130, 145, 0.35);
+  color: var(--p-text);
+  padding: 20px 0 48px;
+}
+
+.report {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.good {
+  color: var(--p-good);
+}
+.warn {
+  color: var(--p-warn);
+}
+
+/* ① 한 줄 요약 */
+.hero {
+  background: var(--p-card);
+  border: 1px solid var(--p-line);
+  border-left: 5px solid var(--p-accent);
+  border-radius: 12px;
+  padding: 22px 24px;
+}
+.heroLine {
+  font-size: 22px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+.heroLine b {
+  font-weight: 700;
+}
+.heroDash {
+  margin: 0 8px;
+  color: var(--p-faint);
+}
+.heroMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--p-sub);
+}
+.heroNote {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--p-warn);
+}
+.pillDone,
+.pillLive {
+  padding: 1px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.pillDone {
+  background: var(--p-good-bg);
+  color: var(--p-good);
+}
+.pillLive {
+  background: var(--p-warn-bg);
+  color: var(--p-warn);
+}
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+.tile {
+  background: var(--p-soft);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.tileLabel {
+  font-size: 12px;
+  color: var(--p-sub);
+}
+.tileValue {
+  font-size: 22px;
+  font-weight: 700;
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.tileSub {
+  font-size: 12px;
+  color: var(--p-faint);
+  margin-top: 2px;
+}
+
+/* 공통 구역 */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.h3 {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0;
+}
+.help {
+  margin: 0;
+}
+.help {
+  font-size: 13px;
+  color: var(--p-sub);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.card {
+  background: var(--p-card);
+  border: 1px solid var(--p-line);
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+
+/* ② 단계별 막대 */
+.keyBase,
+.keyGood,
+.keyWarn {
+  display: inline-block;
+  width: 14px;
+  height: 10px;
+  border-radius: 3px;
+  margin-left: 6px;
+}
+.keyBase {
+  background: var(--p-base);
+}
+.keyGood {
+  background: var(--p-good);
+}
+.keyWarn {
+  background: var(--p-warn);
+}
+.barRow {
+  display: grid;
+  grid-template-columns: 90px 1fr 80px;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--p-line);
+}
+.barRow:last-child {
+  border-bottom: none;
+}
+.barStage {
+  font-weight: 600;
+}
+.barSessions {
+  font-size: 12px;
+  color: var(--p-faint);
+}
+.barTrack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.barLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.barBase,
+.barNow {
+  height: 12px;
+  border-radius: 0 6px 6px 0;
+}
+.barBase {
+  background: var(--p-base);
+}
+.barNow {
+  height: 16px;
+}
+.barNowGood {
+  background: var(--p-good);
+}
+.barNowWarn {
+  background: var(--p-warn);
+}
+.barNum {
+  font-size: 12px;
+  color: var(--p-sub);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.barNumStrong {
+  color: var(--p-text);
+  font-weight: 600;
+  font-size: 13px;
+}
+.barDiff {
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--p-sub);
+}
+
+/* ③ 개선 항목 */
+.items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
+}
+.item {
+  background: var(--p-card);
+  border: 1px solid var(--p-line);
+  border-radius: 12px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.itemOn {
+  border-color: var(--p-good);
+  box-shadow: inset 0 3px 0 var(--p-good);
+}
+.itemHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+.itemName {
+  font-weight: 700;
+  font-size: 15px;
+}
+.itemTags {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.chip {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.stApplied {
+  background: var(--p-good-bg);
+  color: var(--p-good);
+}
+.stNone {
+  background: var(--p-soft);
+  color: var(--p-sub);
+}
+.stUnknown,
+.stEstimate {
+  background: var(--p-warn-bg);
+  color: var(--p-warn);
+}
+.itemNums {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  background: var(--p-soft);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.itemNumLabel {
+  font-size: 12px;
+  color: var(--p-sub);
+}
+.itemNum {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.itemEvidence {
+  font-size: 13px;
+  line-height: 1.55;
+}
+.itemNote {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--p-faint);
+}
+
+/* ④ 시간 흐름 */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 12px;
+  color: var(--p-sub);
+}
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.legendSwatch {
+  display: inline-block;
+  width: 16px;
+  height: 11px;
+  border-radius: 3px;
+}
+.gImpl {
+  background: var(--p-impl);
+}
+.gReview {
+  background: var(--p-review);
+}
+.gMerge {
+  background: var(--p-merge);
+}
+.gDeploy {
+  background: var(--p-deploy);
+}
+.gVerify {
+  background: var(--p-verify);
+}
+.gEtc {
+  background: var(--p-etc);
+}
+.hatchWait {
+  background: repeating-linear-gradient(45deg, var(--p-wait) 0 3px, transparent 3px 7px);
+}
+.hatchCut {
+  background: repeating-linear-gradient(-45deg, var(--p-cut) 0 2px, transparent 2px 5px);
+}
+.timelineCard {
+  overflow-x: auto;
+}
+.timeline {
+  position: relative;
+  min-width: 720px;
+  padding: 18px 0 26px;
+}
+.laneGroup {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 10px;
+  padding: 6px 0;
+}
+.laneGroup + .laneGroup {
+  border-top: 1px dashed var(--p-line);
+}
+.laneTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--p-sub);
+  padding-top: 6px;
+}
+.laneBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.lane {
+  position: relative;
+  height: 26px;
+  background: var(--p-soft);
+  border-radius: 6px;
+}
+.span {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  padding: 0 5px;
+  cursor: default;
+  z-index: 2;
+}
+.spanTalk {
+  opacity: 0.4;
+}
+.spanText {
+  font-size: 11px;
+  color: #fff;
+  white-space: nowrap;
+  font-weight: 600;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.35);
+}
+.overlay {
+  position: absolute;
+  top: 18px;
+  bottom: 26px;
+  left: 90px;
+  right: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+.band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  pointer-events: auto;
+}
+.bandText {
+  position: absolute;
+  top: -17px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: var(--p-faint);
+  white-space: nowrap;
+}
+.axis {
+  position: absolute;
+  left: 90px;
+  right: 0;
+  bottom: 0;
+  height: 20px;
+}
+.tick {
+  position: absolute;
+  top: 4px;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: var(--p-sub);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.tick small {
+  color: var(--p-faint);
+}
+
+/* ⑤ 해석 · 계산 방법 */
+.summary {
+  font-size: 15px;
+  line-height: 1.75;
+  background: var(--p-soft);
+  border: none;
+}
+.method {
+  font-size: 13px;
+  color: var(--p-sub);
+}
+.method summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.method p {
+  margin-top: 8px;
+  line-height: 1.65;
+}
+
+/* ⑥ 비어 있을 때 */
+.empty {
+  max-width: 720px;
+  margin: 40px auto;
+  text-align: center;
+  background: var(--p-card);
+  border: 1px dashed var(--p-line);
+  border-radius: 12px;
+  padding: 32px 28px;
+}
+.emptyTitle {
+  font-size: 18px;
+  font-weight: 700;
+}
+.emptyText {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--p-sub);
+  line-height: 1.6;
+}
+.cmdRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+.cmd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 14px;
+  background: var(--p-soft);
+  border: 1px solid var(--p-line);
+  border-radius: 8px;
+  padding: 8px 14px;
+  user-select: all;
+}
+.copyBtn {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--p-accent);
+  background: var(--p-accent);
+  color: #fff;
+  cursor: pointer;
+}
+.copyBtn:hover {
+  opacity: 0.9;
+}
+
+/* 측정 실행 */
+.toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.primaryBtn,
+.ghostBtn {
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.primaryBtn {
+  margin-top: 18px;
+  padding: 10px 28px;
+  border: 1px solid var(--p-accent);
+  background: var(--p-accent);
+  color: #fff;
+}
+.ghostBtn {
+  padding: 7px 16px;
+  border: 1px solid var(--p-line);
+  background: var(--p-card);
+  color: var(--p-text);
+}
+.ghostBtn:hover:not(:disabled) {
+  border-color: var(--p-accent);
+  color: var(--p-accent);
+}
+.primaryBtn:disabled,
+.ghostBtn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.emptyAlt {
+  margin-top: 22px;
+  font-size: 13px;
+  color: var(--p-faint);
+}
+.empty .cmdRow {
+  margin-top: 8px;
+}
+.runError {
+  font-size: 13px;
+  color: var(--p-warn);
+  margin-top: 8px;
+}
+.runPanel {
+  text-align: left;
+  margin: 16px 0;
+  border: 1px solid var(--p-line);
+  border-left: 4px solid var(--p-accent);
+  border-radius: 10px;
+  background: var(--p-card);
+  padding: 12px 14px;
+}
+.runFailed {
+  border-left-color: var(--p-warn);
+}
+.runHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.runDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--p-accent);
+  animation: perfPulse 1.2s ease-in-out infinite;
+}
+@keyframes perfPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
