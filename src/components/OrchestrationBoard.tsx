@@ -27,7 +27,7 @@ import {
   MutedOutlined,
   CodeOutlined,
 } from "@ant-design/icons";
-import GroupAvatar, { type QuipPlacement } from "@/components/GroupAvatar";
+import GroupAvatar from "@/components/GroupAvatar";
 import QuipsControl from "@/components/QuipsControl";
 import OrderHeader from "@/components/OrderHeader";
 import MarkdownCards from "@/components/MarkdownCards";
@@ -276,7 +276,6 @@ function AgentCard({
   changeSlug,
   avatar,
   quips,
-  placement,
   console: con,
   progress,
   dot,
@@ -290,8 +289,6 @@ function AgentCard({
   avatar?: AssignedAvatar;
   /** 이 에이전트의 board 소감 목록(스스로 돌아가며 말풍선을 띄운다) */
   quips?: Quip[];
-  /** 말풍선을 띄울 방향(옆 열이 빈 쪽) */
-  placement?: QuipPlacement;
   /** 이 에이전트의 가장 최근 콘솔(id)과 지금 진행 중인지. 콘솔 기록이 없으면 undefined. */
   console?: { id: string; live: boolean };
   /** 아바타 아래 진행 막대(테스터·개발자·산출자). 없으면 그리지 않는다. */
@@ -307,6 +304,8 @@ function AgentCard({
   const time = elapsed(a);
   // 소감이 스스로 말하는 게 거슬릴 때 끄는 스위치. 꺼도 호버하면 보여 준다.
   const [muted, setMuted] = useState(false);
+  // 카드에 마우스를 올리면 스스로 뜬 말풍선을 숨겨 카드 글을 읽게 한다
+  const [hover, setHover] = useState(false);
   // 로그 유무와 무관하게 모든 에이전트 카드를 클릭 가능 → 변경 페이지의 해당 에이전트 섹션으로.
   const clickable = !empty && !!a.agent && a.agent !== "-";
   const anchor = a.agent.trim().replace(/\s+/g, "-");
@@ -319,6 +318,8 @@ function AgentCard({
       size="small"
       hoverable={clickable}
       onClick={goToChanges}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       style={{
         position: "relative", // 오른쪽 위 뮤트 버튼의 기준
         marginBottom: 8,
@@ -358,7 +359,8 @@ function AgentCard({
             size={34}
             quips={quips}
             mode={muted ? "hover" : "auto"}
-            placement={placement}
+            hidden={hover}
+            placement="top"
           />
           {a.agent && (
             <Tooltip title={a.desc || undefined}>
@@ -648,14 +650,6 @@ export default function OrchestrationBoard({
   // 고정 열(정식 순서) + 정의 밖 상태는 뒤에 추가(사라지지 않게)
   const extras = Object.keys(counts).filter((s) => !STATE_ORDER.includes(s));
   const cols = [...STATE_ORDER, ...extras];
-  // 말풍선은 옆 열을 덮으므로 **비어 있는 쪽**으로 띄운다. 양옆이 다 차 있으면 위로.
-  // 양끝 열은 보드 바깥 여백을 빈 쪽으로 본다(폭이 모자라면 antd가 화면 안으로 밀어 넣는다).
-  const colCount = cols.map((c) => counts[c] ?? 0);
-  const placementFor = (i: number): QuipPlacement => {
-    if (i === 0 || colCount[i - 1] === 0) return "left";
-    if (i === cols.length - 1 || colCount[i + 1] === 0) return "right";
-    return "top";
-  };
   const total = o.agents.length;
 
   // 테스터 막대: 최신 회차 result.md 시나리오 표(판정 칸이 찬 행 / 전체 행). 개발자 막대: 서버가 센 devProgress.
@@ -926,11 +920,10 @@ export default function OrchestrationBoard({
       {/* 칸반 보드 */}
       <Title level={4}>에이전트 상태</Title>
       <Row gutter={[12, 12]}>
-        {cols.map((col, colIdx) => {
+        {cols.map((col) => {
           const b = agentStateBadge(col);
           const items = o.agents.filter((a) => boardColumn(a.state) === col);
           const ghosts = col === "대기" ? missing : [];
-          const placement = placementFor(colIdx);
           // 5개 고정 열 → 폭을 균등하게 나눠 전체 너비를 채운다(좁은 화면에선 줄바꿈).
           return (
             <Col
@@ -958,7 +951,6 @@ export default function OrchestrationBoard({
                     changeSlug={changeSlugFor(a.agent)}
                     avatar={avatarMap.get(a.agent)}
                     quips={quipList(quips?.board?.[a.agent])}
-                    placement={placement}
                     console={consoleFor(a.agent)}
                     progress={progressFor(a)}
                     dot={dotFor(a)}
