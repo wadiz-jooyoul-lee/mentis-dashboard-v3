@@ -495,6 +495,15 @@ export default function OrchestrationBoard({
       clearInterval(t);
     };
   }, [epicKey]);
+
+  // 스스로 정한 결정은 기본 접힘. 알림의 "결정 보기"(#auto-decisions)로 들어오면 펼친다.
+  const [decisionsOpen, setDecisionsOpen] = useState(false);
+  useEffect(() => {
+    const sync = () => window.location.hash === "#auto-decisions" && setDecisionsOpen(true);
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
   const consoleFor = (slug: string) => {
     const id = consoleInfo.latest[slug];
     return id ? { id, live: !!consoleInfo.live[id] } : undefined;
@@ -821,64 +830,77 @@ export default function OrchestrationBoard({
 
       {/* 스스로 정한 결정 — 사람의 확정 없이 기획자가 정한 것. 설계 문서에서 직접 읽는다. 없으면 그리지 않는다. */}
       {isV2 && ((epic?.autoDecisions.length ?? 0) > 0 || (epic?.prRedesigns ?? 0) > 0) && (
-        <Card
-          id="auto-decisions"
-          size="small"
-          style={{ marginBottom: 16, scrollMarginTop: 220 }}
-          title={
-            <Space size={8} wrap>
-              <Text strong>스스로 정한 결정</Text>
-              <Tag color="purple" style={{ margin: 0 }}>
-                {epic!.autoDecisions.length}건
-              </Tag>
-              {epic!.autoDecisions.some((d) => d.check) && (
-                <Tag color="orange" style={{ margin: 0 }}>
-                  확인해 보세요 {epic!.autoDecisions.filter((d) => d.check).length}건
-                </Tag>
-              )}
-            </Space>
-          }
-          extra={epic?.hasDesignDoc ? <Link href={`/orchestration/${epicKey}/design`}>설계 문서에서 보기 →</Link> : undefined}
-        >
-          <Space orientation="vertical" size={10} style={{ width: "100%" }}>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              사람에게 묻지 않고 진행하면서 정한 것입니다. 생각과 다르면 설계를 고쳐 달라고 요청해 주세요.
-            </Text>
-            {(epic?.prRedesigns ?? 0) > 0 && (
-              <Text style={{ fontSize: 13 }}>
-                PR 에 달린 변경 요청으로 설계를 다시 본 횟수: <Text strong>{epic!.prRedesigns}번</Text>
-                <Text type="secondary"> ({PR_REDESIGN_MAX}번을 넘으면 사람에게 묻습니다)</Text>
-              </Text>
-            )}
-            {epic!.autoDecisions.map((d, i) => (
-              <div
-                key={i}
-                data-auto-decision
-                style={{ borderLeft: `3px solid ${d.check ? "#fa8c16" : "#b37feb"}`, paddingLeft: 10 }}
-              >
-                <Space size={[6, 4]} wrap>
-                  <Text strong>{stripMd(d.what)}</Text>
-                  {d.check && (
-                    <Tag color="orange" style={{ margin: 0 }}>
-                      확인해 보세요
+        <div id="auto-decisions" style={{ marginBottom: 16, scrollMarginTop: 220 }}>
+          <Collapse
+            size="small"
+            activeKey={decisionsOpen ? ["auto-decisions"] : []}
+            onChange={(keys) => setDecisionsOpen(keys.length > 0)}
+            items={[
+              {
+                key: "auto-decisions",
+                label: (
+                  <Space size={8} wrap>
+                    <Text strong>스스로 정한 결정</Text>
+                    <Tag color="purple" style={{ margin: 0 }}>
+                      {epic!.autoDecisions.length}건
                     </Tag>
-                  )}
-                </Space>
-                <div className="markdown-body" style={{ fontSize: 13 }}>
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {[
-                      d.pick && `- **고른 답**: ${d.pick}`,
-                      d.why && `- **이유**: ${d.why}`,
-                      ...d.rest.map((r) => `- **${stripMd(r.label)}**: ${r.value}`),
-                    ]
-                      .filter(Boolean)
-                      .join("\n")}
-                  </ReactMarkdown>
-                </div>
-              </div>
-            ))}
-          </Space>
-        </Card>
+                    {epic!.autoDecisions.some((d) => d.check) && (
+                      <Tag color="orange" style={{ margin: 0 }}>
+                        확인해 보세요 {epic!.autoDecisions.filter((d) => d.check).length}건
+                      </Tag>
+                    )}
+                  </Space>
+                ),
+                // 링크를 눌러도 접기·펼치기가 함께 바뀌지 않게 클릭 전달을 막는다.
+                extra: epic?.hasDesignDoc ? (
+                  <span onClick={(e) => e.stopPropagation()}>
+                    <Link href={`/orchestration/${epicKey}/design`}>설계 문서에서 보기 →</Link>
+                  </span>
+                ) : undefined,
+                children: (
+                  <Space orientation="vertical" size={10} style={{ width: "100%" }}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      사람에게 묻지 않고 진행하면서 정한 것입니다. 생각과 다르면 설계를 고쳐 달라고 요청해 주세요.
+                    </Text>
+                    {(epic?.prRedesigns ?? 0) > 0 && (
+                      <Text style={{ fontSize: 13 }}>
+                        PR 에 달린 변경 요청으로 설계를 다시 본 횟수: <Text strong>{epic!.prRedesigns}번</Text>
+                        <Text type="secondary"> ({PR_REDESIGN_MAX}번을 넘으면 사람에게 묻습니다)</Text>
+                      </Text>
+                    )}
+                    {epic!.autoDecisions.map((d, i) => (
+                      <div
+                        key={i}
+                        data-auto-decision
+                        style={{ borderLeft: `3px solid ${d.check ? "#fa8c16" : "#b37feb"}`, paddingLeft: 10 }}
+                      >
+                        <Space size={[6, 4]} wrap>
+                          <Text strong>{stripMd(d.what)}</Text>
+                          {d.check && (
+                            <Tag color="orange" style={{ margin: 0 }}>
+                              확인해 보세요
+                            </Tag>
+                          )}
+                        </Space>
+                        <div className="markdown-body" style={{ fontSize: 13 }}>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {[
+                              d.pick && `- **고른 답**: ${d.pick}`,
+                              d.why && `- **이유**: ${d.why}`,
+                              ...d.rest.map((r) => `- **${stripMd(r.label)}**: ${r.value}`),
+                            ]
+                              .filter(Boolean)
+                              .join("\n")}
+                          </ReactMarkdown>
+                        </div>
+                      </div>
+                    ))}
+                  </Space>
+                ),
+              },
+            ]}
+          />
+        </div>
       )}
 
       {contradictions.length > 0 && (
