@@ -8,6 +8,7 @@ import { getBackupStatus } from "@/lib/backup";
 import { releaseCardStats } from "@/lib/releases";
 import { dataCardStats } from "@/lib/data";
 import { teamJobsCardStats } from "@/lib/dobbyJobs";
+import { chromeCardStats } from "@/lib/chromeProcs";
 import heroImage from "@/assets/home-hero.webp";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,7 @@ export default function Home() {
     releases: releaseCardStats(),
     data: dataCardStats(),
     "team-jobs": teamJobsCardStats(),
+    chrome: chromeCardStats(),
   };
   const backup = getBackupStatus();
   return (
