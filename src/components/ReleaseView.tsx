@@ -113,7 +113,7 @@ function IssueCard({ issue }: { issue: ReleaseIssue }) {
   );
 }
 
-/** 한 정기배포일의 stage 검증 — 전체 진행도와 이슈마다 핵심 TC 결과. */
+/** 한 배포일의 stage 검증 — 전체 진행도와 이슈마다 핵심 TC 결과. */
 export default function ReleaseView({ release }: { release: Release }) {
   const { counts } = release;
   const stat = (n: number, label: string, color?: string) => (
@@ -132,12 +132,12 @@ export default function ReleaseView({ release }: { release: Release }) {
       />
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <Title level={3} style={{ margin: 0 }}>
-          {release.date}({release.weekday}) 정기배포 stage 검증
+          {release.date}({release.weekday}) {release.kind ?? ""} stage 검증
         </Title>
         <Tag color={release.status === "진행 중" ? "processing" : release.status === "완료" ? "success" : "default"}>
           {release.status}
         </Tag>
-        {!release.regular && <Tag>정기배포일 아님</Tag>}
+        {!release.kind && <Tag>배포일 아님</Tag>}
         {release.page && (
           <Button size="small" icon={<ExportOutlined />} href={release.page} target="_blank">
             릴리즈 노트 열기
