@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
   Breadcrumb,
@@ -83,8 +83,13 @@ function VerdictTag({ verdict }: { verdict: Verdict }) {
   );
 }
 
-function ReportBody({ content }: { content: string }) {
+function ReportBody({ content, issueKey, runId }: { content: string; issueKey: string; runId: string }) {
   const { title, meta, scenarios, counts, restMarkdown } = parseReport(content);
+  // 그림은 파일 이름만 적혀 있어 회차 폴더를 내려 주는 API 주소로 바꾼다
+  const urlTransform = (url: string, key: string) =>
+    key === "src" && !/^(https?:|data:|\/)/i.test(url)
+      ? `/api/orders/${issueKey}/run-file?run=${encodeURIComponent(runId)}&name=${encodeURIComponent(url)}`
+      : defaultUrlTransform(url);
   const overall = overallStatus(counts);
   const passRate =
     counts.total > 0 ? Math.round((counts.pass / counts.total) * 100) : 0;
@@ -310,7 +315,7 @@ function ReportBody({ content }: { content: string }) {
       {restMarkdown && (
         <Card title="상세 내용">
           <div className="markdown-body">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} urlTransform={urlTransform}>
               {restMarkdown}
             </ReactMarkdown>
           </div>
@@ -474,7 +479,7 @@ export default function IssueReport({
           {showAll && summary ? (
             <TestSummaryView summary={summary} epicKey={issueKey} />
           ) : body ? (
-            <ReportBody key={selected!.id} content={body} />
+            <ReportBody key={selected!.id} content={body} issueKey={issueKey} runId={selected!.id} />
           ) : loading ? (
             <Skeleton active paragraph={{ rows: 8 }} />
           ) : (
