@@ -23,6 +23,7 @@ import {
   Select,
   Skeleton,
   Segmented,
+  Image,
 } from "antd";
 import { HistoryOutlined, PictureOutlined } from "@ant-design/icons";
 import {
@@ -315,9 +316,26 @@ function ReportBody({ content, issueKey, runId }: { content: string; issueKey: s
       {restMarkdown && (
         <Card title="상세 내용">
           <div className="markdown-body">
-            <ReactMarkdown remarkPlugins={[remarkGfm]} urlTransform={urlTransform}>
-              {restMarkdown}
-            </ReactMarkdown>
+            {/* 그림은 작게 보여 주고 누르면 크게 연다. 크게 연 화면에서 다음 그림으로 넘길 수 있다 */}
+            <Image.PreviewGroup>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                urlTransform={urlTransform}
+                components={{
+                  img: ({ src, alt }) => (
+                    <Image src={String(src ?? "")} alt={alt} height={200} style={{ width: "auto" }} />
+                  ),
+                  p: ({ node, ...props }) =>
+                    node?.children.some((c) => c.type === "element" && c.tagName === "img") ? (
+                      <div {...props} style={{ margin: "0 0 16px" }} />
+                    ) : (
+                      <p {...props} />
+                    ),
+                }}
+              >
+                {restMarkdown}
+              </ReactMarkdown>
+            </Image.PreviewGroup>
           </div>
         </Card>
       )}
