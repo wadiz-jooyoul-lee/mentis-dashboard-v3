@@ -84,6 +84,43 @@ function VerdictTag({ verdict }: { verdict: Verdict }) {
   );
 }
 
+/** 결과 문서의 그림. 설명이 「S72·S99 1단계 — …」처럼 시나리오 번호로 시작하면 그 행들에 붙인다 */
+type ReportImage = { src: string; alt: string; ids: string[] };
+
+function reportImages(md: string): ReportImage[] {
+  return [...md.matchAll(/!\[([^\]]*)\]\(([^)\s]+)\)/g)].map(([, alt, src]) => ({
+    src,
+    alt,
+    ids: alt.split("—")[0].match(/S\d+/g) ?? [],
+  }));
+}
+
+// 크게 연 화면에서도 무엇을 보라는 그림인지 설명을 보여 준다. 묶어 연 화면은 alt 를 넘기지 않아 주소로 찾는다
+const previewWithCaption = (altOf: (url: string) => string | undefined) => ({
+  actionsRender: (node: React.ReactElement, info: { image: { url: string } }) => {
+    const alt = altOf(info.image.url);
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+        {alt && (
+          <div style={{ color: "#fff", background: "rgba(0,0,0,.65)", padding: "6px 12px", borderRadius: 6, maxWidth: "80vw" }}>
+            {alt}
+          </div>
+        )}
+        {node}
+      </div>
+    );
+  },
+});
+
+function Figure({ src, alt, height }: { src: string; alt?: string; height: number }) {
+  return (
+    <div style={{ display: "inline-flex", flexDirection: "column", gap: 4, maxWidth: 360, margin: "0 12px 12px 0", verticalAlign: "top" }}>
+      <Image src={src} alt={alt} height={height} style={{ width: "auto" }} />
+      {alt && <Text type="secondary" style={{ fontSize: 12 }}>{alt}</Text>}
+    </div>
+  );
+}
+
 function ReportBody({ content, issueKey, runId }: { content: string; issueKey: string; runId: string }) {
   const { title, meta, scenarios, counts, restMarkdown } = parseReport(content);
   // 그림은 파일 이름만 적혀 있어 회차 폴더를 내려 주는 API 주소로 바꾼다
@@ -91,6 +128,9 @@ function ReportBody({ content, issueKey, runId }: { content: string; issueKey: s
     key === "src" && !/^(https?:|data:|\/)/i.test(url)
       ? `/api/orders/${issueKey}/run-file?run=${encodeURIComponent(runId)}&name=${encodeURIComponent(url)}`
       : defaultUrlTransform(url);
+  const images = reportImages(content);
+  const imagesOf = (num: string) => images.filter((im) => im.ids.includes(num.trim()));
+  const preview = previewWithCaption((url) => images.find((im) => urlTransform(im.src, "src") === url)?.alt);
   const overall = overallStatus(counts);
   const passRate =
     counts.total > 0 ? Math.round((counts.pass / counts.total) * 100) : 0;
@@ -125,6 +165,22 @@ function ReportBody({ content, issueKey, runId }: { content: string; issueKey: s
     },
     ...(used("evidence")
       ? [{ title: "근거", dataIndex: "evidence", key: "evidence" }]
+      : []),
+    ...(scenarios.some((s) => imagesOf(s.num).length)
+      ? [
+          {
+            title: "그림",
+            key: "images",
+            width: 240,
+            render: (_: unknown, s: Scenario) => (
+              <Image.PreviewGroup preview={preview}>
+                {imagesOf(s.num).map((im) => (
+                  <Figure key={im.src} src={urlTransform(im.src, "src")} alt={im.alt} height={80} />
+                ))}
+              </Image.PreviewGroup>
+            ),
+          },
+        ]
       : []),
   ];
 
@@ -317,14 +373,12 @@ function ReportBody({ content, issueKey, runId }: { content: string; issueKey: s
         <Card title="상세 내용">
           <div className="markdown-body">
             {/* 그림은 작게 보여 주고 누르면 크게 연다. 크게 연 화면에서 다음 그림으로 넘길 수 있다 */}
-            <Image.PreviewGroup>
+            <Image.PreviewGroup preview={preview}>
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 urlTransform={urlTransform}
                 components={{
-                  img: ({ src, alt }) => (
-                    <Image src={String(src ?? "")} alt={alt} height={200} style={{ width: "auto" }} />
-                  ),
+                  img: ({ src, alt }) => <Figure src={String(src ?? "")} alt={alt} height={200} />,
                   p: ({ node, ...props }) =>
                     node?.children.some((c) => c.type === "element" && c.tagName === "img") ? (
                       <div {...props} style={{ margin: "0 0 16px" }} />
