@@ -1,5 +1,5 @@
 /**
- * 정기배포일별 stage 검증(dobby-stage) 모음. (서버 전용, node I/O)
+ * 배포일(화요일 정기·수/목/금 일간)별 stage 검증(dobby-stage) 모음. (서버 전용, node I/O)
  *
  * 두 곳에서 모은다.
  * - `$ORCHESTRATION_META/RELEASE-{날짜}/stage.md` — dobby-stage 가 남긴 배포일 목록(이슈·회차 경로).
@@ -57,8 +57,8 @@ export type ReleaseIssue = {
 export type Release = {
   date: string;
   weekday: string;
-  /** 화·목이 아니면 false */
-  regular: boolean;
+  /** 정기배포 · 일간배포. 배포일(화~금)이 아니면 null */
+  kind: string | null;
   /** 진행 중 · 완료 · 지난 기록 */
   status: string;
   page: string | null;
@@ -249,6 +249,7 @@ function fromFile(date: string): Release | null {
     );
   });
   return finish(date, {
+    kind: md.match(/^# .*?(정기배포|일간배포) stage 검증/m)?.[1] ?? null,
     status: lineField(md, "상태") ?? "진행 중",
     page: lineField(md, "릴리즈 노트"),
     startedAt: lineField(md, "시작"),
@@ -259,15 +260,17 @@ function fromFile(date: string): Release | null {
 
 function finish(
   date: string,
-  r: Pick<Release, "status" | "page" | "startedAt" | "endedAt" | "issues">
+  r: Pick<Release, "status" | "page" | "startedAt" | "endedAt" | "issues"> & { kind?: string | null }
 ): Release {
   const weekday = weekdayOf(date);
+  // 목록 제목에 종류가 없으면 요일로 정한다. 지난 목요일 기록은 정기배포 시절 것이다.
+  const kind = r.kind ?? (weekday === "화" || weekday === "목" ? "정기배포" : weekday === "수" || weekday === "금" ? "일간배포" : null);
   const issues = [...r.issues].sort((a, b) => Number(a.row ?? 999) - Number(b.row ?? 999));
   return {
     date,
     weekday,
-    regular: weekday === "화" || weekday === "목",
     ...r,
+    kind,
     issues,
     counts: issues.reduce((c, i) => addCounts(c, i.counts), emptyCounts()),
   };

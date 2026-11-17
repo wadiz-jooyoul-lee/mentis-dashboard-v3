@@ -10,7 +10,7 @@ const { Title, Text } = Typography;
 
 const STATUS_COLOR: Record<string, string> = { "진행 중": "processing", 완료: "success" };
 
-/** 릴리즈 목차 — 정기배포일마다 한 줄, 최신이 위. 줄을 누르면 그 배포일 검증 화면으로 간다. */
+/** 릴리즈 목차 — 배포일마다 한 줄, 최신이 위. 줄을 누르면 그 배포일 검증 화면으로 간다. */
 export default function ReleaseListView({ items }: { items: ReleaseSummary[] }) {
   const router = useRouter();
   const n = (v: number, color?: string) => <Text style={{ color: v > 0 ? color : undefined }}>{v}</Text>;
@@ -18,7 +18,7 @@ export default function ReleaseListView({ items }: { items: ReleaseSummary[] }) 
     <div>
       <Breadcrumb items={[{ title: <Link href="/">홈</Link> }, { title: "릴리즈" }]} style={{ marginBottom: 12 }} />
       <Title level={3} style={{ marginTop: 0 }}>
-        릴리즈 — 정기배포 stage 검증
+        릴리즈 — 배포일 stage 검증
       </Title>
       <Text type="secondary">
         dobby-stage 로 stage 에서 확인한 핵심 TC 를 배포일별로 모았습니다. 진행도는 핵심 TC 중 판정이
@@ -44,11 +44,9 @@ export default function ReleaseListView({ items }: { items: ReleaseSummary[] }) 
                   <Link href={`/releases/${r.date}`}>
                     {r.date} {r.weekday}
                   </Link>
-                  {!r.regular && (
-                    <Tag style={{ marginLeft: 8 }} color="default">
-                      정기배포일 아님
-                    </Tag>
-                  )}
+                  <Tag style={{ marginLeft: 8 }} color="default">
+                    {r.kind ?? "배포일 아님"}
+                  </Tag>
                 </span>
               ),
             },
