@@ -166,22 +166,6 @@ function ReportBody({ content, issueKey, runId }: { content: string; issueKey: s
     ...(used("evidence")
       ? [{ title: "근거", dataIndex: "evidence", key: "evidence" }]
       : []),
-    ...(scenarios.some((s) => imagesOf(s.num).length)
-      ? [
-          {
-            title: "그림",
-            key: "images",
-            width: 240,
-            render: (_: unknown, s: Scenario) => (
-              <Image.PreviewGroup preview={preview}>
-                {imagesOf(s.num).map((im) => (
-                  <Figure key={im.src} src={urlTransform(im.src, "src")} alt={im.alt} height={80} />
-                ))}
-              </Image.PreviewGroup>
-            ),
-          },
-        ]
-      : []),
   ];
 
   const failed = scenarios.filter((s) => s.verdict === "fail");
@@ -364,6 +348,29 @@ function ReportBody({ content, issueKey, runId }: { content: string; issueKey: s
             rowClassName={(r) =>
               r.verdict === "fail" ? "row-fail" : ""
             }
+            expandable={{
+              rowExpandable: (s) => imagesOf(s.num).length > 0,
+              expandedRowRender: (s) => (
+                // 표가 옆으로 길어 화면에 붙여 두고, 그림은 한 줄로 늘어놓아 높이를 낮게 한다
+                <div
+                  style={{
+                    position: "sticky",
+                    left: 16,
+                    width: "fit-content",
+                    maxWidth: "calc(100vw - 160px)",
+                    display: "flex",
+                    gap: 12,
+                    overflowX: "auto",
+                  }}
+                >
+                  <Image.PreviewGroup preview={preview}>
+                    {imagesOf(s.num).map((im) => (
+                      <Figure key={im.src} src={urlTransform(im.src, "src")} alt={im.alt} height={120} />
+                    ))}
+                  </Image.PreviewGroup>
+                </div>
+              ),
+            }}
           />
         </div>
       )}
