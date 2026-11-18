@@ -314,6 +314,7 @@ export function parseReport(md: string): ParsedReport {
     for (let i = table.start - 1; i >= 0; i--) {
       const t = lines[i].trim();
       if (t === "") continue;
+      if (/^<!--.*-->$/.test(t)) { dropIdx.add(i); continue; } // 표 자리 표시(<!-- dobby:scenarios -->)
       if (/^##+\s*시나리오/.test(t)) dropIdx.add(i);
       break;
     }
