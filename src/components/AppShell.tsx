@@ -18,6 +18,7 @@ const NAV = [
   { key: "/artifacts", label: "아티팩트" },
   { key: "/releases", label: "릴리즈" },
   { key: "/team-jobs", label: "팀 이슈 현황" },
+  { key: "/office", label: "사무실" },
 ];
 
 /**

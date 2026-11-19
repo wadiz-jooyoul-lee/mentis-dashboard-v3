@@ -1,0 +1,845 @@
+/* 사무실(/office) 전용 스타일. agent-office 의 app/globals.css 를 옮겨 왔다.
+   ⛔ 모든 선택자는 .office-root 아래에서만 걸린다(:root → .office-root, html·body → .office-root, 나머지는 앞에 .office-root 를 붙임).
+   대시보드 tokens.css 와 같은 이름의 변수(--bg·--fg·--line·--accent 등)를 이 범위 안에서만 다시 정의하므로 대시보드 화면은 영향을 받지 않는다.
+   오피스 룩은 그대로 둔다 — 토큰 통일(시각 통일)은 후속 작업이다. 키프레임 이름은 전역이라 대시보드 것과 겹치지 않는지 확인했다. */
+.office-root{
+  --bg:#f5f7fa; --surface:#ffffff; --sunk:#eaeef4; --fg:#1b2533; --muted:#5a6779; --line:#d3dae4;
+  --accent:#2b5fd9; --accent-soft:#e3ebfc;
+  --plan:#7a4fd0; --dev:#1f8a5b; --rev:#c2620f; --intern:#5b6b80; --test:#b2306a; --script:#3d7ea6;
+  --ok:#1f8a5b; --warn:#b7791f; --bad:#c53030;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){.office-root:not([data-theme="light"]){
+  --bg:#11161e; --surface:#18202b; --sunk:#1f2935; --fg:#e4e9f0; --muted:#9aa7b8; --line:#2d3947;
+  --accent:#7aa2ff; --accent-soft:#1d2a45;
+  --plan:#b394f2; --dev:#5cc795; --rev:#f0a35e; --intern:#a3b1c4; --test:#ef7aa9; --script:#7cb9dd;
+  --ok:#5cc795; --warn:#e7b660; --bad:#f07a7a; color-scheme:dark}}
+.office-root[data-theme="dark"]{
+  --bg:#11161e; --surface:#18202b; --sunk:#1f2935; --fg:#e4e9f0; --muted:#9aa7b8; --line:#2d3947;
+  --accent:#7aa2ff; --accent-soft:#1d2a45;
+  --plan:#b394f2; --dev:#5cc795; --rev:#f0a35e; --intern:#a3b1c4; --test:#ef7aa9; --script:#7cb9dd;
+  --ok:#5cc795; --warn:#e7b660; --bad:#f07a7a; color-scheme:dark}
+.office-root, .office-root *{box-sizing:border-box}
+.office-root{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:var(--f-body)}
+.office-root button{font:inherit}
+.office-root .app{min-width:1200px;height:100vh;min-height:640px;display:flex;flex-direction:column}
+.office-root .office-bar{display:flex;gap:8px 14px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--sunk);font-size:13px;flex:none}
+.office-root .office-bar b{font-size:13.5px}
+.office-root .office-bar .sp{flex:1}
+.office-root .office-bar button{font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:6px;padding:4px 10px;cursor:pointer}
+.office-root .office-bar button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.office-root .office-bar button:disabled{opacity:.45;cursor:not-allowed}
+.office-root .conn{font-size:12px;color:var(--muted)}
+.office-root .conn.live::before{content:"●";color:var(--ok);margin-right:4px}
+.office-root .conn.reconnecting::before,.office-root .conn.connecting::before{content:"●";color:var(--warn);margin-right:4px}
+.office-root .office-main{flex:1 1 0;min-height:0;display:flex;position:relative;overflow:hidden}
+.office-root .office-pane{position:relative;flex:1 1 0;min-width:0;min-height:0;display:flex;flex-direction:column}
+.office-root .shelf-tab{flex:none;width:34px;writing-mode:vertical-rl;font-size:13px;font-weight:700;letter-spacing:.1em;border:0;border-left:1px solid var(--line);background:var(--sunk);color:var(--fg);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;padding:0}
+.office-root .shelf-tab:hover,.office-root .shelf-tab[aria-expanded="true"]{background:var(--surface);color:var(--accent)}
+.office-root .shelf-tab:focus-visible{outline:2px solid var(--accent);outline-offset:-3px}
+.office-root .shelf-tab .badge{writing-mode:horizontal-tb;min-width:18px;height:18px;border-radius:9px;background:#c0392b;color:#fff;font-size:11px;letter-spacing:0;display:grid;place-items:center;padding:0 4px;box-sizing:border-box}
+.office-root .drawer{position:absolute;top:0;bottom:0;left:20%;right:34px;z-index:8;display:flex;flex-direction:column;background:var(--bg);border-left:1px solid var(--line);box-shadow:-8px 0 24px rgba(0,0,0,.18);container-type:inline-size;container-name:drawer;overflow:hidden;transform:translateX(calc(100% + 34px));visibility:hidden;transition:transform .28s ease,visibility 0s .28s}
+.office-root .drawer.open{transform:none;visibility:visible;transition:transform .28s ease}
+@media (prefers-reduced-motion:reduce){.office-root .drawer,.office-root .drawer.open{transition:none}}
+.office-root :is(#office,.zoom-view) .shelf-btn{cursor:pointer;outline:none}
+.office-root :is(#office,.zoom-view) .shelf-btn:hover image,.office-root :is(#office,.zoom-view) .shelf-btn:focus-visible image{filter:brightness(1.15) drop-shadow(0 0 3px var(--accent))}
+.office-root .pane-bar{display:flex;gap:10px;align-items:center;padding:0 12px;background:var(--sunk);border-bottom:1px solid var(--line);font-size:13px;height:48px;white-space:nowrap;overflow:hidden;flex:none}
+.office-root .pane-bar .sp{flex:1}
+.office-root .pane-bar .pg{font-variant-numeric:tabular-nums;color:var(--muted)}
+.office-root #office{display:block;flex:1 1 0;min-height:0;width:100%;font-family:var(--f-body)}
+.office-root .quip-layer{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+/* 로그는 한 줄(가장 최근)만 보이게 낮춰 도면을 크게 쓴다. 마우스를 올리거나 키보드로 들어가면 도면 위로 펼쳐지고, 도면 크기는 바뀌지 않는다 */
+.office-root .office-log{border-top:1px solid var(--line);padding:4px 14px;font-family:var(--f-mono);font-size:11.5px;color:var(--muted);height:28px;overflow:hidden;line-height:1.65;flex:none;margin:0;list-style:none;position:relative;z-index:5;background:var(--bg)}
+.office-root .office-log:hover,.office-root .office-log:focus-within{height:124px;margin-top:-96px;overflow-y:auto;padding-top:8px}
+.office-root :is(#office,.zoom-view) .floor{fill:var(--bg)}
+.office-root :is(#office,.zoom-view) .wall{fill:#3d3a52}
+.office-root :is(#office,.zoom-view) .bed-screen{fill:#d9cbb0;stroke:#7a6448;stroke-width:1}
+.office-root :is(#office,.zoom-view) .stool rect{fill:#7a6260;stroke:#3b2d2d;stroke-width:1.2}
+.office-root :is(#office,.zoom-view) .stool path{fill:none;stroke:#3b2d2d;stroke-width:3;stroke-linecap:round}
+.office-root :is(#office,.zoom-view) .door-panel{fill:rgba(170,215,240,.85);stroke:#5b7f99;stroke-width:1}
+.office-root :is(#office,.zoom-view) .outer-wall{fill:none;stroke:#3d3a52;stroke-width:8}
+.office-root :is(#office,.zoom-view) .desk{fill:var(--sunk);stroke:var(--line)}
+.office-root :is(#office,.zoom-view) .pixel{image-rendering:pixelated}
+.office-root :is(#office,.zoom-view) .front-dobby{cursor:pointer;outline:none}
+.office-root :is(#office,.zoom-view) .front-dobby:hover .torso,.office-root :is(#office,.zoom-view) .front-dobby:focus-visible .torso{filter:drop-shadow(0 0 3px var(--accent))}
+.office-root :is(#office,.zoom-view) .flying-book{transform-box:view-box;animation:bookFly 1.5s cubic-bezier(.45,0,.25,1) both}
+@keyframes bookFly{0%{transform:translate(var(--fx),var(--fy)) scale(2.4);opacity:0}12%{opacity:1}55%{transform:translate(calc(var(--fx)*.45),calc(var(--fy)*.45 - 60px)) scale(1.6)}100%{transform:translate(0,0) scale(1)}}
+@media (prefers-reduced-motion:reduce){.office-root :is(#office,.zoom-view) .flying-book{animation:none}}
+.office-root .drawer .book-live{fill:#4ade80;stroke:#14532d;stroke-width:1.5;animation:waitBlink 1.6s ease-in-out infinite}
+.office-root .shelf-page .appendix-key{font-size:10px;font-weight:700;fill:#5a4630;letter-spacing:.1em}
+.office-root .appendix-card pre{white-space:pre-wrap;max-height:260px;overflow:auto;font-size:12px;background:var(--sunk);padding:8px;border-radius:6px}
+.office-root .appendix-card h5{margin:12px 0 4px}
+.office-root .appendix-card ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.office-root .appendix-card li{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:baseline;min-width:0}
+.office-root .appendix-card li small{font-size:11.5px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:0 8px;white-space:nowrap}
+.office-root .appendix-card li a{border:0;padding:0;background:none;border-radius:0;color:var(--accent);text-decoration:underline;overflow-wrap:anywhere;min-width:0}
+.office-root :is(#office,.zoom-view) .pantry-name{font-size:13px;font-weight:700;fill:var(--fg);paint-order:stroke;stroke:var(--surface);stroke-width:3px}
+@keyframes waitBlink{50%{opacity:.45}}
+.office-root :is(#office,.zoom-view) .strip-more{font-size:11px;font-weight:700;fill:var(--muted);paint-order:stroke;stroke:var(--surface);stroke-width:3px}
+.office-root .ask-q{margin:8px 0;display:grid;gap:8px;font-size:13px;line-height:1.55}
+.office-root .ask-q b{display:block;font-weight:600;color:var(--muted);font-size:12px}
+.office-root .ask-q p{margin:0}
+.office-root .ask-q .ask-choice{text-align:left;width:100%;white-space:normal;line-height:1.45}
+.office-root :is(#office,.zoom-view) .agent-ask{cursor:pointer;transform-box:fill-box;transform-origin:center bottom;animation:alertBounce 1s ease-in-out infinite;filter:drop-shadow(0 3px 2px rgba(0,0,0,.35))}
+.office-root :is(#office,.zoom-view) .agent-ask .hit{fill:transparent}
+.office-root :is(#office,.zoom-view) .room-table{fill:var(--sunk);stroke:var(--line)}
+.office-root :is(#office,.zoom-view) .room-empty{font-size:11px;fill:var(--muted)}
+.office-root :is(#office,.zoom-view) .agent{cursor:pointer;outline:none}
+.office-root :is(#office,.zoom-view) .agent:focus-visible .ring{stroke:var(--accent);stroke-width:2}
+.office-root :is(#office,.zoom-view) .ring{fill:none;stroke:transparent}
+.office-root :is(#office,.zoom-view) .name{font-size:10px;fill:var(--fg);text-anchor:middle;paint-order:stroke;stroke:var(--surface);stroke-width:2.5px}
+.office-root :is(#office,.zoom-view) .skin{fill:#F3D2B3}
+.office-root :is(#office,.zoom-view) .skin.elf{fill:var(--elf,#B8C98C)}
+.office-root :is(#office,.zoom-view) .ink{stroke:#2a2a33;fill:none;stroke-width:1.6;stroke-linecap:round}
+.office-root :is(#office,.zoom-view) .inkf{fill:#2a2a33}
+.office-root :is(#office,.zoom-view) .leg{stroke:#3b3f4a;stroke-width:3.2;stroke-linecap:round;transform-box:fill-box;transform-origin:50% 0}
+.office-root :is(#office,.zoom-view) .walking .leg-l{animation:legL .36s infinite alternate ease-in-out}
+.office-root :is(#office,.zoom-view) .walking .leg-r{animation:legL .36s infinite alternate-reverse ease-in-out}
+.office-root :is(#office,.zoom-view) .walking .torso{animation:bob .36s infinite alternate ease-in-out}
+.office-root :is(#office,.zoom-view) .img-leg{transform-box:view-box}
+.office-root :is(#office,.zoom-view) .walking .img-leg.leg-l{animation:legI .36s infinite alternate ease-in-out}
+.office-root :is(#office,.zoom-view) .walking .img-leg.leg-r{animation:legI .36s infinite alternate-reverse ease-in-out}
+.office-root :is(#office,.zoom-view) .walking .step.leg-l{animation:legS .36s infinite alternate ease-in-out}
+.office-root :is(#office,.zoom-view) .walking .step.leg-r{animation:legS .36s infinite alternate-reverse ease-in-out}
+.office-root :is(#office,.zoom-view) .z{font-size:10px;fill:var(--muted);font-weight:700}
+.office-root :is(#office,.zoom-view) .gauge-bg{fill:var(--line)}
+.office-root :is(#office,.zoom-view) .gauge-fg{fill:var(--ok)}
+.office-root :is(#office,.zoom-view) .gauge-fg.hi{fill:var(--warn)}
+@keyframes legL{from{transform:rotate(20deg)}to{transform:rotate(-20deg)}}
+@keyframes legI{from{transform:rotate(12deg)}to{transform:rotate(-12deg)}}
+@keyframes legS{from{transform:scaleY(1)}to{transform:scaleY(.78)}}
+@keyframes bob{from{transform:translateY(0)}to{transform:translateY(-1.5px)}}
+@media (prefers-reduced-motion:reduce){.office-root :is(#office,.zoom-view) .walking .leg-l,.office-root :is(#office,.zoom-view) .walking .leg-r,.office-root :is(#office,.zoom-view) .walking .torso,.office-root :is(#office,.zoom-view) .walking .img-leg{animation:none}}
+.office-root .tip{position:absolute;z-index:5;max-width:240px;background:rgba(255,255,255,.85);color:#111;border:1px solid rgba(0,0,0,.12);font-size:12.5px;line-height:1.5;padding:7px 10px;border-radius:8px;pointer-events:auto;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.office-root .tip small{display:block;opacity:.7;font-size:11px;margin-bottom:2px}
+.office-root .tip::after{content:"";position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);border:6px solid transparent;border-bottom:0;border-top-color:rgba(255,255,255,.85)}
+.office-root .shelf-search{position:relative;display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line)}
+.office-root .shelf-search .seg button{font:inherit;font-size:12.5px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:6px;padding:5px 10px;cursor:pointer}
+.office-root .shelf-search .seg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.office-root .shelf-search input{flex:1;min-width:0;font:inherit;font-size:13.5px;padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg)}
+.office-root .shelf-search input:focus-visible,.office-root .shelf-search .seg button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.office-root .shelf-results{position:absolute;left:12px;right:12px;top:calc(100% - 4px);z-index:7;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.16);display:grid;max-height:280px;overflow:auto;padding:4px}
+.office-root .shelf-results[hidden]{display:none}
+.office-root .shelf-results button{text-align:left;border:0;background:none;padding:7px 10px;font:inherit;font-size:13px;color:var(--fg);cursor:pointer;border-radius:6px}
+.office-root .shelf-results button:hover,.office-root .shelf-results button:focus-visible{background:var(--sunk);outline:none}
+.office-root .shelf-results small{color:var(--muted);margin-left:6px}
+.office-root .shelf-results .none{padding:8px 10px;color:var(--muted);font-size:13px}
+.office-root .shelf-cases{flex:1 1 auto;min-height:0;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:14px;margin:12px}
+.office-root .shelf-case{background:#b9864f;padding:8px 10px 12px;border-radius:6px;box-shadow:inset 0 0 0 2px rgba(0,0,0,.08);min-height:0;display:flex;flex-direction:column;transition:box-shadow .3s}
+.office-root #taskStrip,.office-root #artStrip,.office-root #retroStrip{flex:1 1 0}
+.office-root .shelf-case:focus{outline:none}
+.office-root .shelf-case.spot{box-shadow:inset 0 0 0 2px rgba(0,0,0,.08),0 0 0 3px #facc15}
+.office-root .shelf-empty{margin:8px 4px;color:#fff3e2;font-size:12.5px;line-height:1.5}
+.office-root .shelf-label{display:flex;justify-content:space-between;align-items:center;color:#fff3e2;font-size:12px;font-weight:700;padding:4px 4px 6px}
+.office-root .shelf-add{margin-left:6px;padding:1px 8px;border:1px solid #fff3e2;border-radius:10px;background:transparent;color:#fff3e2;font-size:11px;font-weight:700;cursor:pointer}
+.office-root .shelf-add:hover,.office-root .shelf-add:focus-visible{background:#fff3e2;color:#6b4423}
+.office-root .shelf-strip{display:flex;min-height:0;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;cursor:grab;border-radius:3px}
+.office-root .shelf-strip::-webkit-scrollbar{display:none}
+.office-root .shelf-strip.dragging{cursor:grabbing;scroll-snap-type:none;user-select:none}
+.office-root .shelf-page{flex:0 0 100%;scroll-snap-align:start;display:block;width:100%;height:100%}
+.office-root .dots{display:flex;gap:5px}
+.office-root .dots button{width:7px;height:7px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.35);cursor:pointer}
+.office-root .dots button.on{background:#fff}
+.office-root .dots button:hover,.office-root .dots button:focus-visible{background:rgba(255,255,255,.7);outline:none}
+.office-root .shelf-page .book.live .spine{stroke-width:3}
+.office-root .shelf-page .book.dim{opacity:.22}
+.office-root .shelf-page .book.hit .spine{stroke:#fff;stroke-width:3}
+.office-root .shelf-page .art-title{font-size:12px;font-weight:700}
+.office-root .art-card{position:relative;max-width:520px;margin:8px auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px 22px;display:grid;gap:10px;font-size:13.5px;box-shadow:0 12px 32px rgba(0,0,0,.18)}
+.office-root .art-card h4{margin:0;font-size:18px}
+.office-root .art-card > .kick{padding-right:30px}
+/* 실행 버튼을 누른 뒤 응답이 올 때까지 창을 덮고 도는 표시를 띄운다 */
+.office-root .art-card[aria-busy="true"]::after,.office-root .art-form[aria-busy="true"]::after{content:"보내는 중…";position:absolute;inset:0;z-index:5;display:grid;place-items:center;padding-top:44px;border-radius:inherit;background:color-mix(in srgb,var(--surface) 72%,transparent);color:var(--fg);font-weight:600;cursor:progress}
+.office-root .art-card[aria-busy="true"]::before,.office-root .art-form[aria-busy="true"]::before{content:"";position:absolute;left:calc(50% - 14px);top:calc(50% - 30px);z-index:6;width:28px;height:28px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:busy-spin .8s linear infinite}
+.office-root .art-form{position:relative}
+@keyframes busy-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.office-root .art-card[aria-busy="true"]::before,.office-root .art-form[aria-busy="true"]::before{animation-duration:2.4s}}
+.office-root .art-card .close-x,.office-root .ob-top .close-x{position:absolute;top:10px;right:10px;width:28px;height:28px;padding:0;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg);font-size:18px;line-height:1;cursor:pointer}
+.office-root .ob-top .close-x{position:static}
+.office-root .close-x:hover{background:var(--line)}
+.office-root .art-card .seg{border:0;padding:0;margin:0;display:flex;gap:6px 16px;flex-wrap:wrap}
+.office-root .art-card .seg legend{padding:0;margin-bottom:6px;font-size:12.5px;color:var(--muted)}
+.office-root .art-card .seg label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.office-root .art-card textarea{font:inherit;font-size:13px;width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg);resize:vertical}
+.office-root .art-card .art-form{display:grid;gap:10px}
+.office-root .art-card .art-form>label{display:grid;gap:4px;font-size:12.5px;color:var(--muted)}
+.office-root .art-card input:not([type=radio]):not([type=checkbox]),.office-root .art-card select{font:inherit;font-size:13px;width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg)}
+.office-root .art-card .split{border-top:1px solid var(--line);padding-top:12px}
+.office-root .board-list{margin:0;padding-left:20px;display:grid;gap:4px}
+.office-root .art-card .auto-guide{border:1px solid var(--warn);border-left-width:4px;border-radius:8px;padding:10px 12px;display:grid;gap:6px}
+.office-root .art-card .auto-guide b{color:var(--warn)}
+.office-root .art-card .auto-guide ol{margin:0;padding-left:20px;display:grid;gap:2px}
+.office-root .art-card .auto-guide p{margin:0;color:var(--muted)}
+.office-root .art-card .art-form>label.agree{display:flex;gap:8px;align-items:flex-start;color:var(--fg);cursor:pointer}
+.office-root .art-card .auto-start:disabled{opacity:.45;cursor:not-allowed}
+/* 프론트 데스크 접수: 종류 카드 넷, 진행 순서, 명령 미리 보기 */
+.office-root .intake-card{max-height:calc(100vh - 48px);overflow-y:auto}
+/* 내용 칸을 넉넉히 쓰도록 접수 창만 넓힌다(좁은 화면에서는 화면 폭에 맞춘다) */
+.office-root .art-card.intake-card{max-width:min(720px,calc(100vw - 32px))}
+.office-root .art-card .note-field textarea{min-height:200px;max-height:60vh;line-height:1.5}
+.office-root .art-card .note-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.office-root .art-card .note-head .mini{font:inherit;font-size:12px;padding:3px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg);cursor:pointer}
+.office-root .art-card .note-head .mini:hover{border-color:var(--accent)}
+.office-root .art-card .seg label.off{opacity:.45;cursor:not-allowed}
+.office-root .art-card .seg small.hint{flex-basis:100%}
+.office-root .art-card .kind-grid{border:0;padding:0;margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.office-root .art-card .kind-grid legend{padding:0;margin-bottom:6px;font-size:12.5px;color:var(--muted)}
+.office-root .art-card .kind-card{position:relative;display:grid;gap:2px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);cursor:pointer}
+.office-root .art-card .kind-card input{position:absolute;opacity:0;pointer-events:none}
+.office-root .art-card .kind-card b{font-size:14px;color:var(--fg)}
+.office-root .art-card .kind-card span{font-size:12.5px;color:var(--fg)}
+.office-root .art-card .kind-card small{font-size:11.5px;color:var(--muted)}
+.office-root .art-card .kind-card:hover{border-color:var(--accent)}
+.office-root .art-card .kind-card.on{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+.office-root .art-card .kind-card.on b::after{content:" ✓";color:var(--accent)}
+.office-root .art-card .kind-card:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+.office-root .art-card .auto-guide>summary{cursor:pointer;font-weight:600;color:var(--warn)}
+.office-root .art-card .auto-guide li.off{opacity:.45}
+.office-root .art-card .adv>summary{cursor:pointer;font-size:12.5px;color:var(--muted)}
+.office-root .art-card .adv>label{display:grid;gap:4px;margin-top:6px;font-size:12.5px;color:var(--muted)}
+.office-root .art-card .field-err{color:var(--bad)}
+.office-root .art-card .hint{color:var(--muted)}
+.office-root .art-card .cmd-preview{display:grid;gap:4px;padding:8px 10px;border-radius:8px;background:var(--sunk)}
+.office-root .art-card .cmd-preview .kick{font-size:11.5px;color:var(--muted)}
+.office-root .art-card .cmd-preview code{font-family:var(--f-mono);font-size:12.5px;color:var(--fg);white-space:pre-wrap;overflow-wrap:anywhere}
+.office-root .art-card .cmd-preview code.dim{color:var(--muted)}
+.office-root .art-card .cmd-preview small{color:var(--muted)}
+.office-root .art-card .art-form>label.agree.warn{padding:6px 8px;border-radius:6px;background:color-mix(in srgb,var(--warn) 14%,transparent)}
+@media (max-width:480px){.office-root .art-card .kind-grid{grid-template-columns:1fr}}
+/* 완료 게시판: 넓은 창에 쪽지 카드를 두 줄로 놓고, 목록 칸만 스크롤한다 */
+.office-root .floor-modal .art-card.done-card{max-width:880px;display:flex;flex-direction:column;overflow:hidden}
+.office-root .done-card h4{font-size:19px}
+.office-root .done-card .done-fresh{color:#e5484d}
+.office-root .done-list{list-style:none;margin:0;padding:2px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;overflow-y:auto;min-height:0;flex:1}
+.office-root .art-card .done-note{width:100%;height:100%;display:flex;flex-direction:column;align-items:stretch;gap:6px;text-align:left;padding:12px 14px;border:1px solid var(--line);border-left:4px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg);font-size:14px}
+.office-root .art-card .done-note.new{border-left-color:#e5484d}
+.office-root .art-card .done-note:not(.new):not(.hold-note) .done-open{opacity:.72}
+.office-root .art-card .done-note:hover{border-color:var(--accent)}
+.office-root .art-card .done-note:hover .done-open{opacity:1}
+.office-root .art-card .done-open{flex:1;display:flex;flex-direction:column;gap:6px;margin:0;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.office-root .art-card .done-open:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
+.office-root .done-resolve{display:flex;justify-content:flex-end;gap:8px;border-top:1px dashed var(--line);padding-top:8px;margin:2px 0 0}
+.office-root .done-resolve.ask{flex-direction:column;align-items:stretch;font-size:13px}
+.office-root .done-resolve [role=alert]{color:#e5484d}
+.office-root .done-resolve-btns{display:flex;justify-content:flex-end;gap:8px}
+.office-root .done-resolve.ok{color:var(--ok);font-weight:700;font-size:13px}
+.office-root .done-top{display:flex;align-items:center;gap:8px}
+.office-root .done-new{font-size:11.5px;font-weight:800;color:#fff;background:#e5484d;border-radius:999px;padding:1px 8px}
+.office-root .done-card .done-lead{margin:-4px 0 2px;color:var(--muted)}
+.office-root .done-key{font-family:var(--f-mono);font-size:17px;font-weight:700;letter-spacing:.01em}
+.office-root .done-round{margin-left:auto;font-size:12px;font-weight:700;color:var(--ok);border:1px solid var(--ok);border-radius:999px;padding:1px 8px;white-space:nowrap}
+.office-root .done-title{font-size:16px;line-height:1.45;font-weight:700}
+.office-root .done-foot{margin-top:auto;display:flex;justify-content:space-between;gap:8px;font-size:12.5px;color:var(--muted)}
+.office-root .done-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:12px}
+.office-root .done-bottom p{margin:0;color:var(--muted)}
+/* 홀딩 게시판: 완료 게시판 카드 모양을 쓰되 흐리게 하지 않고, 사람 답이 필요한 카드는 노란 선과 배지로 표시한다 */
+.office-root .art-card .done-note.hold-note{opacity:1;cursor:default}
+.office-root .art-card .done-note.hold-note:hover{border-color:var(--line)}
+.office-root .art-card .done-note.hold-note.ask{border-left-color:#d4a017}
+.office-root .art-card .done-note.hold-note.ask:hover{border-left-color:#d4a017}
+.office-root .done-card .hold-ask-count{color:#b7791f}
+.office-root .hold-ask{font-size:11.5px;font-weight:800;color:#422006;background:#facc15;border-radius:999px;padding:1px 8px;white-space:nowrap}
+.office-root .hold-phase{margin-left:auto;font-size:12px;font-weight:700;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:1px 8px;white-space:nowrap}
+.office-root .hold-why{font-size:12.5px;color:var(--muted)}
+.office-root .hold-actions{margin-top:auto;display:flex;justify-content:flex-end;gap:8px}
+/* 역할별 모델 창: 역할마다 한 줄, 세 모델을 단추 묶음으로 고른다. 바뀐 줄은 강조한다 */
+.office-root .floor-modal .art-card.model-card{max-width:620px}
+.office-root .model-card .done-lead{margin:-4px 0 2px;color:var(--muted)}
+.office-root .model-form{display:grid;gap:8px}
+.office-root .model-row{border:1px solid var(--line);border-left:4px solid var(--line);border-radius:10px;padding:10px 12px;margin:0;display:grid;grid-template-columns:110px minmax(0,1fr);align-items:center;gap:6px 12px}
+.office-root .model-row.changed{border-left-color:var(--accent);background:color-mix(in srgb,var(--accent) 6%,var(--surface))}
+.office-root .model-row legend{float:left;padding:0;display:flex;align-items:center;gap:8px;font-size:14.5px;font-weight:700}
+.office-root .role-dot{width:10px;height:10px;border-radius:50%;flex:none}
+.office-root .role-dot.planner{background:#7b61ff}.office-root .role-dot.developer{background:#2f80ed}.office-root .role-dot.reviewer{background:#e5484d}.office-root .role-dot.deployer{background:#e8890c}.office-root .role-dot.tester{background:#1f9d55}.office-root .role-dot.intern{background:#8e4ec6}.office-root .role-dot.producer{background:#d6409f}
+.office-root .model-pick{display:flex;flex-wrap:wrap;gap:6px}
+.office-root .model-pick label{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:13px;cursor:pointer;color:var(--fg);background:var(--surface)}
+.office-root .model-pick label.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.office-root .model-pick input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.office-root .model-pick label:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+.office-root .model-diff{grid-column:2;font-size:12.5px;color:var(--accent);font-weight:600}
+.office-root .model-actions{justify-content:flex-end;margin-top:4px}
+@media (max-width:560px){.office-root .model-row{grid-template-columns:minmax(0,1fr)}.office-root .model-diff{grid-column:1}}
+.office-root .art-card .kick{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.office-root .art-card dl{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0}
+.office-root .art-card dt{color:var(--muted)}
+.office-root .art-card dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.office-root .art-card .row{display:flex;gap:8px;flex-wrap:wrap}
+.office-root .art-card button,.office-root .art-card a{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:6px;padding:5px 12px;cursor:pointer;text-decoration:none}
+.office-root .art-card .primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.office-root .art-card .danger{color:#c62828;border-color:#e57373}
+/* 도비 사무실 물음표 창의 질문: 칸마다 작은 이름과 그 아래 내용 */
+.office-root .floor-modal .art-card.ask-card{max-width:640px}
+.office-root .art-card p.ask-sub,.office-root .art-card .ask-sub{margin:0;color:var(--muted);font-size:12.5px}
+.office-root .ask-field{display:grid;gap:4px}
+.office-root .ask-field h5{margin:0;font-size:12px;font-weight:600;color:var(--muted)}
+.office-root .ask-field>div{display:grid;gap:6px;padding-left:12px;min-width:0}
+.office-root .ask-field p,.office-root .ask-field ol,.office-root .ask-field ul{margin:0}
+.office-root .ask-field ol{padding-left:20px;display:grid;gap:2px}
+.office-root .ask-text{white-space:pre-wrap;overflow-wrap:anywhere}
+.office-root .ask-title{font-size:15.5px;font-weight:600}
+.office-root .ask-options{list-style:none;padding:0;display:grid;gap:8px}
+.office-root .ask-options li{display:grid;gap:2px}
+.office-root .ask-options .ask-sub{padding-left:18px}
+.office-root .ask-rec{display:inline-block;margin-left:6px;padding:0 6px;border:1px solid var(--accent);border-radius:999px;color:var(--accent);font-size:11.5px;font-weight:600;white-space:nowrap}
+.office-root .ask-other{display:flex;gap:6px;align-items:center}
+.office-root .ask-other input{flex:1;min-width:0}
+.office-root .ask-other button{white-space:nowrap}
+.office-root .art-card.ask-card button:disabled{opacity:.5;cursor:not-allowed}
+.office-root .ask-cmd{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap}
+.office-root .ask-cmd code,.office-root .ask-md code{font-family:var(--f-mono);font-size:12.5px;padding:2px 6px;border:1px solid var(--line);border-radius:4px;overflow-wrap:anywhere}
+.office-root .ask-note{color:var(--warn);font-size:12.5px}
+.office-root .ask-confirm{display:grid;gap:6px;padding:10px 12px;border:1px solid var(--accent);border-radius:8px}
+.office-root .ask-done{margin:0;padding:10px 12px;border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px}
+.office-root .ask-md{display:grid;gap:6px;overflow-wrap:anywhere}
+.office-root .ask-md>*{margin:0}
+.office-root .ask-md ul,.office-root .ask-md ol{padding-left:20px}
+.office-root .ask-md table{border-collapse:collapse;font-size:13px}
+.office-root .ask-md th,.office-root .ask-md td{border:1px solid var(--line);padding:3px 8px;text-align:left}
+.office-root .shelf-page .book{cursor:pointer;outline:none}
+.office-root .shelf-page .book:hover .spine,.office-root .shelf-page .book:focus-visible .spine{filter:brightness(1.12)}
+.office-root .shelf-page .book:focus-visible .spine{stroke:var(--accent);stroke-width:2.5}
+.office-root .shelf-page .book-key{font-family:var(--f-mono);font-size:11px;font-weight:500;letter-spacing:.04em}
+.office-root .shelf-page .lift{transition:transform .15s}
+.office-root .shelf-page .book:hover .lift,.office-root .shelf-page .book:focus-visible .lift{transform:translateY(-6px)}
+.office-root .shelf-page .bookend rect{fill:#7b8794;stroke:#3f4954;stroke-width:1}
+.office-root .shelf-page .book.fresh .spine{stroke:#facc15;stroke-width:2.5;filter:drop-shadow(0 0 5px rgba(250,204,21,.9))}
+.office-root .shelf-page .book-new rect{fill:#facc15;stroke:#854d0e;stroke-width:1}
+.office-root .shelf-page .book-new text{font-size:8.5px;font-weight:800;fill:#422006;letter-spacing:.3px}
+.office-root .shelf-new{color:#facc15;font-weight:700}
+.office-root .shelf-page .drop{animation:drop .7s cubic-bezier(.3,1.4,.5,1) both}
+@keyframes drop{from{transform:translateY(-90px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.office-root .shelf-page .drop{animation:none}.office-root .shelf-page .lift{transition:none}}
+.office-root .ob-top{display:flex;align-items:center;gap:10px;width:100%;max-width:980px;margin:0 auto 10px;flex:none;font-size:13px;color:var(--muted)}
+.office-root .ob-top .sp{flex:1}
+.office-root .ob-top button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:6px;padding:4px 12px;cursor:pointer}
+.office-root .ob-top code{font-size:12px}
+.office-root .openbook{--paper:#fbf6e9;--paper-ink:#2b2620;--paper-muted:#7a6f5f;--paper-line:#e4dac4;--px:34px;position:relative;max-width:980px;margin:0 auto;padding:10px;border-radius:10px;display:flex;flex-direction:column;height:min(720px,calc(100vh - 120px));box-shadow:0 18px 40px rgba(20,30,50,.28)}
+.office-root .openbook .rhead{position:absolute;top:16px;left:var(--px);right:var(--px);font-size:11px;color:var(--paper-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.office-root .openbook .right .rhead{text-align:right}
+.office-root .openbook .cover-title{text-align:center;padding:12% 0 28px}
+.office-root .openbook .cover-title h3.ttl{font-size:24px;margin:10px 0 0}
+.office-root .openbook .cover-right{break-before:column}
+.office-root .openbook .cover-right h4:first-child{margin-top:0}
+.office-root .openbook .cover-act{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start;margin-top:18px}
+.office-root .openbook .ob-spread{position:relative;flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr}
+.office-root .openbook .page{background:var(--paper);min-height:0;position:relative;min-width:0}
+.office-root .openbook .page.left{border-radius:6px 2px 2px 6px;box-shadow:inset -22px 0 26px -18px rgba(0,0,0,.28),-3px 3px 0 #efe6d2,-6px 6px 0 #e6dcc6}
+.office-root .openbook .page.right{border-radius:2px 6px 6px 2px;box-shadow:inset 22px 0 26px -18px rgba(0,0,0,.28),3px 3px 0 #efe6d2,6px 6px 0 #e6dcc6}
+.office-root .openbook .ob-flow{position:absolute;inset:0;z-index:1;overflow:hidden;padding:46px var(--px) 36px;color:var(--paper-ink);font-size:13.5px;line-height:1.7;pointer-events:none}
+.office-root .openbook .ob-cols{position:relative;height:100%;column-count:2;column-gap:calc(var(--px) * 2);column-fill:auto;pointer-events:auto}
+.office-root .openbook .ob-cols pre{white-space:pre-wrap;overflow:visible;overflow-wrap:anywhere}
+.office-root .openbook .ob-cols table{width:100%;table-layout:fixed}
+.office-root .openbook .ob-cols .md table{display:table;overflow:visible}
+.office-root .openbook .ob-cols :is(td,th){overflow-wrap:anywhere}
+.office-root .openbook .ob-cols img{max-width:100%}
+.office-root .openbook .ob-end{display:block;height:0}
+.office-root .openbook .fold{position:absolute;bottom:0;z-index:3;width:30px;height:30px;padding:0;border:0;cursor:pointer;transition:width .15s,height .15s}
+.office-root .openbook .fold:hover,.office-root .openbook .fold:focus-visible{width:40px;height:40px}
+.office-root .openbook .fold:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.office-root .openbook .fold.r{right:0;border-radius:0 0 6px 0;background:linear-gradient(to top left,var(--cover) 49%,rgba(0,0,0,.28) 50%,#efe3c4 53%,#ddd0ae)}
+.office-root .openbook .fold.l{left:0;border-radius:0 0 0 6px;background:linear-gradient(to top right,var(--cover) 49%,rgba(0,0,0,.28) 50%,#efe3c4 53%,#ddd0ae)}
+@media (prefers-reduced-motion:reduce){.office-root .openbook .fold{transition:none}}
+.office-root .openbook .ribbon{position:absolute;left:4px;top:-4px;width:12px;height:calc(100% + 10px);background:var(--ribbon);clip-path:polygon(0 0,100% 0,100% 100%,50% calc(100% - 9px),0 100%);z-index:2;pointer-events:none}
+.office-root .openbook .ribbon.b{left:auto;right:2px;top:0;height:calc(100% + 4px);opacity:.85}
+.office-root .openbook h3,.office-root .openbook h4{color:var(--paper-ink)}
+.office-root .openbook .kicker{font-family:var(--f-mono);font-size:12px;color:var(--paper-muted);letter-spacing:.05em}
+.office-root .openbook h3.ttl{font-size:22px;margin:4px 0 14px;text-wrap:balance}
+.office-root .openbook h4{font-size:14px;margin:18px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--paper-line)}
+.office-root .openbook dl{display:grid;grid-template-columns:auto 1fr;gap:3px 14px;margin:0}
+.office-root .openbook dt{color:var(--paper-muted)}
+.office-root .openbook dd{margin:0}
+.office-root .openbook ol.tl{list-style:none;margin:0;padding:0;font-size:13px}
+.office-root .openbook ol.tl li{display:grid;grid-template-columns:44px 1fr;gap:8px;padding:2px 0}
+.office-root .openbook ol.tl time{font-family:var(--f-mono);color:var(--paper-muted)}
+.office-root .openbook .crew{display:flex;flex-wrap:wrap;gap:6px}
+.office-root .openbook .crew span{border:1px solid var(--paper-line);border-radius:999px;padding:1px 9px;font-size:12.5px}
+.office-root .openbook .pgno{position:absolute;bottom:12px;font-family:var(--f-mono);font-size:11px;color:var(--paper-muted)}
+.office-root .openbook .left .pgno{left:46px}.office-root .openbook .right .pgno{right:46px}
+.office-root .openbook .tbl{background:transparent;border-color:var(--paper-line)}
+.office-root .openbook table{font-size:12.5px}
+.office-root .openbook th{background:transparent;color:var(--paper-muted);border-bottom:1px solid var(--paper-line)}
+.office-root .openbook td{border-bottom:1px solid var(--paper-line);white-space:pre-wrap}
+.office-root .openbook pre{font-family:var(--f-mono);font-size:11.5px;background:#f3ecd9;border:1px solid var(--paper-line);border-radius:4px;padding:8px 10px;overflow-x:auto;margin:6px 0;line-height:1.55}
+.office-root .openbook .md{overflow-wrap:anywhere}
+.office-root .openbook .md :is(p,li){white-space:pre-line;margin:4px 0}
+.office-root .openbook .md :is(h1,h2,h3,h4,h5,h6){color:var(--paper-ink);margin:16px 0 6px;line-height:1.4}
+.office-root .openbook .md h1{font-size:16px}.office-root .openbook .md h2{font-size:15px;padding-bottom:4px;border-bottom:1px solid var(--paper-line)}.office-root .openbook .md :is(h3,h4,h5,h6){font-size:13.5px}
+.office-root .openbook .md :is(ul,ol){margin:4px 0;padding-left:20px}
+.office-root .openbook .md table{display:block;max-width:100%;overflow-x:auto;border-collapse:collapse;margin:6px 0}
+.office-root .openbook .md :is(th,td){padding:3px 6px;text-align:left;vertical-align:top}
+.office-root .openbook .md :not(pre)>code{font-family:var(--f-mono);font-size:.92em;background:#f3ecd9;border-radius:3px;padding:0 3px}
+.office-root .openbook .md blockquote{margin:6px 0;padding:2px 10px;border-left:3px solid var(--paper-line);color:var(--paper-muted)}
+.office-root .openbook .md hr{border:0;border-top:1px solid var(--paper-line);margin:12px 0}
+.office-root .openbook .add{color:#2f7a4a}.office-root .openbook .del{color:#b03a2e}
+.office-root .openbook .arts{list-style:none;margin:0 0 6px;padding:0;display:grid;gap:2px}
+.office-root .openbook .arts button{font:inherit;font-size:13px;background:none;border:0;padding:0;color:#2c5d86;text-decoration:underline;cursor:pointer;text-align:left}
+.office-root .openbook .arts small{color:var(--paper-muted);margin-left:6px}
+.office-root .openbook .art-none{color:var(--paper-muted);font-size:12.5px;margin:0 0 6px}
+.office-root .openbook .art-form{display:grid;gap:6px;margin-top:6px;padding:10px;border:1px dashed var(--paper-line);border-radius:6px}
+.office-root .openbook .art-form[hidden]{display:none}
+.office-root .openbook .art-form label{display:grid;gap:2px;font-size:12px;color:var(--paper-muted)}
+.office-root .openbook .art-form input,.office-root .openbook .art-form select,.office-root .openbook .art-form textarea{font:inherit;font-size:13px;padding:4px 8px;border:1px solid var(--paper-line);border-radius:5px;background:#fffdf7;color:var(--paper-ink);min-width:0}
+.office-root .openbook .art-form .err{color:#b03a2e;font-size:12px;min-height:1em}
+.office-root .openbook .pbtn{font:inherit;font-size:12.5px;border:1px solid var(--paper-line);background:#fffdf7;color:var(--paper-ink);border-radius:6px;padding:3px 10px;cursor:pointer;justify-self:start}
+.office-root .openbook .pbtn.primary{background:#2c5d86;border-color:#2c5d86;color:#fff}
+.office-root .openbook .talk-files{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.office-root .openbook .talk-files button{font:inherit;font-size:11.5px;padding:2px 8px;border:1px solid #d6c9a8;border-radius:10px;background:transparent;color:inherit;cursor:pointer}
+.office-root .openbook .talk-files button[aria-selected=true]{background:#e8dcc0}
+.office-root .openbook .talk{margin:0;padding:0;list-style:none;display:grid;gap:4px;font-size:12px;line-height:1.5}
+.office-root .openbook .talk li{white-space:pre-wrap;overflow-wrap:anywhere}
+.office-root .openbook .talk code{font-size:11px;color:var(--paper-muted)}
+.office-root .openbook .talk pre{max-height:200px;overflow:auto;font-size:11px;margin:4px 0}
+.office-root .openbook .talk-denied{color:#c53030}
+.office-root .openbook .talk-ask,.office-root .openbook .talk-answer{background:#fff3c4;color:#4a4032;padding:4px 6px;border-radius:4px}
+.office-root .openbook .live-log{margin:0 0 8px;padding-left:18px;display:grid;gap:2px;font-size:12px;color:var(--paper-muted)}
+.office-root .openbook .live-log time{font-family:var(--f-mono)}
+.office-root .floor-book{width:100%;height:100%;display:flex;flex-direction:column;overflow:auto;box-sizing:border-box;padding:0 34px 8px 0}
+.office-root .floor-book .openbook{flex:1 1 auto;min-height:0}
+.office-root .floor-book .ob-top{background:var(--surface);border-radius:8px;padding:4px 6px 4px 10px}
+.office-root .openbook .quip{border-left:3px solid var(--paper-line);padding-left:10px;margin:6px 0}
+.office-root .openbook .quip small{display:block;color:var(--paper-muted);font-size:11.5px}
+.office-root .ob-tabs{position:absolute;right:-34px;top:24px;display:grid;gap:4px;z-index:3}
+.office-root .ob-tabs button{writing-mode:vertical-rl;font:inherit;font-size:12.5px;padding:8px 5px;border:0;border-radius:0 6px 6px 0;background:#e8dcc0;color:#4a4032;cursor:pointer;box-shadow:2px 2px 0 rgba(0,0,0,.08)}
+.office-root .ob-tabs button[aria-selected="true"]{background:var(--ribbon);color:#fff;padding-right:9px}
+.office-root .ob-tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.office-root .openbook{min-width:520px;width:100%;flex:1 0 auto;box-sizing:border-box}
+@container drawer (max-width:760px){
+  .office-root .openbook{--px:18px}
+  .office-root .openbook .ob-flow{padding-top:40px;padding-bottom:34px;font-size:12.5px}
+  .office-root .openbook h3.ttl{font-size:18px}
+}
+.office-root .human-qs{margin:0;padding-left:20px;display:grid;gap:6px;overflow-wrap:anywhere}
+.office-root .human-form{display:grid;gap:8px}
+.office-root .human-form label{display:grid;gap:4px;font-size:12px;color:var(--muted)}
+.office-root .human-form textarea{font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg);resize:vertical}
+.office-root .human-form [role=alert]{color:#b03a2e;margin:0;font-size:12px}
+.office-root :is(#office,.zoom-view) .room-alert{cursor:pointer;transform-box:fill-box;transform-origin:center bottom;animation:alertBounce 1s ease-in-out infinite;filter:drop-shadow(0 3px 2px rgba(0,0,0,.35))}
+.office-root :is(#office,.zoom-view) .room-alert .hit{fill:transparent}
+.office-root :is(#office,.zoom-view) .room-alert:focus-visible{outline:none}
+.office-root :is(#office,.zoom-view) .room-alert:focus-visible .hit{stroke:var(--accent);stroke-width:2px}
+.office-root :is(#office,.zoom-view) .boom circle{transform-box:fill-box;transform-origin:center;opacity:0;animation:boomRing 1.4s ease-out forwards}
+.office-root :is(#office,.zoom-view) .boom-flash{fill:#fff3c4;animation:boomFlash 1.4s ease-out forwards}
+.office-root :is(#office,.zoom-view) .boom-text{font-size:64px;transform-box:fill-box;transform-origin:center;animation:boomPop 1.4s ease-out forwards}
+@keyframes boomRing{0%{transform:scale(.1);opacity:.95}70%{opacity:.8}100%{transform:scale(1.5);opacity:0}}
+@keyframes boomFlash{0%{opacity:0}15%{opacity:.95}100%{opacity:0}}
+@keyframes boomPop{0%{transform:scale(.2);opacity:0}25%{transform:scale(1.3);opacity:1}100%{transform:scale(1);opacity:0}}
+.office-root :is(#office,.zoom-view) .hourglass-plate{fill:#fff;stroke:#0f1b3d;stroke-width:2.5;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
+.office-root :is(#office,.zoom-view) .hourglass{cursor:pointer}
+.office-root :is(#office,.zoom-view) .hourglass:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.office-root :is(#office,.zoom-view) .hourglass.polled{animation:hgBlink .9s ease-out}
+@keyframes hgBlink{0%{opacity:.25}40%{opacity:1;filter:brightness(1.5)}100%{opacity:1}}
+.office-root :is(#office,.zoom-view) .boom.small circle{animation-duration:.9s}
+.office-root :is(#office,.zoom-view) .boom.small .boom-flash{fill:#fff3c4;animation:boomFlash .9s ease-out forwards}
+.office-root :is(#office,.zoom-view) .boom.small .boom-text{font-size:26px;animation-duration:.9s}
+.office-root :is(#office,.zoom-view) .toast-up{transform-box:fill-box;transform-origin:center bottom;animation:toastUp .35s ease-out}
+@keyframes toastUp{0%{transform:translateY(10px) scale(.6);opacity:0}100%{transform:none;opacity:1}}
+.office-root :is(#office,.zoom-view) .agent.burnt>g>:not(.burnt-eyes){filter:brightness(.15) saturate(0)}
+.office-root :is(#office,.zoom-view) .burnt-eyes ellipse{fill:#fff;transform-box:fill-box;transform-origin:center;animation:blink2 1.6s linear forwards}
+@keyframes blink2{0%,30%{transform:scaleY(1)}36%{transform:scaleY(.1)}42%,58%{transform:scaleY(1)}64%{transform:scaleY(.1)}70%,100%{transform:scaleY(1)}}
+@keyframes alertBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@media (prefers-reduced-motion:reduce){.office-root :is(#office,.zoom-view) .room-alert,.office-root :is(#office,.zoom-view) .agent-ask,.office-root :is(#office,.zoom-view) .hourglass.polled,.office-root :is(#office,.zoom-view) .toast-up{animation:none}.office-root :is(#office,.zoom-view) .room-dark{transition:none}}
+.office-root .floor-modal{position:absolute;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,.45)}
+.office-root .floor-modal.full{position:fixed;z-index:30;padding:24px;background:rgba(15,23,42,.6)}
+.office-root .floor-modal.full .openbook,.office-root .floor-modal.full .ob-top{max-width:none}
+.office-root .floor-modal .art-card{width:100%;margin:0;max-height:100%;overflow:auto}
+.office-root .floor-modal .art-card.zoom-card{max-width:min(960px,100%);display:flex;flex-direction:column}
+.office-root .zoom-card .zoom-view{display:block;width:100%;max-height:calc(100vh - 220px);min-height:0;border-radius:8px;background:var(--bg);font-family:var(--f-body)}
+.office-root .zoom-tabs{display:flex;gap:6px;padding-right:36px}
+.office-root .zoom-tabs button{border:1px solid var(--line);background:var(--sunk);color:var(--muted);border-radius:8px;padding:5px 12px;font-weight:700;cursor:pointer}
+.office-root .zoom-tabs button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.office-root .crew-view{display:grid;gap:12px;min-height:0;overflow:auto}
+.office-root .crew-head{border:1px solid var(--line);border-radius:10px;padding:12px 16px;background:var(--sunk);display:grid;gap:4px}
+.office-root .crew-key{font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.office-root .crew-title{font-size:18px;font-weight:700;line-height:1.35}
+.office-root .crew-stage{font-size:16px;font-weight:800;color:#c2410c;margin-top:4px}
+.office-root .crew-band{display:flex;gap:4px;flex-wrap:wrap}
+.office-root .crew-band span{flex:1 1 0;min-width:44px;text-align:center;font-size:12px;padding:3px 0;border-radius:5px;background:#e5e1d3;border:1px solid #b9b3a0;color:#555}
+.office-root .crew-band span.past{background:#fdba74}
+.office-root .crew-band span.on{background:#f97316;border-color:#c2410c;color:#fff;font-weight:700}
+.office-root .crew-line{font-size:13px;line-height:1.45;padding:4px 8px;border-radius:6px;background:var(--surface);border-left:3px solid var(--line)}
+.office-root .crew-line b{margin-right:6px}
+.office-root .crew-line.stuck{border-left-color:#e5484d}.office-root .crew-line.human{border-left-color:#e8890c}.office-root .crew-line.done{border-left-color:#1f9d55}.office-root .crew-line.work{border-left-color:var(--accent)}
+.office-root .crew-line code,.office-root .crew-todo code{font-family:var(--f-mono);font-size:12px;background:var(--sunk);padding:1px 5px;border-radius:4px}
+.office-root .crew-events{margin:2px 0 0;padding-left:18px;font-size:12px;color:var(--muted);display:grid;gap:2px}
+.office-root .crew-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
+.office-root .crew-col{display:grid;gap:10px}
+.office-root .crew-card{display:grid;gap:6px;border:1px solid var(--line);border-left-width:4px;border-radius:10px;padding:8px 12px;background:var(--surface)}
+.office-root .crew-card.done{border-left-color:#1f9d55}
+.office-root .crew-card.work{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.office-root .crew-card.stuck,.office-root .crew-card.ask{border-color:#e5484d}
+.office-root .crew-card.human{border-color:#e8890c}
+.office-root .crew-card.wait{border-left-color:#d8a40c}
+.office-root .crew-card.idle{opacity:.7}
+.office-root .crew-top{display:flex;gap:10px;align-items:center}
+.office-root .zoom-card .crew-fig{flex:0 0 auto;width:52px;max-height:none;aspect-ratio:52/70;background:transparent}
+.office-root .crew-body{display:grid;gap:2px;min-width:0}
+.office-root .crew-who b{font-size:15px}
+.office-root .crew-role{display:inline-block;font-size:11px;font-weight:700;color:#fff;border-radius:999px;padding:1px 8px;margin-left:4px;background:var(--muted)}
+.office-root .crew-role.planner{background:#7b61ff}.office-root .crew-role.developer{background:#2f80ed}.office-root .crew-role.reviewer{background:#e5484d}.office-root .crew-role.deployer{background:#e8890c}.office-root .crew-role.tester{background:#1f9d55}.office-root .crew-role.producer{background:#d6409f}
+.office-root .crew-state{font-size:13px;font-weight:700}
+.office-root .crew-card.stuck .crew-state,.office-root .crew-card.ask .crew-state{color:#e5484d}.office-root .crew-card.human .crew-state{color:#c2410c}.office-root .crew-card.done .crew-state{color:#1f9d55}.office-root .crew-card.work .crew-state{color:var(--accent)}
+.office-root .crew-meta{font-size:11.5px;color:var(--muted)}
+.office-root .crew-desc{font-size:13px;line-height:1.5;cursor:pointer;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.office-root .crew-desc.open{display:block}
+.office-root .crew-todo{font-size:12.5px}
+.office-root .crew-ask{margin-left:8px;padding:1px 10px;font-size:12px}
+.office-root .crew-prog{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.office-root .crew-bar{flex:1 1 auto;height:6px;border-radius:3px;background:var(--sunk);overflow:hidden}
+.office-root .crew-bar i{display:block;height:100%;background:var(--accent)}
+.office-root .crew-doing{font-size:12px;background:var(--accent-soft);border-radius:6px;padding:3px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.office-root .crew-extra{font-size:12.5px;border-top:1px dashed var(--line);padding-top:6px;display:grid;gap:4px}
+.office-root .crew-extra ul{margin:0;padding-left:4px;list-style:none;display:grid;gap:3px}
+.office-root .crew-extra li.stuck{color:#c53030}.office-root .crew-extra li.done{color:var(--muted)}
+.office-root .crew-note{font-size:11.5px;color:var(--muted);margin-left:14px}
+.office-root .crew-sev{display:inline-block;font-size:10.5px;font-weight:700;border-radius:4px;padding:0 5px;color:#fff;background:var(--muted)}
+.office-root .crew-sev.blocker{background:#b91c1c}.office-root .crew-sev.major{background:#e5484d}.office-root .crew-sev.minor{background:#d8a40c}
+.office-root .crew-gone{color:var(--muted)}
+@media (max-width:640px){.office-root .crew-cols{grid-template-columns:1fr}}
+/* 서류철: 책상 위 서류철, 캐비닛으로 날아 들어가기, 버리면 흐려지기, 캐비닛 꼬리표 */
+.office-root :is(#office,.zoom-view) .desk-folder{cursor:pointer;outline:none}
+.office-root :is(#office,.zoom-view) .desk-folder:hover image,.office-root :is(#office,.zoom-view) .desk-folder:focus-visible image{filter:drop-shadow(0 0 2px var(--accent))}
+.office-root :is(#office,.zoom-view) .flying-folder{transform-box:view-box;animation:folderIn .5s ease-in both}
+@keyframes folderIn{0%{transform:translate(var(--fx),var(--fy))}100%{transform:translate(0,0);opacity:.2}}
+.office-root :is(#office,.zoom-view) .folder-fade{animation:folderFade .4s ease-out forwards}
+@keyframes folderFade{to{opacity:0}}
+.office-root :is(#office,.zoom-view) .cabinet-tag{cursor:pointer;outline:none}
+.office-root :is(#office,.zoom-view) .cabinet-tag rect{stroke:#0f1b3d;stroke-width:1.5px}
+.office-root :is(#office,.zoom-view) .cabinet-tag .tag-ask{fill:#ffd54a}
+.office-root :is(#office,.zoom-view) .cabinet-tag .tag-confirm{fill:#ff8a65}
+.office-root :is(#office,.zoom-view) .cabinet-tag text{font-size:12px;font-weight:800;fill:#0f1b3d}
+.office-root :is(#office,.zoom-view) .cabinet-tag:focus-visible rect{stroke:var(--accent);stroke-width:2.5px}
+@media (prefers-reduced-motion:reduce){.office-root :is(#office,.zoom-view) .flying-folder,.office-root :is(#office,.zoom-view) .folder-fade{animation:none}}
+/* 작업 보고서 창: A4 서류철 모양(가로:세로 1:1.414), 왼쪽 고리 구멍 셋, 안쪽만 세로로 넘긴다 */
+.office-root .report-binder{position:relative;width:min(620px,92vw);aspect-ratio:1/1.414;max-height:100%;overflow:auto;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-left:14px solid var(--accent);border-radius:6px 12px 12px 6px;padding:20px 22px 20px 34px;display:grid;align-content:start;gap:12px;font-size:13.5px;box-shadow:0 12px 32px rgba(0,0,0,.22);grid-template-columns:minmax(0,1fr)}
+.office-root .report-binder h4{margin:0;padding-right:36px}
+.office-root .report-binder .close-x{position:absolute;top:10px;right:10px;width:28px;height:28px;padding:0;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg);font-size:18px;line-height:1;cursor:pointer}
+.office-root .report-binder .binder-holes{position:absolute;left:8px;top:0;bottom:0;display:flex;flex-direction:column;justify-content:space-around;pointer-events:none}
+.office-root .report-binder .binder-holes i{display:block;width:12px;height:12px;border-radius:50%;background:var(--bg);border:2px solid var(--line)}
+.office-root .report-top{background:var(--accent-soft);border:1px solid var(--accent);border-radius:8px;padding:10px 12px}
+.office-root .report-top b{font-size:12px;color:var(--accent)}
+.office-root .report-top p{margin:4px 0 0;font-weight:600}
+.office-root .report-list{list-style:none;margin:0;padding:0;display:grid;gap:0;grid-template-columns:minmax(0,1fr)}
+.office-root .report-list li{padding:10px 0;border-top:1px solid var(--line)}
+.office-root .report-head{display:flex;align-items:center;gap:8px;width:100%;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.office-root .report-head:hover .report-title,.office-root .report-head:focus-visible .report-title{text-decoration:underline}
+.office-root .report-chip{width:12px;height:12px;border-radius:2px;flex:none}
+.office-root .report-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.office-root .report-live,.office-root .report-phase{font-size:11px;border:1px solid var(--line);border-radius:999px;padding:0 8px;white-space:nowrap;color:var(--muted)}
+.office-root .report-live{border-color:var(--ok);color:var(--ok)}
+.office-root .report-list dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:8px 0 0 20px}
+.office-root .report-list dt{color:var(--muted);font-size:12px}
+.office-root .report-list dd{margin:0;overflow-wrap:anywhere}
+.office-root .report-human{color:var(--warn);font-weight:700}
+.office-root .report-act{margin-left:8px;width:24px;height:24px;padding:0;border-radius:50%;border:1.5px solid #0f1b3d;background:#ffd54a;font-weight:800;cursor:pointer}
+.office-root .report-cmd{display:inline-flex;align-items:center;gap:6px;margin-left:8px}
+.office-root .report-cmd code{font-family:var(--f-mono);font-size:12px;background:var(--sunk);padding:1px 6px;border-radius:4px}
+.office-root .report-cmd button{font-size:11.5px;padding:1px 8px}
+/* 작업 테이블: 머리 위 역할 이름표와 전구, 깃발, 프론트 데스크 이름표 */
+.office-root :is(#office,.zoom-view) .seat-tag rect{stroke:rgba(0,0,0,.35);stroke-width:1}
+.office-root :is(#office,.zoom-view) .seat-tag text{font-size:9px;font-weight:700;fill:#fff}
+.office-root :is(#office,.zoom-view) .seat-tag.planner rect{fill:#7b61ff}
+.office-root :is(#office,.zoom-view) .seat-tag.developer rect{fill:#2f80ed}
+.office-root :is(#office,.zoom-view) .seat-tag.reviewer rect{fill:#e5484d}
+.office-root :is(#office,.zoom-view) .seat-tag.deployer rect{fill:#e8890c}
+.office-root :is(#office,.zoom-view) .seat-tag.tester rect{fill:#1f9d55}
+.office-root :is(#office,.zoom-view) .seat-tag.intern rect{fill:#8e4ec6}
+.office-root :is(#office,.zoom-view) .seat-tag.producer rect{fill:#d6409f}
+.office-root :is(#office,.zoom-view) .seat-tag.idle{opacity:.5}
+.office-root :is(#office,.zoom-view) .seat-gauge .track{fill:#2b2f36;stroke:#fff;stroke-width:1}
+.office-root :is(#office,.zoom-view) .seat-gauge.developer .bar{fill:#2f80ed}
+.office-root :is(#office,.zoom-view) .seat-gauge.tester .bar{fill:#1f9d55}
+.office-root :is(#office,.zoom-view) .seat-gauge.reviewer .bar{fill:#e5484d}
+.office-root :is(#office,.zoom-view) .seat-gauge.deployer .bar{fill:#e8890c}
+.office-root :is(#office,.zoom-view) .seat-gauge.producer .bar{fill:#d6409f}
+.office-root :is(#office,.zoom-view) .seat-gauge text{font-size:8px;font-weight:800;fill:#fff;paint-order:stroke;stroke:#2b2f36;stroke-width:2.5px}
+.office-root :is(#office,.zoom-view) .seat-tag circle.seat-bulb{fill:#6b6b6b;stroke:#2a2a2a;stroke-width:.8}
+.office-root :is(#office,.zoom-view) .seat-tag.work circle.seat-bulb{fill:#ffd84a;stroke:#b8860b;filter:drop-shadow(0 0 3px #ffe066)}
+.office-root :is(#office,.zoom-view) .seat-tag text.seat-bulb{font-size:8px;fill:#fff}
+.office-root :is(#office,.zoom-view) .work-flag .banner{fill:#fffdf3;stroke:#5a4a2a;stroke-width:1.2}
+.office-root :is(#office,.zoom-view) .work-flag .pole{stroke:#6b5434;stroke-width:3}
+.office-root :is(#office,.zoom-view) .work-flag .key{font-size:9.5px;font-weight:700;fill:#2a2a33}
+.office-root :is(#office,.zoom-view) .work-flag .stage{font-size:13px;font-weight:800;fill:#c2410c}
+.office-root :is(#office,.zoom-view) .work-flag .band rect{fill:#e5e1d3;stroke:#b9b3a0;stroke-width:.6}
+.office-root :is(#office,.zoom-view) .work-flag .band rect.on{fill:#f97316;stroke:#c2410c}
+.office-root :is(#office,.zoom-view) .work-flag .band rect.past{fill:#fdba74}
+.office-root :is(#office,.zoom-view) .work-flag .band text{font-size:6.5px;fill:#555}
+.office-root :is(#office,.zoom-view) .work-flag .flag-ask{cursor:pointer}
+.office-root :is(#office,.zoom-view) .work-flag .flag-open{cursor:pointer}
+.office-root :is(#office,.zoom-view) .work-flag .flag-open:hover .banner{stroke:var(--accent);stroke-width:2}
+.office-root :is(#office,.zoom-view) .table-open{fill:transparent;cursor:pointer;outline:none}
+.office-root :is(#office,.zoom-view) .table-open:hover,.office-root :is(#office,.zoom-view) .table-open:focus-visible{fill:rgba(255,255,255,.12);stroke:var(--accent);stroke-width:1.5}
+.office-root :is(#office,.zoom-view) .desk-label text{font-size:9px;font-weight:800;fill:#fff}
+.office-root :is(#office,.zoom-view) .desk-label.done rect{fill:#e5484d}
+.office-root :is(#office,.zoom-view) .desk-label.hold rect{fill:#d97706}
+.office-root :is(#office,.zoom-view) .work-flag .flag-hold{cursor:pointer}
+.office-root :is(#office,.zoom-view) .work-flag .flag-hold rect{fill:#fff;stroke:#8a8a96;stroke-width:.8}
+.office-root :is(#office,.zoom-view) .work-flag .flag-hold text{font-size:6px;fill:#4a4a55;font-weight:800}
+.office-root :is(#office,.zoom-view) .work-flag .flag-hold:hover rect{fill:#fde68a}
+.office-root #office-page .linkish,.office-root .art-card .linkish{background:none;border:0;padding:0;color:var(--accent);cursor:pointer;text-align:left;font:inherit}
+
+/* 도비 사무실 회고 책장(오른쪽 책꽂이 색을 바꿈)과 회고록 */
+.office-root :is(#office,.zoom-view) .retro-shelf{filter:sepia(.15) brightness(2.2)}
+.office-root .retro-book{position:relative;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;gap:8px}
+.office-root .rb-bar{width:100%;max-width:1380px;display:flex;justify-content:space-between;align-items:center;gap:8px;color:#fff;font-size:14px}
+.office-root .rb-btns{display:flex;gap:6px}
+.office-root .rb-btns button{padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.5);background:rgba(0,0,0,.25);color:#fff;cursor:pointer;font:inherit}
+.office-root .rb-btns button:disabled{opacity:.4;cursor:default}
+.office-root .rb-error{color:#fff}
+.office-root .rb-viewport{position:relative;overflow:hidden;flex:none}
+.office-root .rb-stage{position:relative;transform-origin:0 0}
+.office-root .rb-img{position:absolute;inset:0;width:100%;height:100%;user-select:none;pointer-events:none}
+.office-root .rb-page{position:absolute;overflow:hidden;color:#3b2f1e;line-height:1.45;word-break:keep-all;overflow-wrap:anywhere;font-family:var(--f-book),"Apple SD Gothic Neo",sans-serif}
+.office-root .rb-page>div{font-size:1.05em}
+.office-root .rb-page :is(code,pre,.rb-patch){font-family:var(--f-mono)}
+.office-root .rb-page>div{display:flow-root}
+.office-root .rb-page h4{margin:.2em 0 .6em;font-size:1.35em;line-height:1.3}
+.office-root .rb-page h5{margin:.5em 0 .3em;font-size:1.05em;color:#5b21b6;border-bottom:1px solid rgba(91,33,182,.25)}
+.office-root .rb-page p{margin:0 0 .35em}
+.office-root .rb-page code{display:inline-block;margin:.15em 0;padding:0 .3em;background:rgba(91,33,182,.08);border-radius:3px;font-size:.92em;word-break:break-all}
+.office-root .rb-page .kick{font-size:.8em;letter-spacing:.1em;color:#7c3aed}
+.office-root .rb-row{display:flex;justify-content:space-between;gap:.6em}
+.office-root .rb-row small,.office-root .rb-seg small{color:#7a6a50}
+.office-root .rb-seg{display:flex;flex-direction:column;font-size:.92em}
+.office-root .rb-note{font-size:.85em;color:#6b5a3e}
+.office-root .rb-item{margin:0 0 .5em}
+.office-root .rb-item p{margin:.1em 0 0}
+.office-root .rb-hint{margin-top:1.2em!important;font-size:.85em;color:#8a7a5c}
+.office-root .rb-label{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-weight:800;color:#3b3220;font-size:1.1em;line-height:1.2;white-space:nowrap}
+.office-root .rb-label.small{font-size:.95em;font-weight:700}
+.office-root .rb-measure{position:absolute;left:-9999px;top:0;visibility:hidden}
+.office-root .retro-book.wide{display:block}
+.office-root .retro-book.wide .rb-bar{position:absolute;top:0;left:0;right:0;z-index:2;max-width:none;height:36px;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+.office-root .retro-book.wide .rb-btns button{background:rgba(15,23,42,.92)}
+.office-root .retro-book.wide .rb-bar>span:first-child{background:rgba(15,23,42,.92);padding:4px 10px;border-radius:6px}
+.office-root .retro-book.wide .rb-viewport{position:absolute;bottom:0;left:50%;transform:translateX(-50%);overflow:visible}
+.office-root .floor-modal.full:has(.retro-book){padding:8px}
+.office-root .rb-sum{font-weight:600}
+.office-root .rb-line{display:flex;gap:.4em;align-items:flex-start}
+.office-root .rb-line>span{flex:none}
+.office-root .rb-where{flex:none;font-style:normal;font-size:.8em;padding:0 .4em;margin-right:.2em;border-radius:3px;background:#ede4ff;color:#5b21b6;line-height:1.6}
+.office-root .rb-stages{display:flex;margin:.3em 0 .2em;font-size:.72em;color:#9a8b70}
+.office-root .rb-stages span{flex:1;display:flex;flex-direction:column;align-items:center;gap:.15em;position:relative;white-space:nowrap}
+.office-root .rb-stages span::before{content:"";position:absolute;top:.35em;left:0;right:0;height:2px;background:#d8ccb0}
+.office-root .rb-stages i{position:relative;width:.55em;height:.55em;border-radius:50%;background:#cbbd9c}
+.office-root .rb-stages .late::before{background:#f0a3a3}
+.office-root .rb-stages .could{color:#a16207;font-weight:700}
+.office-root .rb-stages .could i{background:#d97706;width:.8em;height:.8em;margin-top:-.12em}
+.office-root .rb-stages .found{color:#b91c1c;font-weight:700}
+.office-root .rb-stages .found i{background:#dc2626;width:.8em;height:.8em;margin-top:-.12em}
+.office-root .rb-bar-row{display:grid;grid-template-columns:7.5em 1fr auto;gap:.5em;align-items:center;margin:.25em 0}
+.office-root .rb-bar-row small{color:#7a6a50}
+.office-root .rb-track{height:.7em;background:rgba(59,47,30,.1);border-radius:.35em;overflow:hidden}
+.office-root .rb-track span{display:block;height:100%;background:#a78bfa}
+.office-root .rb-bar-row.now .rb-track span{background:#6d28d9}
+/* 도비 사무실 바인더 책: 작업 책·아티팩트 책의 쪽 글, 표지 단추, 오른쪽 쪽 위 양식 */
+.office-root .rb-page h6{margin:.7em 0 .25em;font-weight:700;font-size:1.05em;line-height:1.35;color:#5b21b6}
+.office-root .rb-title .rb-row>span{flex:none}
+.office-root .rb-title .rb-row>b{text-align:right}
+.office-root .rb-cont thead{display:none}
+.office-root .rb-page .md :not(pre)>code{display:inline;margin:0;padding:0 .2em}
+.office-root .rb-page .md{overflow-wrap:anywhere}
+.office-root .rb-page .md :is(p,li){white-space:pre-line;margin:.2em 0}
+/* 손글씨는 굵기가 하나뿐이라 굵은 글씨와 제목은 글자 테두리로 두껍게 그린다 */
+.office-root .rb-page :is(strong,b){font-synthesis:none;-webkit-text-stroke:.04em currentColor}
+.office-root .rb-page :is(h1,h2,h3,h4,h5,h6,.rb-chap,.rb-scn .rb-tc){font-synthesis:none;-webkit-text-stroke:.055em currentColor}
+.office-root .rb-page .md :is(h1,h2,h3,h4,h5,h6){margin:.6em 0 .2em;font-weight:700;font-size:1em;line-height:1.35;color:#3b2f1e;border:0}
+.office-root .rb-page .md :is(h1,h2){margin:.9em 0 .35em;padding-bottom:.15em;font-size:1.15em;color:#3b2f1e;border-bottom:1px solid rgba(91,33,182,.25)}
+.office-root .rb-page .md h3{margin:.7em 0 .25em;font-size:1.05em;color:#5b21b6}
+.office-root .rb-page .md :is(ul,ol){margin:.2em 0;padding-left:1.4em}
+.office-root .rb-page .md pre{white-space:pre-wrap;margin:.3em 0;font-size:.85em}
+.office-root .rb-page .md pre code{display:inline;background:none;padding:0}
+.office-root .rb-page .md blockquote{margin:.3em 0;padding:0 .7em;border-left:3px solid rgba(59,47,30,.2);color:#6b5a3e}
+.office-root .rb-page .md table,.office-root .rb-tbl{width:100%;table-layout:fixed;border-collapse:collapse;font-size:.9em;margin:0}
+.office-root .rb-page .md :is(th,td),.office-root .rb-tbl :is(th,td){padding:.2em .35em;text-align:left;vertical-align:top;border-bottom:1px solid rgba(59,47,30,.15);overflow-wrap:anywhere;white-space:pre-wrap}
+.office-root .rb-tbl th{color:#6b5a3e;font-weight:700;background:transparent}
+.office-root .rb-patch{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.78em;line-height:1.35}
+.office-root .rb-patch .add{color:#2f7a4a}.office-root .rb-patch .del{color:#b03a2e}
+.office-root .rb-url{overflow-wrap:anywhere;font-size:.9em}
+.office-root .rb-link{padding:0;border:0;background:none;color:#5b21b6;font:inherit;text-decoration:underline;cursor:pointer;text-align:left}
+.office-root .rb-line small{color:#7a6a50;margin-left:.4em}
+.office-root .rb-actions{position:absolute;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:.5em;z-index:2}
+.office-root .rb-actions .pbtn{font:inherit;font-size:.95em;font-weight:700;padding:.35em .9em;border:1px solid #c9b98f;border-radius:.4em;background:#efe3c4;color:#3b2f1e;cursor:pointer;text-decoration:none;box-shadow:0 2px 0 rgba(0,0,0,.35)}
+.office-root .rb-actions .pbtn:hover{background:#f7eed6}
+.office-root .rb-actions .pbtn:disabled{opacity:.6;cursor:progress}
+.office-root .rb-actions p{margin:0;color:#f3ead2;font-size:.85em;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.office-root .rb-actions.narrow{position:static;flex-direction:row;flex-wrap:wrap;width:100%}
+.office-root .rb-actions.narrow p{color:#fff}
+.office-root .rb-overlay{z-index:3;overflow:auto;padding:.8em;background:#f6edd6;border:1px solid #c9b98f;border-radius:.3em;box-shadow:0 .3em 1em rgba(0,0,0,.25)}
+.office-root .rb-overlay .art-form{display:grid;gap:.5em;margin-top:.4em}
+.office-root .rb-overlay .art-form[hidden]{display:none}
+.office-root .rb-overlay .art-form label{display:grid;gap:.15em;font-size:.9em;color:#6b5a3e}
+.office-root .rb-overlay .art-form :is(input,select,textarea){font:inherit;padding:.25em .5em;border:1px solid #c9b98f;border-radius:.3em;background:#fffdf7;color:#3b2f1e;min-width:0}
+.office-root .rb-overlay .art-form .err{color:#b03a2e;font-size:.85em;min-height:1em}
+/* 도비 작업 책 앞쪽 장: 장 머리, 차례, 흐름 그림, 붙인 사진, 판정 도장, 검증 막대, 배포 점 */
+.office-root .rb-chap{margin:1.1em 0 .55em;padding-bottom:.25em;font-size:1.22em;font-weight:800;line-height:1.3;color:#3b2f1e;border-bottom:3px double rgba(91,33,182,.35)}
+.office-root .rb-page>div:first-child .rb-chap{margin-top:0}
+.office-root .rb-chap>span{display:inline-block;min-width:1.45em;height:1.45em;margin-right:.45em;border-radius:50%;background:#5b21b6;color:#f6efdc;text-align:center;font-size:.78em;line-height:1.45em;vertical-align:.12em}
+.office-root .rb-chap.appendix{color:#6b5a3e;border-bottom:1px dashed rgba(59,47,30,.35)}
+.office-root .rb-chap.appendix small{display:block;font-size:.62em;font-weight:500;color:#8a7a5c}
+.office-root .rb-title{padding-left:1.4em;box-sizing:border-box} /* 바인더 고리가 첫 글자를 가리지 않게 */
+.office-root .rb-page .md li{white-space:normal}
+.office-root .rb-page .md li>p{margin:.1em 0}
+/* 책갈피: 종이 사이에 끼운 색 종이 꼬리. 아래 끝은 종이 위 가장자리에 닿고, 그 언저리를 어둡게 해 종이 뒤로 들어간 것처럼 보인다 */
+.office-root .rb-tab{position:absolute;z-index:1;display:flex;justify-content:center;align-items:flex-start;padding:.3em .2em 0;box-sizing:border-box;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;border:1px solid rgba(59,47,30,.28);border-bottom:0;border-radius:.5em .5em 0 0;font:inherit;font-size:.78em;font-weight:700;color:#4a3b24;cursor:pointer;box-shadow:inset 0 -1.1em .7em -.6em rgba(59,47,30,.35),0 -.05em .2em rgba(0,0,0,.18);transition:top .15s,height .15s,transform .15s}
+.office-root .rb-tab:hover{transform:translateY(-.25em)}
+.office-root .rb-tab.now{z-index:2;font-weight:800;color:#3b1d7a;filter:saturate(1.6) brightness(.97);box-shadow:inset 0 -1.1em .7em -.6em rgba(59,47,30,.35),0 -.15em .45em rgba(0,0,0,.3)}
+.office-root .rb-tab.tab-0{background:#efe0b0}.office-root .rb-tab.tab-1{background:#cfe3c4}.office-root .rb-tab.tab-2{background:#f3cbbb}
+.office-root .rb-tab.tab-3{background:#c9dbe8}.office-root .rb-tab.tab-4{background:#e3d2ec}.office-root .rb-tab.tab-5{background:#f1d9a6}
+/* 종이 아래 바깥 모서리: 살짝 접힌 귀퉁이. 마우스를 올리면 더 들린다 */
+.office-root .rb-corner{position:absolute;z-index:2;padding:0;border:0;background:none;cursor:pointer}
+.office-root .rb-corner::after{content:"";position:absolute;bottom:0;width:1.6em;height:1.6em;transition:width .15s,height .15s;filter:drop-shadow(0 0 .12em rgba(59,47,30,.45))}
+.office-root .rb-corner.next::after{right:0;background:linear-gradient(135deg,#efe2bf 0 50%,transparent 50%)}
+.office-root .rb-corner.prev::after{left:0;background:linear-gradient(225deg,#efe2bf 0 50%,transparent 50%)}
+.office-root .rb-corner:hover::after,.office-root .rb-corner:focus-visible::after{width:3em;height:3em}
+.office-root .rb-toc{margin-top:1em}
+.office-root .rb-toc button{display:flex;align-items:baseline;gap:.35em;width:100%;padding:.12em 0;border:0;background:none;font:inherit;color:#3b2f1e;cursor:pointer;text-align:left}
+.office-root .rb-toc button i{flex:1;border-bottom:1px dotted #b9a57a;transform:translateY(-.25em)}
+.office-root .rb-toc button b{color:#5b21b6;font-variant-numeric:tabular-nums}
+.office-root .rb-toc button:hover span{text-decoration:underline;text-decoration-color:#a78bfa}
+.office-root .rb-flow{margin:.4em 0 .6em;padding:.45em;background:rgba(255,253,245,.55);border:1px solid rgba(185,165,122,.5);border-radius:.3em}
+.office-root .rb-flow svg{display:block;margin:0 auto;max-width:100%!important;height:auto;max-height:24em}
+.office-root .rb-shot{position:relative;width:92%;margin:.8em auto .7em;padding:.35em .35em .3em;background:#fffdf7;border:1px solid rgba(185,165,122,.45);box-shadow:0 .15em .45em rgba(59,47,30,.22);transform:rotate(-.5deg)}
+.office-root .rb-shot.tilt-r{transform:rotate(.45deg)}
+.office-root .rb-shot::before{content:"";position:absolute;top:-.5em;left:50%;width:3.4em;height:.95em;transform:translateX(-50%) rotate(-3deg);background:rgba(232,216,164,.78);box-shadow:0 1px 1px rgba(59,47,30,.08)}
+.office-root .rb-shot img{display:block;width:100%;height:10.5em;object-fit:contain;background:#f1ead8}
+.office-root .rb-shot figcaption{display:flex;flex-wrap:wrap;align-items:baseline;gap:.3em;margin-top:.3em;font-size:.85em;line-height:1.35}
+.office-root .rb-shot figcaption small{margin-left:auto;color:#7a6a50}
+.office-root .rb-pair{display:grid;grid-template-columns:1fr 1fr;gap:.6em}
+.office-root .rb-pair .rb-shot{width:auto}
+.office-root .rb-pair .rb-shot img{height:9em}
+.office-root .rb-tag{padding:0 .4em;border-radius:3px;font-size:.85em;font-weight:700;background:#e3f0e2;color:#2f6b3a}
+.office-root .rb-tag.before{background:#efe3c4;color:#6b5a3e}
+.office-root .rb-stamp{display:inline-block;padding:0 .35em;border:1.5px solid currentColor;border-radius:.25em;font-size:.78em;font-weight:800;letter-spacing:.05em;line-height:1.35;transform:rotate(-4deg)}
+.office-root .rb-stamp.pass{color:#2f7a4a}.office-root .rb-stamp.fail{color:#b03a2e}.office-root .rb-stamp.hold{color:#a16207}
+.office-root .rb-run{display:grid;grid-template-columns:5.8em 3.6em 1fr auto;gap:.5em;align-items:center;margin:.3em 0;font-size:.92em}
+.office-root .rb-run .at{color:#6b5a3e;font-variant-numeric:tabular-nums}
+.office-root .rb-run .env{font-weight:700}
+.office-root .rb-run small{color:#6b5a3e}
+.office-root .rb-meter{display:flex;height:.7em;border-radius:.35em;overflow:hidden;background:rgba(59,47,30,.1)}
+.office-root .rb-meter .pass{background:#5a9e6b}.office-root .rb-meter .fail{background:#c2554a}.office-root .rb-meter .hold{background:#d9a441}
+.office-root .rb-tc{display:grid;grid-template-columns:3.2em 1fr auto;gap:.4em;align-items:baseline;margin:0!important;padding:.18em 0;border-bottom:1px solid rgba(59,47,30,.12);font-size:.9em}
+.office-root .rb-tc>span:first-child{color:#6b5a3e}
+.office-root .rb-tc .rb-stamp{justify-self:end}
+.office-root .rb-ship{margin:.45em 0 .3em;font-size:.8em;color:#5a4a30}
+.office-root .rb-ship small{font-size:.9em;color:#7a6a50}
+.office-root .rb-ship .done i,.office-root .rb-ship .doing i,.office-root .rb-ship .fail i,.office-root .rb-ship .plan i{width:.85em;height:.85em;margin-top:-.15em}
+.office-root .rb-ship .done i{background:#4f9a62}.office-root .rb-ship .done::before{background:#a9d3b2}
+.office-root .rb-ship .doing i{background:#d9a441}
+.office-root .rb-ship .fail i{background:#c2554a}
+.office-root .rb-ship .plan i{background:#fffdf7;border:2px solid #a78bfa;box-sizing:border-box}
+.office-root .rb-track{position:relative}
+.office-root .rb-track i{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:#3b2f1e}
+.office-root .rb-bar-row .rb-track span.over{background:#e08a3c}
+.office-root .rb-overlay .crew{display:flex;flex-wrap:wrap;gap:.4em}
+.office-root .rb-overlay .pbtn{font:inherit;font-size:.9em;padding:.25em .8em;border:1px solid #c9b98f;border-radius:.3em;background:#fffdf7;color:#3b2f1e;cursor:pointer}
+.office-root .rb-overlay .pbtn.primary{background:#2c5d86;border-color:#2c5d86;color:#fff}
+/* 왼쪽 모니터: 팀 이슈 현황 */
+.office-root :is(#office,.zoom-view) .monitor-hit{cursor:pointer;outline:none}
+.office-root :is(#office,.zoom-view) .monitor-hit .hit{fill:transparent;stroke:transparent;stroke-width:2.5px}
+.office-root :is(#office,.zoom-view) .monitor-hit:hover .hit,.office-root :is(#office,.zoom-view) .monitor-hit:focus-visible .hit{stroke:var(--accent)}
+.office-root :is(#office,.zoom-view) .jobs-screen-text{font-size:13px;font-weight:800;fill:#ffd54a}
+@media (prefers-reduced-motion:no-preference){.office-root :is(#office,.zoom-view) .jobs-screen-text{animation:jobs-blink 1.6s ease-in-out infinite}}
+@keyframes jobs-blink{50%{opacity:.35}}
+.office-root .jobs-card .jobs-meta{display:flex;flex-wrap:wrap;gap:4px 16px;color:var(--muted)}
+.office-root .jobs-card .jobs-meta b{color:var(--fg);font-variant-numeric:tabular-nums}
+.office-root .jobs-card .jobs-nums{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.office-root .jobs-card .jobs-nums div{border:1px solid var(--line);border-radius:6px;padding:6px 8px;display:grid}
+.office-root .jobs-card .jobs-nums span{color:var(--muted);font-size:11.5px}
+.office-root .jobs-card .jobs-nums strong{font-size:18px;font-variant-numeric:tabular-nums}
+.office-root .jobs-card .jobs-alert{background:color-mix(in srgb,#e5484d 14%,var(--surface));border-radius:6px;padding:8px 10px;display:grid;gap:4px}
+.office-root .jobs-card .jobs-ok{color:var(--muted)}
+.office-root .jobs-card .jobs-err{color:#e5484d}
+.office-root .jobs-card .row .sp{flex:1}
+@media (max-width:480px){.office-root .jobs-card .jobs-nums{grid-template-columns:repeat(2,1fr)}}
+/* 오른쪽 모니터: 데이터 분석 */
+.office-root :is(#office,.zoom-view) .jobs-screen-text.good{fill:#6ee7a8}.office-root :is(#office,.zoom-view) .jobs-screen-text.bad{fill:#ff8a8a}.office-root :is(#office,.zoom-view) .jobs-screen-text.wait{fill:#ffd54a}
+.office-root :is(#office,.zoom-view) .monitor-dot{fill:#e5484d;stroke:#fff;stroke-width:1.5}
+.office-root .floor-modal .art-card.data-card{max-width:1180px;height:100%;display:flex;flex-direction:column;gap:12px;overflow:hidden;border-top:6px solid #10233f}
+.office-root .data-card .data-head{display:grid;gap:2px}
+.office-root .data-card .data-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(200px,260px) minmax(0,1fr);gap:16px}
+.office-root .data-card .data-list{display:flex;flex-direction:column;gap:6px;overflow:auto;padding-right:4px}
+.office-root .data-card .data-list p,.office-root .data-card .data-pane>p{margin:0;color:var(--muted)}
+.office-root .data-card .data-list button{display:grid;gap:2px;text-align:left;padding:8px 10px;border-left:4px solid var(--line)}
+.office-root .data-card .data-list button:hover{border-color:var(--accent)}
+.office-root .data-card .data-list button[aria-current="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.office-root .data-card .data-key{font-family:var(--f-mono);font-size:12px;display:flex;gap:6px;align-items:center}
+.office-root .data-card .data-key em{font-style:normal;font-family:var(--f-body);font-size:11px;font-weight:700;color:#fff;background:#e5484d;border-radius:999px;padding:0 6px}
+.office-root .data-card .data-title{font-size:12.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.office-root .data-card .data-state{font-size:11.5px;color:var(--muted)}
+.office-root .data-card .data-pane{min-width:0;overflow:auto;display:flex;flex-direction:column;gap:12px;border-left:1px solid var(--line);padding:0 4px 0 16px}
+.office-root .data-card .data-pane h5{margin:0;font-size:15px;font-family:var(--f-mono)}
+.office-root .data-card .data-pane h5 span{font-family:var(--f-body);font-weight:600;margin-left:6px}
+.office-root .data-badge{display:inline-block;font-size:11.5px;font-weight:700;border-radius:999px;padding:1px 8px;border:1px solid currentColor;white-space:nowrap}
+.office-root .data-badge.good{color:var(--ok)}.office-root .data-badge.bad{color:var(--bad)}.office-root .data-badge.wait{color:var(--warn)}.office-root .data-badge.flat{color:var(--muted)}.office-root .data-badge.run{color:var(--accent)}
+.office-root .data-card .data-one{margin:0;font-size:16px;font-weight:600;line-height:1.5;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.office-root .data-card .data-nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.office-root .data-card .data-nums div{border:1px solid var(--line);border-radius:8px;padding:8px 12px;display:grid;gap:2px}
+.office-root .data-card .data-nums span,.office-root .data-card .data-nums small,.office-root .data-card .data-note{color:var(--muted);font-size:12px}
+.office-root .data-card .data-nums strong{font-size:22px;font-variant-numeric:tabular-nums}
+.office-root .data-card .data-nums strong.good{color:var(--ok)}.office-root .data-card .data-nums strong.bad{color:var(--bad)}
+.office-root .data-card .data-note{margin:0}
+.office-root .data-card .data-lines{margin:0;display:grid;gap:4px}
+.office-root .data-card .data-lines figcaption{font-size:12px;color:var(--muted)}
+.office-root .data-card .data-lines svg{width:100%;height:120px;border:1px solid var(--line);border-radius:8px;background:var(--sunk)}
+.office-root .data-card .data-lines ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:2px 14px;font-size:12px;color:var(--muted)}
+.office-root .data-card .data-lines li{display:flex;align-items:center;gap:5px}
+.office-root .data-card .data-lines i{width:10px;height:3px;border-radius:2px}
+.office-root .data-card .data-md{border-top:1px solid var(--line);padding-top:4px;overflow-wrap:anywhere;line-height:1.6}
+.office-root .data-card .data-md :is(h1,h2,h3,h4){margin:16px 0 6px;line-height:1.4}
+.office-root .data-card .data-md h1{font-size:16px}.office-root .data-card .data-md h2{font-size:15px;padding-bottom:4px;border-bottom:1px solid var(--line)}.office-root .data-card .data-md :is(h3,h4){font-size:13.5px}
+.office-root .data-card .data-md :is(p,li){margin:4px 0}
+.office-root .data-card .data-md :is(ul,ol){margin:4px 0;padding-left:20px}
+.office-root .data-card .data-md table{display:block;max-width:100%;overflow-x:auto;border-collapse:collapse;margin:6px 0}
+.office-root .data-card .data-md :is(th,td){border:1px solid var(--line);padding:4px 8px;text-align:left;vertical-align:top}
+.office-root .data-card .data-md th{background:var(--sunk)}
+.office-root .data-card .data-md code{font-family:var(--f-mono);font-size:.92em;background:var(--sunk);border-radius:3px;padding:0 3px}
+.office-root .data-card .data-md a{border:0;padding:0;background:none;color:var(--accent);text-decoration:underline}
+.office-root .data-card .data-job{border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:8px 12px;display:grid;gap:2px;font-size:12.5px}
+.office-root .data-card .data-job.failed{border-left-color:var(--bad)}
+.office-root .data-card .data-job span{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.office-root .data-card .data-foot{align-items:center}
+.office-root .data-card .data-foot .sp{flex:1}
+.office-root .data-card button:disabled{opacity:.5;cursor:not-allowed}
+@media (max-width:720px){.office-root .data-card .data-body{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,38%) minmax(0,1fr)}.office-root .data-card .data-pane{border-left:0;border-top:1px solid var(--line);padding:12px 0 0}}
+/* 업무 맡기기: 도비 사무실에서 일하지 않는 사람을 누르면 업무 맡기기 창이 열린다 */
+.office-root :is(#office,.zoom-view) .agent-free{cursor:pointer;outline:none}
+.office-root :is(#office,.zoom-view) .agent-free:hover .torso,.office-root :is(#office,.zoom-view) .agent-free:focus-visible .torso{filter:drop-shadow(0 0 3px var(--accent))}
+/* 기획자가 머리에 이고 가는 깃발 */
+.office-root :is(#office,.zoom-view) .carry-flag line{stroke:#6b4f2a;stroke-width:2}
+.office-root :is(#office,.zoom-view) .carry-flag rect{fill:#fff8e1;stroke:#c8a24a;stroke-width:1}
+.office-root :is(#office,.zoom-view) .carry-flag text{font-size:8.5px;font-weight:700;fill:#5b4214}
+.office-root .assign-lead{margin:2px 0 10px;color:var(--muted);font-size:13px}
+/* 프론트 데스크 창의 완료·홀딩 탭 */
+.office-root .desk-tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:6px 0 10px}
+.office-root .desk-tabs [role=tab]{border:1px solid transparent;border-bottom:0;background:none;color:var(--muted);padding:6px 12px;border-radius:6px 6px 0 0;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:-1px}
+.office-root .desk-tabs [role=tab].on{color:var(--fg);background:var(--surface);border-color:var(--line)}
+.office-root .desk-tabs [role=tab]:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.office-root .desk-tab .done-bottom{justify-content:flex-start}
+.office-root .rb-page .md img{display:block;max-width:100%;max-height:16em;margin:.3em 0;object-fit:contain;background:#f1ead8}
+.office-root .rb-scn{margin:.5em 0 .6em;padding-bottom:.35em;border-bottom:2px solid rgba(91,33,182,.35)}
+.office-root .rb-scn .rb-tc{grid-template-columns:auto 1fr auto;gap:.5em;padding:0 0 .25em;border-bottom:0;font-weight:700;font-size:1.15em;line-height:1.35;color:#3b2f1e}
+.office-root .rb-scn .rb-tc>span:first-child{padding:0 .45em;border-radius:.3em;background:#5b21b6;color:#f6efdc;font-size:.85em}
+.office-root .rb-ritem{grid-template-columns:auto 1fr auto;gap:.5em;margin-top:.8em!important;padding:.15em 0 .2em;border-bottom:1.5px solid rgba(91,33,182,.3);font-size:1.05em;color:#3b2f1e;font-synthesis:none;-webkit-text-stroke:.055em currentColor}
+.office-root .rb-ritem>span:first-child{padding:0 .45em;border-radius:.3em;background:#ede4ff;color:#5b21b6;font-size:.85em}
+.office-root .rb-ritem .rb-stamp{-webkit-text-stroke:0}
+.office-root .rb-scn .rb-tc small{font-weight:400;-webkit-text-stroke:0;color:#7a6a50;font-size:.75em}
+.office-root .rb-verdicts{margin:0 0 .3em 3.6em}
+.office-root .rb-envv{display:flex;gap:.5em;align-items:baseline;margin:0!important;font-size:.85em}
+.office-root .rb-envv>span:first-child{min-width:3.6em;color:#6b5a3e}
+.office-root .rb-envv small{color:#7a6a50}
+.office-root .rb-none{font-size:.85em;color:#9a8b70}
+.office-root .rb-why{font-size:.82em;color:#6b5a3e}
+.office-root .rb-why>span{color:#9a8b70}
+.office-root .rb-runhead .rb-run{margin-top:0;font-size:1em}
+.office-root .rb-runhead .rb-note{margin-top:-.2em}
+.office-root .rb-cond{display:grid;grid-template-columns:auto 1fr;gap:.5em;align-items:baseline;margin-top:.4em}
+.office-root .rb-cond>b{white-space:nowrap}
+.office-root .rb-pgno{position:absolute;display:flex;align-items:center;font-family:var(--f-book),sans-serif;font-size:1em;color:#7a6a50;pointer-events:none}
+.office-root .rb-pgno.r{justify-content:flex-end}
+
+/* ── 대시보드 머리띠 아래에 놓이도록 맞춘 자리 ──
+   예전에는 문서 전체(html,body)가 사무실이었다. 지금은 머리띠(.ui-nav, 높이 60px) 아래 main(여백 24px, 최대 폭 1440px) 안에 들어가므로,
+   main 의 여백과 폭 제한을 벗어나 화면 폭 전체를 쓰고, 높이는 머리띠를 뺀 나머지로 잡는다(AppShell 은 고치지 않는다). */
+.office-root{margin:-24px 0 -24px calc(50% - 50vw);width:100vw;height:auto;font-size:16px;line-height:normal;font-variant-numeric:normal}
+.office-root .app{height:calc(100dvh - 60px)}
