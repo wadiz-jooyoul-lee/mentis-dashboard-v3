@@ -1,12 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Alert, Button, Empty, Popover, Space, Spin, Typography } from "antd";
-import { FolderOpenOutlined } from "@ant-design/icons";
 import { CopyRow } from "@/components/CopyRow";
 import { resumeCommand, resumeTargets, type ResumeTarget } from "@/lib/resumeCommand";
+import Button from "@/components/ui/Button";
+import Empty from "@/components/ui/Empty";
+import Note from "@/components/ui/Note";
+import Pop from "@/components/ui/Pop";
+import Spinner from "@/components/ui/Spinner";
+import Stack from "@/components/ui/Stack";
+import { Text } from "@/components/ui/Typo";
+import { FolderOpen } from "lucide-react";
 
-const { Text } = Typography;
 
 type Restore = { repo: string; branch: string; worktreePath: string; srcRepo: string };
 type Session = {
@@ -56,11 +61,11 @@ export default function ResumeV2Button({ epicKey }: { epicKey: string }) {
   const content = (
     <div style={{ width: 480, maxWidth: "82vw" }}>
       {loading || !data ? (
-        <Spin size="small" />
+        <Spinner size="sm" />
       ) : (
-        <Space orientation="vertical" size={10} style={{ width: "100%" }}>
+        <Stack orientation="vertical" size={10} style={{ width: "100%" }}>
           {data.sessionName && (
-            <Alert
+            <Note
               type="warning"
               showIcon
               style={{ fontSize: 12 }}
@@ -68,7 +73,7 @@ export default function ResumeV2Button({ epicKey }: { epicKey: string }) {
             />
           )}
           {!data.isV2 && (
-            <Alert
+            <Note
               type="info"
               showIcon
               style={{ fontSize: 12 }}
@@ -77,7 +82,7 @@ export default function ResumeV2Button({ epicKey }: { epicKey: string }) {
           )}
           {targets.length === 0 ? (
             <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              compact
               description="워크트리 기록이 없습니다 (status.md ## 워크트리 / 브랜치 미기록)"
             />
           ) : (
@@ -97,13 +102,13 @@ export default function ResumeV2Button({ epicKey }: { epicKey: string }) {
               ))}
             </>
           )}
-        </Space>
+        </Stack>
       )}
     </div>
   );
 
   return (
-    <Popover
+    <Pop
       title="워크트리에서 이어가기 (새 세션)"
       trigger="click"
       open={open}
@@ -111,9 +116,9 @@ export default function ResumeV2Button({ epicKey }: { epicKey: string }) {
       content={content}
       placement="bottomRight"
     >
-      <Button type="link" icon={<FolderOpenOutlined />}>
+      <Button variant="link" icon={<FolderOpen size="1em" />}>
         이어가기 v2
       </Button>
-    </Popover>
+    </Pop>
   );
 }

@@ -3,8 +3,6 @@
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Typography, Space, Card, Empty, Tag, List, Collapse, Descriptions, Timeline, Tooltip } from "antd";
-import { FileOutlined, BranchesOutlined, CodeOutlined } from "@ant-design/icons";
 import type { EpicDetail, EditHunk, AgentWork, FileDiff } from "@/lib/orchestration";
 import type { RepoCommitChanges } from "@/lib/commitChanges";
 import type { AgentRow } from "@/lib/parseOrchestration";
@@ -17,8 +15,15 @@ import QuipsControl from "@/components/QuipsControl";
 import { dobbyColor } from "@/lib/dobby";
 import { quipList, type QuipsFile, type QuipEntry } from "@/lib/quipTypes";
 import "./markdown.css";
+import Card from "@/components/ui/Card";
+import Collapse from "@/components/ui/Disclosure";
+import Empty from "@/components/ui/Empty";
+import Stack from "@/components/ui/Stack";
+import Tag from "@/components/ui/Tag";
+import Tip from "@/components/ui/Tip";
+import { Paragraph, Text, Title } from "@/components/ui/Typo";
+import { Code, File, GitBranch } from "lucide-react";
 
-const { Title, Text, Paragraph } = Typography;
 
 const QUIP_MOOD_EMOJI: Record<string, string> = {
   happy: "😊",
@@ -36,24 +41,24 @@ function QuipHistory({ entries }: { entries?: QuipEntry[] }) {
   return (
     <div style={{ marginTop: 12 }}>
       <Text strong>소감 기록</Text>
-      <Timeline
-        style={{ marginTop: 8 }}
-        items={entries.map((e) => ({
-          content: (
-            <Space orientation="vertical" size={2}>
-              <Space size={6} wrap align="center">
+      <ol className="mv-timeline" style={{ marginTop: 8 }}>
+        {entries.map((e, i) => (
+          <li key={`${e.at}-${i}`} style={{ paddingTop: i ? 10 : 0 }}>
+            <span className="mv-timeline-dot" aria-hidden />
+            <Stack orientation="vertical" size={2}>
+              <Stack size={6} wrap align="center">
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   {(e.at ?? "").replace("T", " ").slice(0, 16)}
                 </Text>
                 <Tag style={{ margin: 0 }}>{e.state}</Tag>
-              </Space>
+              </Stack>
               <Text>
                 {QUIP_MOOD_EMOJI[e.mood] ?? "💬"} {e.text}
               </Text>
-            </Space>
-          ),
-        }))}
-      />
+            </Stack>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }
@@ -70,10 +75,10 @@ function DiffView({ hunks }: { hunks: EditHunk[] }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       {hunks.map((h, i) => (
-        <div key={i} style={{ border: "1px solid #f0f0f0", borderRadius: 6, overflowX: "auto" }}>
+        <div key={i} style={{ border: "1px solid var(--line)", borderRadius: 6, overflowX: "auto" }}>
           {h.old
             ? h.old.split("\n").map((l, j) => (
-                <div key={`o${j}`} style={{ ...lineStyle, background: "#fff1f0", color: "#a8071a" }}>
+                <div key={`o${j}`} style={{ ...lineStyle, background: "var(--danger-bg)", color: "#a8071a" }}>
                   - {l}
                 </div>
               ))
@@ -93,14 +98,14 @@ function DiffView({ hunks }: { hunks: EditHunk[] }) {
 /** 로그가 있는 에이전트의 작업 내역(수정 파일·커밋·diff·요약). */
 function WorkBody({ w, hideCode }: { w: AgentWork; hideCode?: boolean }) {
   if (!w.found) {
-    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={`로그 파일을 찾을 수 없음: ${w.logPath}`} />;
+    return <Empty compact description={`로그 파일을 찾을 수 없음: ${w.logPath}`} />;
   }
   return (
-    <Space orientation="vertical" size={16} style={{ width: "100%" }}>
+    <Stack orientation="vertical" size={16} style={{ width: "100%" }}>
       {!hideCode && (
       <div>
         <Text strong>
-          <FileOutlined /> 수정·생성 파일 ({w.files.length})
+          <File size="1em" /> 수정·생성 파일 ({w.files.length})
         </Text>
         {w.baseDir && (
           <div>
@@ -109,24 +114,25 @@ function WorkBody({ w, hideCode }: { w: AgentWork; hideCode?: boolean }) {
             </Text>
           </div>
         )}
-        <List
-          size="small"
-          dataSource={w.files}
-          locale={{ emptyText: "수정 파일 없음" }}
-          renderItem={(f) => (
-            <List.Item style={{ padding: "4px 0", border: "none" }}>
-              <Text code style={{ fontSize: 13 }}>
-                {f}
-              </Text>
-            </List.Item>
-          )}
-        />
+        {w.files.length === 0 ? (
+          <Text type="secondary">수정 파일 없음</Text>
+        ) : (
+          <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+            {w.files.map((f) => (
+              <li key={f} style={{ padding: "4px 0" }}>
+                <Text code style={{ fontSize: 13 }}>
+                  {f}
+                </Text>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
       )}
       {w.commits.length > 0 && (
         <div>
           <Text strong>
-            <BranchesOutlined /> 커밋·푸시 ({w.commits.length})
+            <GitBranch size="1em" /> 커밋·푸시 ({w.commits.length})
           </Text>
           {w.commits.map((c, i) => (
             <div key={i}>
@@ -140,7 +146,7 @@ function WorkBody({ w, hideCode }: { w: AgentWork; hideCode?: boolean }) {
       {!hideCode && w.diffs.length > 0 && (
         <div>
           <Text strong>
-            <CodeOutlined /> 코드 변경 diff ({w.diffs.length}개 파일)
+            <Code size="1em" /> 코드 변경 diff ({w.diffs.length}개 파일)
           </Text>
           {w.source === "git" && (
             <Text type="secondary" style={{ fontSize: 11, marginLeft: 8 }}>
@@ -149,18 +155,18 @@ function WorkBody({ w, hideCode }: { w: AgentWork; hideCode?: boolean }) {
           )}
           <Collapse
             ghost
-            size="small"
+            size="sm"
             items={w.diffs.map((fd) => ({
               key: fd.file,
               label: (
-                <Space size={6}>
+                <Stack size={6}>
                   <Text code style={{ fontSize: 12 }}>
                     {fd.file}
                   </Text>
                   <Text type="secondary" style={{ fontSize: 11 }}>
                     {fd.hunks.length}곳
                   </Text>
-                </Space>
+                </Stack>
               ),
               children: <DiffView hunks={fd.hunks} />,
             }))}
@@ -178,7 +184,7 @@ function WorkBody({ w, hideCode }: { w: AgentWork; hideCode?: boolean }) {
       <Text type="secondary" style={{ fontSize: 11 }}>
         로그: {w.logPath}
       </Text>
-    </Space>
+    </Stack>
   );
 }
 
@@ -187,18 +193,18 @@ function FileDiffList({ diffs }: { diffs: FileDiff[] }) {
   return (
     <Collapse
       ghost
-      size="small"
+      size="sm"
       items={diffs.map((fd) => ({
         key: fd.file,
         label: (
-          <Space size={6}>
+          <Stack size={6}>
             <Text code style={{ fontSize: 12 }}>
               {fd.file}
             </Text>
             <Text type="secondary" style={{ fontSize: 11 }}>
               {fd.hunks.length}곳
             </Text>
-          </Space>
+          </Stack>
         ),
         children: <DiffView hunks={fd.hunks} />,
       }))}
@@ -210,14 +216,14 @@ function FileDiffList({ diffs }: { diffs: FileDiff[] }) {
 function ChangeBody({ files, diffs }: { files: string[]; diffs: FileDiff[] }) {
   const noDiff = files.filter((f) => !diffs.some((d) => d.file === f));
   return (
-    <Space orientation="vertical" size={4} style={{ width: "100%" }}>
+    <Stack orientation="vertical" size={4} style={{ width: "100%" }}>
       <FileDiffList diffs={diffs} />
       {noDiff.length > 0 && (
         <Text type="secondary" style={{ fontSize: 12 }}>
           내용 생략(너무 크거나 글자가 아닌 파일): {noDiff.join(", ")}
         </Text>
       )}
-    </Space>
+    </Stack>
   );
 }
 
@@ -228,31 +234,31 @@ function ChangeBody({ files, diffs }: { files: string[]; diffs: FileDiff[] }) {
 function CommitChangesSection({ repos }: { repos: RepoCommitChanges[] }) {
   if (repos.length === 0) return null;
   return (
-    <Card title={<Text strong style={{ fontSize: 16 }}><BranchesOutlined /> 커밋별 코드 변경</Text>} style={{ marginBottom: 20 }}>
-      <Space orientation="vertical" size={20} style={{ width: "100%" }}>
+    <Card title={<Text strong style={{ fontSize: 16 }}><GitBranch size="1em" /> 커밋별 코드 변경</Text>} style={{ marginBottom: 20 }}>
+      <Stack orientation="vertical" size={20} style={{ width: "100%" }}>
         {repos.map((r) => {
           const items = [
             {
               key: "total",
               label: (
-                <Space size={8} wrap>
+                <Stack size={8} wrap>
                   <Tag color="blue" style={{ margin: 0 }}>전체</Tag>
                   <Text>{r.baseLabel}과 비교</Text>
                   <Text type="secondary" style={{ fontSize: 12 }}>파일 {r.total.files.length}개</Text>
-                </Space>
+                </Stack>
               ),
               children: <ChangeBody files={r.total.files} diffs={r.total.diffs} />,
             },
             ...r.commits.map((c, i) => ({
               key: c.sha,
               label: (
-                <Space orientation="vertical" size={2}>
-                  <Space size={8} wrap>
+                <Stack orientation="vertical" size={2}>
+                  <Stack size={8} wrap>
                     <Tag style={{ margin: 0 }}>{i + 1}번째 커밋</Tag>
                     <Text code style={{ fontSize: 12 }}>{c.short}</Text>
                     <Text>{c.subject}</Text>
-                  </Space>
-                  <Space size={6} wrap>
+                  </Stack>
+                  <Stack size={6} wrap>
                     <Text type="secondary" style={{ fontSize: 12 }}>
                       {c.at} · 파일 {c.files.length}개
                     </Text>
@@ -263,8 +269,8 @@ function CommitChangesSection({ repos }: { repos: RepoCommitChanges[] }) {
                     ) : (
                       <Text type="secondary" style={{ fontSize: 11 }}>이 사이에 기록된 세션 없음</Text>
                     )}
-                  </Space>
-                </Space>
+                  </Stack>
+                </Stack>
               ),
               children: <ChangeBody files={c.files} diffs={c.diffs} />,
             })),
@@ -273,13 +279,13 @@ function CommitChangesSection({ repos }: { repos: RepoCommitChanges[] }) {
                   {
                     key: "pending",
                     label: (
-                      <Space size={8} wrap>
+                      <Stack size={8} wrap>
                         <Tag color="orange" style={{ margin: 0 }}>커밋 전</Tag>
                         <Text type="secondary" style={{ fontSize: 12 }}>파일 {r.uncommitted.files.length}개</Text>
                         {r.uncommitted.sessions.map((s, j) => (
                           <Tag key={j} style={{ margin: 0, fontSize: 11 }}>{s}</Tag>
                         ))}
-                      </Space>
+                      </Stack>
                     ),
                     children: <ChangeBody files={r.uncommitted.files} diffs={r.uncommitted.diffs} />,
                   },
@@ -288,15 +294,15 @@ function CommitChangesSection({ repos }: { repos: RepoCommitChanges[] }) {
           ];
           return (
             <div key={r.path}>
-              <Space size={8} wrap>
+              <Stack size={8} wrap>
                 <Text strong>{r.repo}</Text>
                 <Text type="secondary" style={{ fontSize: 12 }} code>{r.path}</Text>
-              </Space>
-              <Collapse size="small" style={{ marginTop: 8 }} items={items} />
+              </Stack>
+              <Collapse size="sm" style={{ marginTop: 8 }} items={items} />
             </div>
           );
         })}
-      </Space>
+      </Stack>
     </Card>
   );
 }
@@ -385,10 +391,10 @@ export default function OrchestrationChanges({
               borderBottom: "1px solid #f5f5f5",
             }}
           >
-            <Space size={[8, 8]} wrap>
+            <Stack size={[8, 8]} wrap>
               {agents.map((a, i) => (
                 <a key={`${a.agent}-${i}`} href={`#${anchorOf(a.agent)}`}>
-                  <Tooltip title={a.desc || undefined}>
+                  <Tip title={a.desc || undefined}>
                     <Tag
                       style={{
                         cursor: "pointer",
@@ -401,10 +407,10 @@ export default function OrchestrationChanges({
                     >
                       {a.name || a.agent}
                     </Tag>
-                  </Tooltip>
+                  </Tip>
                 </a>
               ))}
-            </Space>
+            </Stack>
           </div>
 
           <CommitChangesSection repos={epic?.commitChanges ?? []} />
@@ -417,16 +423,16 @@ export default function OrchestrationChanges({
               <div key={`${a.agent}-${i}`} id={anchorOf(a.agent)} style={{ scrollMarginTop: 250, marginBottom: 20 }}>
                 <Card
                   title={
-                    <Space size={8} align="center" wrap>
+                    <Stack size={8} align="center" wrap>
                       <GroupAvatar slug={a.agent} name={a.name || a.agent} avatar={avatarMap.get(a.agent)} state={a.state} size={26} quips={quipList(quips?.changes?.[a.agent])} />
-                      <Tooltip title={a.desc || undefined}>
+                      <Tip title={a.desc || undefined}>
                         <Text strong style={{ fontSize: 16 }}>
                           {a.name || a.agent}
                         </Text>
-                      </Tooltip>
+                      </Tip>
                       <Tag color={badge.color}>{a.state}</Tag>
                       {a.round && <Tag>라운드 {a.round}</Tag>}
-                    </Space>
+                    </Stack>
                   }
                 >
                   {w ? (
@@ -434,19 +440,31 @@ export default function OrchestrationChanges({
                     // (검증 실패 수정 뒤 이어서 리뷰) 코드 변경이 리뷰어에게도 붙으므로 숨긴다.
                     <WorkBody w={w} hideCode={/리뷰/.test(a.name ?? "")} />
                   ) : (
-                    <Space orientation="vertical" size={12} style={{ width: "100%" }}>
-                      <Descriptions size="small" column={1} bordered>
+                    <Stack orientation="vertical" size={12} style={{ width: "100%" }}>
+                      <dl className="ui-desc">
                         {a.issue && a.issue !== "-" && (
-                          <Descriptions.Item label="이슈/작업">{a.issue}</Descriptions.Item>
+                          <>
+                            <dt>이슈/작업</dt>
+                            <dd>{a.issue}</dd>
+                          </>
                         )}
-                        <Descriptions.Item label="상태">{a.state}</Descriptions.Item>
+                        <dt>상태</dt>
+                        <dd>{a.state}</dd>
                         {a.branch && a.branch !== "-" && (
-                          <Descriptions.Item label="브랜치">
-                            <Text code>{a.branch}</Text>
-                          </Descriptions.Item>
+                          <>
+                            <dt>브랜치</dt>
+                            <dd>
+                              <Text code>{a.branch}</Text>
+                            </dd>
+                          </>
                         )}
-                        {a.updatedAt && <Descriptions.Item label="갱신">{a.updatedAt}</Descriptions.Item>}
-                      </Descriptions>
+                        {a.updatedAt && (
+                          <>
+                            <dt>갱신</dt>
+                            <dd>{a.updatedAt}</dd>
+                          </>
+                        )}
+                      </dl>
                       {c ? (
                         <div>
                           <Text strong>계약</Text>
@@ -459,7 +477,7 @@ export default function OrchestrationChanges({
                           대화 로그·계약이 없습니다(단일 에이전트 K=1이거나 로그 미수집). 상태만 표시합니다.
                         </Text>
                       )}
-                    </Space>
+                    </Stack>
                   )}
                   <QuipHistory entries={quips?.history?.[a.agent]} />
                   <Collapse

@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Typography, Space, Select, Badge } from "antd";
 import JobConsole from "@/components/JobConsole";
 import OrderHeader from "@/components/OrderHeader";
+import Stack from "@/components/ui/Stack";
+import { SelectBox } from "@/components/ui/Form";
+import { StatusDot } from "@/components/ui/Tag";
+import { Paragraph, Text } from "@/components/ui/Typo";
 
-const { Paragraph } = Typography;
 
 /**
  * 오더 콘솔 화면. 대시보드 실행 로그와 지난 기록을 드롭다운에서 골라 본다:
@@ -71,14 +73,8 @@ export default function ConsoleTabs({
 
   const option = (c: (typeof consoles)[number]) => ({
     value: c.key,
-    label: (
-      <Space size={6}>
-        {live[c.key] && <Badge status="processing" />}
-        {live[c.key] ? <b>{c.name}</b> : c.name}
-        {live[c.key] && <Typography.Text type="success">진행 중</Typography.Text>}
-        {c.time && <Typography.Text type="secondary">{c.time}</Typography.Text>}
-      </Space>
-    ),
+    // 네이티브 고르기 상자는 글자만 보여 줄 수 있어 이름·진행 중·시각을 한 줄 글자로 만든다.
+    label: `${c.name}${live[c.key] ? " · 진행 중" : ""}${c.time ? ` · ${c.time}` : ""}`,
   });
   const runningCount = consoles.filter((c) => live[c.key]).length;
   const sel = consoles.find((c) => c.key === selected) ?? consoles[0];
@@ -97,15 +93,15 @@ export default function ConsoleTabs({
         hasQa={hasQa}
         orderKind={orderKind}
       />
-      <Space orientation="vertical" size={16} style={{ width: "100%", marginTop: 12 }}>
+      <Stack orientation="vertical" size={16} style={{ width: "100%", marginTop: 12 }}>
         <Paragraph type="secondary" style={{ margin: 0 }}>
           <b>대시보드 실행 로그</b>는 대시보드 버튼으로 띄운 실행(<code>dobby-order</code>, <code>/do</code> 자동 실행,
           이어서 진행)의 로그입니다. 끝난 뒤에도 마지막 로그를 보여 주며, 정지·이어서가 가능합니다.
           <b> 기록</b>은 클로드 히스토리(세션·서브에이전트)를 재생/추적합니다(읽기 전용).
           진행 중이면 자동 추적, 끝났으면 재생으로 표시됩니다.
         </Paragraph>
-        <Space size={12} wrap>
-          <Select
+        <Stack size={12} wrap>
+          <SelectBox
             value={sel.key}
             onChange={setSelected}
             style={{ minWidth: 360 }}
@@ -118,11 +114,11 @@ export default function ConsoleTabs({
             }))}
           />
           {runningCount > 0 ? (
-            <Badge status="processing" text={`진행 중인 콘솔 ${runningCount}개`} />
+            <StatusDot status="processing" text={`진행 중인 콘솔 ${runningCount}개`} />
           ) : (
-            <Typography.Text type="secondary">진행 중인 콘솔 없음</Typography.Text>
+            <Text type="secondary">진행 중인 콘솔 없음</Text>
           )}
-        </Space>
+        </Stack>
         <JobConsole
           key={sel.key}
           orderKey={orderKey}
@@ -131,7 +127,7 @@ export default function ConsoleTabs({
           height={height}
           liveHint={!!live[sel.key]}
         />
-      </Space>
+      </Stack>
     </div>
   );
 }

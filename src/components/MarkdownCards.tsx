@@ -1,11 +1,12 @@
 "use client";
 
-import { Card, Space, Typography } from "antd";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import "./markdown.css";
+import Card from "@/components/ui/Card";
+import Stack from "@/components/ui/Stack";
+import { Text, Title } from "@/components/ui/Typo";
 
-const { Title, Text } = Typography;
 
 /** 마크다운을 `## ` 블록 단위로 쪼갠다(첫 `#` 제목 프리앰블 제외). 각 블록 = 카드 1개. */
 function parseCardBlocks(md: string): { title: string; body: string }[] {
@@ -39,7 +40,7 @@ export default function MarkdownCards({
       <Title level={4}>{title}</Title>
       <Text type="secondary">{subtitle}</Text>
       {blocks.length > 0 ? (
-        <Space orientation="vertical" size={12} style={{ width: "100%", marginTop: 8 }}>
+        <Stack orientation="vertical" size={12} style={{ width: "100%", marginTop: 8 }}>
           {blocks.map((b, i) => (
             <Card key={i} size="small" title={b.title}>
               <div className="markdown-body">
@@ -47,7 +48,7 @@ export default function MarkdownCards({
               </div>
             </Card>
           ))}
-        </Space>
+        </Stack>
       ) : (
         <Card size="small" style={{ marginTop: 8 }}>
           <div className="markdown-body">

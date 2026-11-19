@@ -1,6 +1,5 @@
 "use client";
 
-import { Alert, Card, Typography } from "antd";
 import OrderHeader from "@/components/OrderHeader";
 import MarkdownCards from "@/components/MarkdownCards";
 import IssueReport from "@/components/IssueReport";
@@ -9,8 +8,10 @@ import TestPlanView from "@/components/TestPlanView";
 import type { TestSummary } from "@/lib/testSummary";
 import type { ReportRun } from "@/lib/issues";
 import type { TestPlan } from "@/lib/testPlan";
+import Card from "@/components/ui/Card";
+import Note from "@/components/ui/Note";
+import { Text, Title } from "@/components/ui/Typo";
 
-const { Title, Text } = Typography;
 
 /** 검증 탭: 테스트 회차(test-runs) + 확인 가이드(수동 TC). 보드 하단에 있던 걸 별도 페이지로. */
 export default function VerifyView({
@@ -63,7 +64,7 @@ export default function VerifyView({
         <Title level={4}>검증</Title>
         {/* 테스트 계획 제목 아래의 "검증: 필요 없음 — 이유" 줄. 이 오더는 배포 환경에서 확인할 것이 없다. */}
         {skipReason !== null && (
-          <Alert
+          <Note
             data-verify-skip
             type="info"
             showIcon

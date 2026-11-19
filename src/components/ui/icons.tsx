@@ -3,7 +3,7 @@ import type { Section } from "@/lib/sections";
 
 /*
  * 1.5px 선 아이콘 12종(24×24, currentColor). 외부 의존 없이 직접 그린다 —
- * @ant-design/icons 모양을 복제하지 않고 아티팩트풍 얇은 선으로 새로 그렸다.
+ * 옛 antd 아이콘 모양을 복제하지 않고 아티팩트풍 얇은 선으로 새로 그렸다.
  */
 type IconProps = { size?: number; className?: string };
 

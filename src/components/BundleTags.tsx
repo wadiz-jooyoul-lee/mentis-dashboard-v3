@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Tag, Tooltip, Skeleton } from "antd";
 import type { Bundle, BundleImpact, BundleReport } from "@/lib/bundles";
+import Tag from "@/components/ui/Tag";
+import Tip from "@/components/ui/Tip";
+import { SkeletonButton } from "@/components/ui/Misc";
 
 /** 번들마다 고정 색. 색만 보고 어느 번들인지 알아보게 한다. */
 const COLOR: Record<Bundle, string> = {
@@ -26,8 +28,8 @@ const GROUP: React.CSSProperties = {
   marginRight: 12,
   padding: "2px 8px",
   borderRadius: 6,
-  background: "#fafafa",
-  border: "1px solid #f0f0f0",
+  background: "var(--bg-sunken)",
+  border: "1px solid var(--line)",
 };
 
 /**
@@ -55,7 +57,7 @@ export default function BundleTags({ epicKey }: { epicKey: string }) {
   if (!report)
     return (
       <span style={GROUP}>
-        <Skeleton.Button active size="small" style={{ width: 56, height: 20 }} />
+        <SkeletonButton style={{ width: 56, height: 20 }} />
       </span>
     );
   // 변경 파일을 못 찾은 경우(브랜치 정리·커밋 없음)는 조용히 아무것도 안 그린다.
@@ -69,7 +71,7 @@ export default function BundleTags({ epicKey }: { epicKey: string }) {
       {[...report.impacts]
         .sort((a, b) => Number(lit(b)) - Number(lit(a)) || Number(b.direct) - Number(a.direct))
         .map((i) => (
-        <Tooltip
+        <Tip
           key={i.bundle}
           title={
             <span>
@@ -106,7 +108,7 @@ export default function BundleTags({ epicKey }: { epicKey: string }) {
           >
             {i.bundle} <span style={{ opacity: 0.65 }}>{i.count}</span>
           </Tag>
-        </Tooltip>
+        </Tip>
       ))}
     </span>
   );

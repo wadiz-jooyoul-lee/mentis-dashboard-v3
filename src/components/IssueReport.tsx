@@ -1,38 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
-import {
-  Breadcrumb,
-  Card,
-  Empty,
-  Space,
-  Typography,
-  Button,
-  Descriptions,
-  Table,
-  Tag,
-  Row,
-  Col,
-  Statistic,
-  Progress,
-  Alert,
-  Badge,
-  Select,
-  Skeleton,
-  Segmented,
-  Image,
-} from "antd";
-import { HistoryOutlined, PictureOutlined } from "@ant-design/icons";
-import {
-  LinkOutlined,
-  CheckCircleTwoTone,
-  CloseCircleTwoTone,
-  MinusCircleTwoTone,
-  WarningTwoTone,
-} from "@ant-design/icons";
 import type { ReportRun } from "@/lib/issues";
 import { jiraUrl } from "@/lib/jira";
 import TestSummaryView from "@/components/TestSummaryView";
@@ -45,8 +15,22 @@ import {
   type Verdict,
 } from "@/lib/parseReport";
 import "./markdown.css";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import Crumbs from "@/components/ui/Crumbs";
+import DataTable from "@/components/ui/DataTable";
+import Empty from "@/components/ui/Empty";
+import Stack from "@/components/ui/Stack";
+import Tag from "@/components/ui/Tag";
+import { SelectBox } from "@/components/ui/Form";
+import { Skeleton } from "@/components/ui/Misc";
+import { Seg } from "@/components/ui/Tabs";
+import { StatusDot } from "@/components/ui/Tag";
+import { Paragraph, Text, Title } from "@/components/ui/Typo";
+import { CircleCheck, CircleMinus, CircleX, History, ImageIcon, Link2, TriangleAlert } from "lucide-react";
+import { Gallery, Zoomable } from "@/components/ui/Lightbox";
+import VerdictGrid from "@/components/mdview/VerdictGrid";
 
-const { Title, Text, Paragraph } = Typography;
 
 const VERDICT_META: Record<
   Verdict,
@@ -55,22 +39,22 @@ const VERDICT_META: Record<
   pass: {
     color: "success",
     label: "PASS",
-    icon: <CheckCircleTwoTone twoToneColor="#52c41a" />,
+    icon: <CircleCheck size="1em" />,
   },
   fail: {
     color: "error",
     label: "FAIL",
-    icon: <CloseCircleTwoTone twoToneColor="#ff4d4f" />,
+    icon: <CircleX size="1em" />,
   },
   skip: {
     color: "default",
     label: "SKIP",
-    icon: <MinusCircleTwoTone twoToneColor="#8c8c8c" />,
+    icon: <CircleMinus size="1em" />,
   },
   warn: {
     color: "warning",
     label: "주의",
-    icon: <WarningTwoTone twoToneColor="#faad14" />,
+    icon: <TriangleAlert size="1em" />,
   },
   unknown: { color: "default", label: "-", icon: null },
 };
@@ -95,27 +79,11 @@ function reportImages(md: string): ReportImage[] {
   }));
 }
 
-// 크게 연 화면에서도 무엇을 보라는 그림인지 설명을 보여 준다. 묶어 연 화면은 alt 를 넘기지 않아 주소로 찾는다
-const previewWithCaption = (altOf: (url: string) => string | undefined) => ({
-  actionsRender: (node: React.ReactElement, info: { image: { url: string } }) => {
-    const alt = altOf(info.image.url);
-    return (
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-        {alt && (
-          <div style={{ color: "#fff", background: "rgba(0,0,0,.65)", padding: "6px 12px", borderRadius: 6, maxWidth: "80vw" }}>
-            {alt}
-          </div>
-        )}
-        {node}
-      </div>
-    );
-  },
-});
-
+// 크게 연 화면에서도 무엇을 보라는 그림인지 설명(alt)을 보여 준다 — Lightbox 가 그림 아래에 띄운다.
 function Figure({ src, alt, height }: { src: string; alt?: string; height: number }) {
   return (
     <div style={{ display: "inline-flex", flexDirection: "column", gap: 4, maxWidth: 360, margin: "0 12px 12px 0", verticalAlign: "top" }}>
-      <Image src={src} alt={alt} height={height} style={{ width: "auto" }} />
+      <Zoomable src={src} alt={alt} height={height} style={{ width: "auto" }} />
       {alt && <Text type="secondary" style={{ fontSize: 12 }}>{alt}</Text>}
     </div>
   );
@@ -130,7 +98,6 @@ function ReportBody({ content, issueKey, runId }: { content: string; issueKey: s
       : defaultUrlTransform(url);
   const images = reportImages(content);
   const imagesOf = (num: string) => images.filter((im) => im.ids.includes(num.trim()));
-  const preview = previewWithCaption((url) => images.find((im) => urlTransform(im.src, "src") === url)?.alt);
   const overall = overallStatus(counts);
   const passRate =
     counts.total > 0 ? Math.round((counts.pass / counts.total) * 100) : 0;
@@ -180,7 +147,7 @@ function ReportBody({ content, issueKey, runId }: { content: string; issueKey: s
         ? skipped
         : scenarios.filter((s) => s.verdict === filter);
   // 판정 색 — 카드 테두리와 막대에 같은 색을 쓴다.
-  const TONE = { pass: "#52c41a", fail: "#ff4d4f", skip: "#bfbfbf" } as const;
+  const TONE = { pass: "var(--ok-fg)", fail: "var(--danger-fg)", skip: "var(--line)" } as const;
   const bar = [
     { n: counts.pass, c: TONE.pass },
     { n: counts.fail, c: TONE.fail },
@@ -188,13 +155,13 @@ function ReportBody({ content, issueKey, runId }: { content: string; issueKey: s
   ].filter((x) => x.n > 0);
 
   return (
-    <Space orientation="vertical" size={24} style={{ width: "100%" }}>
+    <Stack orientation="vertical" size={24} style={{ width: "100%" }}>
       {/* ── 1층: 판정 한 장 ── */}
       <Card
-        styles={{ body: { padding: "20px 24px" } }}
+        bodyStyle={{ padding: "20px 24px" }}
         style={{
-          borderColor: counts.fail > 0 ? "#ffccc7" : "#f0f0f0",
-          background: counts.fail > 0 ? "#fff8f7" : "#fafffa",
+          borderColor: counts.fail > 0 ? "color-mix(in srgb, var(--danger-fg) 30%, var(--line))" : "var(--line)",
+          background: counts.fail > 0 ? "var(--danger-bg)" : "var(--ok-bg)",
         }}
       >
         <div
@@ -237,6 +204,10 @@ function ReportBody({ content, issueKey, runId }: { content: string; issueKey: s
             <div key={i} style={{ flex: x.n, background: x.c }} />
           ))}
         </div>
+        {/* 시나리오마다 한 칸 — 어디가 빨간지 표보다 먼저 보이게(md 가공 레이어의 판정 그리드) */}
+        <div style={{ marginTop: 14 }}>
+          <VerdictGrid md={content} />
+        </div>
       </Card>
 
       {/* ── 2층: 손볼 것 (실패·보류만) ── */}
@@ -245,7 +216,7 @@ function ReportBody({ content, issueKey, runId }: { content: string; issueKey: s
           <Title level={4} style={{ marginTop: 0, marginBottom: 12 }}>
             실패 {failed.length}건
           </Title>
-          <Space orientation="vertical" size={8} style={{ width: "100%" }}>
+          <Stack orientation="vertical" size={8} style={{ width: "100%" }}>
             {failed.map((f, i) => (
               <Card key={i} size="small" style={{ borderLeft: `3px solid ${TONE.fail}` }}>
                 <Text strong>
@@ -275,7 +246,7 @@ function ReportBody({ content, issueKey, runId }: { content: string; issueKey: s
                 )}
               </Card>
             ))}
-          </Space>
+          </Stack>
         </div>
       )}
 
@@ -284,7 +255,7 @@ function ReportBody({ content, issueKey, runId }: { content: string; issueKey: s
           <Title level={4} style={{ marginTop: 0, marginBottom: 12 }}>
             보류 {skipped.length}건 — 왜 못 했나
           </Title>
-          <Space orientation="vertical" size={6} style={{ width: "100%" }}>
+          <Stack orientation="vertical" size={6} style={{ width: "100%" }}>
             {skipped.map((sc, i) => (
               <div key={i} style={{ display: "flex", gap: 12, fontSize: 13, lineHeight: 1.7 }}>
                 <Text strong style={{ flexShrink: 0, minWidth: 0 }}>
@@ -294,7 +265,7 @@ function ReportBody({ content, issueKey, runId }: { content: string; issueKey: s
                 <Text type="secondary">{sc.actual || sc.evidence || sc.expected || "사유 없음"}</Text>
               </div>
             ))}
-          </Space>
+          </Stack>
         </div>
       )}
 
@@ -324,8 +295,8 @@ function ReportBody({ content, issueKey, runId }: { content: string; issueKey: s
             <Title level={4} style={{ margin: 0 }}>
               전체 {scenarios.length}건
             </Title>
-            <Segmented
-              size="small"
+            <Seg
+              size="sm"
               value={filter}
               onChange={(v) => setFilter(v as typeof filter)}
               options={[
@@ -338,7 +309,7 @@ function ReportBody({ content, issueKey, runId }: { content: string; issueKey: s
               ]}
             />
           </div>
-          <Table<Scenario>
+          <DataTable<Scenario>
             rowKey={(r) => r.num || `${r.page}-${r.check}`}
             columns={columns}
             dataSource={shown}
@@ -363,11 +334,11 @@ function ReportBody({ content, issueKey, runId }: { content: string; issueKey: s
                     overflowX: "auto",
                   }}
                 >
-                  <Image.PreviewGroup preview={preview}>
+                  <Gallery>
                     {imagesOf(s.num).map((im) => (
                       <Figure key={im.src} src={urlTransform(im.src, "src")} alt={im.alt} height={120} />
                     ))}
-                  </Image.PreviewGroup>
+                  </Gallery>
                 </div>
               ),
             }}
@@ -380,7 +351,7 @@ function ReportBody({ content, issueKey, runId }: { content: string; issueKey: s
         <Card title="상세 내용">
           <div className="markdown-body">
             {/* 그림은 작게 보여 주고 누르면 크게 연다. 크게 연 화면에서 다음 그림으로 넘길 수 있다 */}
-            <Image.PreviewGroup preview={preview}>
+            <Gallery>
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 urlTransform={urlTransform}
@@ -396,7 +367,7 @@ function ReportBody({ content, issueKey, runId }: { content: string; issueKey: s
               >
                 {restMarkdown}
               </ReactMarkdown>
-            </Image.PreviewGroup>
+            </Gallery>
           </div>
         </Card>
       )}
@@ -406,7 +377,7 @@ function ReportBody({ content, issueKey, runId }: { content: string; issueKey: s
           원본 제목: {title}
         </Paragraph>
       )}
-    </Space>
+    </Stack>
   );
 }
 
@@ -488,20 +459,19 @@ export default function IssueReport({
     <div>
       {!embedded && (
         <>
-          <Breadcrumb
+          <Crumbs
             items={[
-              { title: <Link href="/">홈</Link> },
-              { title: <Link href="/orchestration">오케스트레이션</Link> },
-              { title: issueKey },
+              { href: "/", label: "홈" },
+              { href: "/orchestration", label: "오케스트레이션" },
+              { label: issueKey },
             ]}
-            style={{ marginBottom: 12 }}
           />
-          <Space align="center" style={{ marginBottom: 8 }} size={12} wrap>
+          <Stack align="center" style={{ marginBottom: 8 }} size={12} wrap>
             <Title level={2} style={{ margin: 0 }}>
               {issueKey}
             </Title>
             {badge && (
-              <Badge
+              <StatusDot
                 status={badge.status}
                 text={
                   inProgress && status?.total != null
@@ -510,26 +480,26 @@ export default function IssueReport({
                 }
               />
             )}
-            <Button type="link" icon={<LinkOutlined />} href={jiraUrl(issueKey)} target="_blank">
+            <Button variant="link" icon={<Link2 size="1em" />} href={jiraUrl(issueKey)} target="_blank">
               Jira에서 열기
             </Button>
-          </Space>
+          </Stack>
         </>
       )}
 
       {showAll || selected ? (
         <>
-          <Space
+          <Stack
             align="center"
             size={12}
             wrap
             style={{ marginBottom: 12 }}
           >
-            <Space size={6}>
-              <HistoryOutlined />
+            <Stack size={6}>
+              <History size="1em" />
               <Text type="secondary">실행 회차</Text>
-            </Space>
-            <Select
+            </Stack>
+            <SelectBox
               value={selectedId}
               onChange={setSelectedId}
               style={{ minWidth: 260 }}
@@ -541,9 +511,9 @@ export default function IssueReport({
             {/* 마감할 때 브라우저에 띄웠던 요약 화면. 회차 폴더에 남아 있으면 다시 볼 수 있다. */}
             {selected?.hasSummary && (
               <Button
-                type="link"
-                size="small"
-                icon={<PictureOutlined />}
+                variant="link"
+                size="sm"
+                icon={<ImageIcon size="1em" />}
                 href={`/api/orders/${issueKey}/run-summary?run=${encodeURIComponent(selected.id)}`}
                 target="_blank"
                 style={{ padding: 0 }}
@@ -554,13 +524,13 @@ export default function IssueReport({
             <Text type="secondary" style={{ fontSize: 12 }}>
               총 {runs.length}회{selected ? ` · 파일: ${selected.file}` : ""}
             </Text>
-          </Space>
+          </Stack>
           {showAll && summary ? (
             <TestSummaryView summary={summary} epicKey={issueKey} />
           ) : body ? (
             <ReportBody key={selected!.id} content={body} issueKey={issueKey} runId={selected!.id} />
           ) : loading ? (
-            <Skeleton active paragraph={{ rows: 8 }} />
+            <Skeleton lines={8} />
           ) : (
             <Empty description="이 회차의 결과를 불러오지 못했습니다" />
           )}

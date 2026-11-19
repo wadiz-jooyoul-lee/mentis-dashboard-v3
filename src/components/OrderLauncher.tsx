@@ -3,18 +3,25 @@ import { useCanAct } from "@/components/CanAct";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Card, Input, Button, Space, Collapse, Badge, Typography, message, Empty, Segmented, Radio, Checkbox } from "antd";
-import { PlayCircleOutlined, RightOutlined, FileAddOutlined } from "@ant-design/icons";
 import JobConsole from "@/components/JobConsole";
 import type { JobWithKey, JobState } from "@/lib/jobs";
 import { FIELDS, INTAKE_ENVS, KINDS, KIND_ORDER, LIGHT_NOTE_MAX, NOTE_MAX, checkIntake, hasContent, intakeCommand, jiraKeyOf, type IntakeEnv, type IntakeKind } from "@/lib/intake";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import Collapse from "@/components/ui/Disclosure";
+import Empty from "@/components/ui/Empty";
+import Stack from "@/components/ui/Stack";
+import { StatusDot } from "@/components/ui/Tag";
+import { Checkbox, Field, TextArea } from "@/components/ui/Form";
+import { Seg } from "@/components/ui/Tabs";
+import { toast } from "@/components/ui/Toaster";
+import { Paragraph, Text } from "@/components/ui/Typo";
+import { ChevronRight, CirclePlay, FilePlus } from "lucide-react";
 
-const { TextArea } = Input;
 
 const LAST_KIND = "dashboard.intake.kind";
 const ENV_LABEL = (e: IntakeEnv) => (e ? `${e} 배포·검증` : "통합까지");
 
-const { Text, Paragraph } = Typography;
 
 const BADGE: Record<Exclude<JobState, "none">, { status: "processing" | "success" | "error" | "default"; text: string }> = {
   running: { status: "processing", text: "실행 중" },
@@ -101,7 +108,7 @@ export default function OrderLauncher({ initialJobs }: { initialJobs: JobWithKey
 
   const launch = async () => {
     if (!checked.ok) {
-      message.error(checked.error);
+      toast.error(checked.error);
       return;
     }
     setBusy(true);
@@ -113,14 +120,14 @@ export default function OrderLauncher({ initialJobs }: { initialJobs: JobWithKey
       });
       const body = await r.json().catch(() => ({}));
       if (r.ok) {
-        message.success(`실행 시작 (${body?.key ?? "잡"})`);
+        toast.success(`실행 시작 (${body?.key ?? "잡"})`);
         setTarget("");
         setNote("");
         setAgree(false);
         setTouched(false);
         await refresh();
       } else {
-        message.error(body?.error === "already_running" ? "이미 실행 중" : body?.error ?? "실패");
+        toast.error(body?.error === "already_running" ? "이미 실행 중" : body?.error ?? "실패");
       }
     } finally {
       setBusy(false);
@@ -130,10 +137,10 @@ export default function OrderLauncher({ initialJobs }: { initialJobs: JobWithKey
   const jobPanels = running.map((j) => ({
     key: j.key,
     label: (
-      <Space>
+      <Stack>
         <Text strong>{j.key}</Text>
-        <Badge {...BADGE[j.state]} />
-      </Space>
+        <StatusDot {...BADGE[j.state]} />
+      </Stack>
     ),
     children: <JobConsole orderKey={j.key} initial={j} onChange={refresh} />,
   }));
@@ -141,7 +148,7 @@ export default function OrderLauncher({ initialJobs }: { initialJobs: JobWithKey
   // 다른 기기 열람: 오더 실행은 이 맥의 Claude를 띄우는 것이라 화면 자체를 읽기 전용 안내로 대체
   if (!canAct) {
     return (
-      <Card size="small" title={<Space><PlayCircleOutlined />오더 실행 (/do 자동)</Space>}>
+      <Card size="small" title={<Stack><CirclePlay size="1em" />오더 실행 (/do 자동)</Stack>}>
         <Text type="secondary">
           읽기 전용 화면입니다 — 오더 실행·정지는 대시보드가 실행 중인 맥에서만 할 수 있습니다.
         </Text>
@@ -149,8 +156,8 @@ export default function OrderLauncher({ initialJobs }: { initialJobs: JobWithKey
     );
   }
   return (
-    <Card size="small" title={<Space><PlayCircleOutlined />오더 실행 (/do 자동)</Space>}>
-      <Space orientation="vertical" size={12} style={{ width: "100%" }}>
+    <Card size="small" title={<Stack><CirclePlay size="1em" />오더 실행 (/do 자동)</Stack>}>
+      <Stack orientation="vertical" size={12} style={{ width: "100%" }}>
         <Paragraph type="secondary" style={{ margin: 0 }}>
           일의 종류를 고르고, Jira 이슈가 있으면 이슈를 넣고 없으면 내용만 적어 맡깁니다. Jira 이슈가 없으면 작업 키(TASK-1, TASK-2처럼 차례로 이어지는 번호)를 새로 만듭니다.
           설계 세션이 설계를 스스로 확정하고, 이어서 같은 잡이 단계마다 새 세션으로 진행합니다. 사람 판단이 필요하면 질문을 남긴 채 답을 기다리며, 질문은 알림 카드와 오더 화면 맨 위에 뜹니다.
@@ -160,25 +167,31 @@ export default function OrderLauncher({ initialJobs }: { initialJobs: JobWithKey
 
         <div>
           <Text strong>어떤 일인가요</Text>
-          <Radio.Group
-            value={kind}
-            onChange={(e) => pick(e.target.value as IntakeKind)}
-            disabled={busy}
+          <div
+            role="radiogroup"
             style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8, marginTop: 6 }}
           >
             {KIND_ORDER.map((k) => (
-              <Radio.Button key={k} value={k} style={{ height: "auto", padding: "8px 12px", lineHeight: 1.4, borderRadius: 6, borderInlineStartWidth: 1 }}>
+              <button
+                key={k}
+                type="button"
+                role="radio"
+                aria-checked={kind === k}
+                disabled={busy}
+                className={`ui-choice${kind === k ? " is-on" : ""}`}
+                onClick={() => pick(k as IntakeKind)}
+              >
                 <div style={{ fontWeight: 600 }}>{KINDS[k].name}</div>
                 <div style={{ fontSize: 12 }}>{KINDS[k].line}</div>
                 <div style={{ fontSize: 12, opacity: 0.65 }}>{KINDS[k].end}</div>
-              </Radio.Button>
+              </button>
             ))}
-          </Radio.Group>
+          </div>
         </div>
 
         <div>
           <Text strong>Jira 이슈{f.issueRequired ? "" : " (선택)"}</Text>
-          <Input
+          <Field
             value={target}
             onChange={(e) => setTarget(e.target.value)}
             onBlur={() => setTouched(true)}
@@ -192,15 +205,15 @@ export default function OrderLauncher({ initialJobs }: { initialJobs: JobWithKey
         </div>
 
         <div>
-          <Space style={{ width: "100%", justifyContent: "space-between" }}>
+          <Stack style={{ width: "100%", justifyContent: "space-between" }}>
             <Text strong>
               {copy.noteLabel}
               {kind !== "light" && issue ? " (선택 · 덧붙일 말)" : ""}
             </Text>
-            <Button size="small" icon={<FileAddOutlined />} onClick={() => setNote((n) => (n.trim() ? `${n.trimEnd()}\n\n${copy.template}` : copy.template))} disabled={busy}>
+            <Button size="sm" icon={<FilePlus size="1em" />} onClick={() => setNote((n) => (n.trim() ? `${n.trimEnd()}\n\n${copy.template}` : copy.template))} disabled={busy}>
               양식 넣기
             </Button>
-          </Space>
+          </Stack>
           <TextArea
             value={note}
             onChange={(e) => setNote(e.target.value)}
@@ -227,7 +240,7 @@ export default function OrderLauncher({ initialJobs }: { initialJobs: JobWithKey
           <div>
             <Text strong>어디까지 진행할까요</Text>
             <div style={{ marginTop: 6 }}>
-              <Segmented
+              <Seg
                 options={INTAKE_ENVS.map((e) => ({ label: ENV_LABEL(e), value: e, disabled: !!e && !issue }))}
                 value={shownEnv}
                 onChange={(v) => {
@@ -243,19 +256,19 @@ export default function OrderLauncher({ initialJobs }: { initialJobs: JobWithKey
 
         {f.base && (
           <Collapse
-            size="small"
+            size="sm"
             items={[
               {
                 key: "base",
                 label: "고급: 기준 브랜치",
-                children: <Input value={base} onChange={(e) => setBase(e.target.value)} placeholder="비우면 설정의 기본 브랜치 (예: master)" maxLength={100} disabled={busy} />,
+                children: <Field value={base} onChange={(e) => setBase(e.target.value)} placeholder="비우면 설정의 기본 브랜치 (예: master)" maxLength={100} disabled={busy} />,
               },
             ]}
           />
         )}
 
         {/* 입력할 때마다 읽어 주지 않도록 알림(role=alert)이 아닌 일반 상자로 둔다 */}
-        <Card size="small" title="진행 순서" styles={{ body: { paddingTop: 8 } }}>
+        <Card size="small" title="진행 순서" bodyStyle={{ paddingTop: 8 }}>
           <ol style={{ margin: "0 0 4px", paddingInlineStart: 20 }}>
             {copy.steps(shownEnv, issue).map((s) => (
               <li key={s.text} style={s.off ? { opacity: 0.4, textDecoration: "line-through" } : undefined}>
@@ -276,36 +289,36 @@ export default function OrderLauncher({ initialJobs }: { initialJobs: JobWithKey
           </Text>
         </div>
 
-        <Checkbox checked={agree} onChange={(e) => setAgree(e.target.checked)} disabled={busy}>
+        <Checkbox checked={agree} onChange={setAgree} disabled={busy}>
           {copy.agree(shownEnv, issue)}
         </Checkbox>
         {!checked.ok && (touched || note.trim()) && <Text type="danger">{checked.error}</Text>}
-        <Button type="primary" icon={<PlayCircleOutlined />} onClick={launch} loading={busy} disabled={!agree || !checked.ok}>
+        <Button variant="solid" icon={<CirclePlay size="1em" />} onClick={launch} busy={busy} disabled={!agree || !checked.ok}>
           맡기기 (⌘/Ctrl+Enter)
         </Button>
 
         {running.length > 0 && <Collapse items={jobPanels} defaultActiveKey={[running[0].key]} />}
 
         {finished.length > 0 && (
-          <Space orientation="vertical" size={4} style={{ width: "100%" }}>
+          <Stack orientation="vertical" size={4} style={{ width: "100%" }}>
             <Text type="secondary">최근 7일 동안 끝난 실행 — 로그는 오더 콘솔 탭에서 볼 수 있습니다.</Text>
             {finished.map((j) => (
               <Link key={j.key} href={`/orchestration/console/${j.key}`}>
-                <Space>
+                <Stack>
                   <Text strong>{j.key}</Text>
-                  <Badge {...BADGE[j.state]} />
+                  <StatusDot {...BADGE[j.state]} />
                   {j.endedAt && <Text type="secondary">{endedText(j.endedAt)} 종료</Text>}
-                  <RightOutlined />
-                </Space>
+                  <ChevronRight size="1em" />
+                </Stack>
               </Link>
             ))}
-          </Space>
+          </Stack>
         )}
 
         {jobs.length === 0 && (
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="실행 중이거나 최근 7일 안에 끝난 실행이 없습니다" />
+          <Empty compact description="실행 중이거나 최근 7일 안에 끝난 실행이 없습니다" />
         )}
-      </Space>
+      </Stack>
     </Card>
   );
 }

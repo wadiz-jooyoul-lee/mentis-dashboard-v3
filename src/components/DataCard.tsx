@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Card, Tag, Typography, Progress, Tooltip } from "antd";
 import type { DataBadge, DataCardItem, DataHeadline } from "@/lib/data";
+import Card from "@/components/ui/Card";
+import Tag from "@/components/ui/Tag";
+import Tip from "@/components/ui/Tip";
+import { Meter } from "@/components/ui/Misc";
+import { Text } from "@/components/ui/Typo";
 
-const { Text } = Typography;
 
 export const BADGE_COLOR: Record<DataBadge, string> = {
   "성과 있음": "green",
@@ -27,9 +30,9 @@ const BADGE_MEANING: Record<string, string> = {
 export function BadgeTag({ badge }: { badge: DataBadge | null | undefined }) {
   if (!badge) return null;
   return (
-    <Tooltip title={BADGE_MEANING[badge]}>
+    <Tip title={BADGE_MEANING[badge]}>
       <Tag color={BADGE_COLOR[badge] ?? "default"}>{badge}</Tag>
-    </Tooltip>
+    </Tip>
   );
 }
 
@@ -45,7 +48,7 @@ export function ChangeRate({ rate, direction }: { rate: number | null | undefine
   if (rate == null) return <Text type="secondary">-</Text>;
   const better = direction === "down" ? rate < 0 : rate > 0;
   return (
-    <span style={{ color: rate === 0 ? undefined : better ? "#389e0d" : "#cf1322", fontWeight: 600 }}>
+    <span style={{ color: rate === 0 ? undefined : better ? "var(--ok-fg)" : "var(--danger-fg)", fontWeight: 600 }}>
       {rate > 0 ? "▲" : rate < 0 ? "▼" : ""} {(Math.abs(rate) * 100).toFixed(1)}%
     </span>
   );
@@ -58,7 +61,7 @@ export function headlineValue(kind: string, h: DataHeadline | null) {
   return pct(h.target.value);
 }
 
-const LINE_COLORS = ["#1677ff", "#fa8c16", "#52c41a", "#eb2f96", "#722ed1", "#13c2c2"];
+const LINE_COLORS = ["var(--accent)", "#fa8c16", "var(--ok-fg)", "#eb2f96", "#722ed1", "#13c2c2"];
 
 /** 일별 건수 선 그래프(라이브러리 없이 SVG). 가로는 칸 너비에 맞춰 늘어난다. */
 export function DataLines({
@@ -119,7 +122,7 @@ export default function DataCard({ card }: { card: DataCardItem }) {
   const last = card.lastRunId ? `${card.lastRunId.slice(0, 4)}-${card.lastRunId.slice(4, 6)}-${card.lastRunId.slice(6, 8)}` : "-";
   return (
     <Link href={`/orchestration/${card.key}/data`} style={{ display: "block", height: "100%" }}>
-      <Card hoverable size="small" style={{ height: "100%" }}>
+      <Card hover size="small" style={{ height: "100%" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
           <Text strong>{card.key}</Text>
           <BadgeTag badge={card.verdict} />
@@ -152,7 +155,7 @@ export default function DataCard({ card }: { card: DataCardItem }) {
             <ChangeRate rate={s.changeRate} direction={card.direction} />
             <BadgeTag badge={s.badge} />
             {s.badge === "판단 이르다" && s.requiredN ? (
-              <Progress
+              <Meter
                 size="small"
                 style={{ flex: 1, margin: 0 }}
                 percent={Math.min(100, Math.round((Math.min(s.target.n, s.compare.n) / s.requiredN) * 100))}

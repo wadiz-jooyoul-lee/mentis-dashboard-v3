@@ -2,22 +2,18 @@
 import { useCanAct } from "@/components/CanAct";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Space, Button, Badge, Typography, Input, Tag, message } from "antd";
-import {
-  StopOutlined,
-  RedoOutlined,
-  InboxOutlined,
-  ReloadOutlined,
-  PlayCircleOutlined,
-  SendOutlined,
-  ClockCircleOutlined,
-} from "@ant-design/icons";
 import FeedView from "@/components/FeedView";
 import type { JobState } from "@/lib/jobs";
 import type { ConsoleStatus } from "@/lib/transcript";
+import Button from "@/components/ui/Button";
+import Stack from "@/components/ui/Stack";
+import Tag from "@/components/ui/Tag";
+import { TextArea } from "@/components/ui/Form";
+import { StatusDot } from "@/components/ui/Tag";
+import { toast } from "@/components/ui/Toaster";
+import { Text } from "@/components/ui/Typo";
+import { Archive, CircleStop, CirclePlay, Clock, RotateCw, Redo2, Send } from "lucide-react";
 
-const { Text } = Typography;
-const { TextArea } = Input;
 
 const BADGE: Record<Exclude<JobState, "none">, { status: "processing" | "success" | "error" | "default"; text: string }> = {
   running: { status: "processing", text: "실행 중" },
@@ -113,7 +109,7 @@ export default function JobConsole({
         body: JSON.stringify({ key: orderKey, applyPending: true }),
       })
         .then(() => {
-          message.success("예약한 피드백을 이어서 전달했습니다");
+          toast.success("예약한 피드백을 이어서 전달했습니다");
           return refresh();
         })
         .catch(() => {})
@@ -133,11 +129,11 @@ export default function JobConsole({
       const r = await fn();
       const b = await r.json().catch(() => ({}));
       if (r.ok) {
-        message.success(ok);
+        toast.success(ok);
         await refresh();
         onChange?.();
       } else {
-        message.error(b?.error ?? "실패");
+        toast.error(b?.error ?? "실패");
       }
     } finally {
       setBusy(false);
@@ -150,7 +146,7 @@ export default function JobConsole({
 
   const sendNow = () => {
     if (!msg.trim()) return;
-    if (!sessionId) return message.error("세션이 아직 없어 전달할 수 없습니다");
+    if (!sessionId) return toast.error("세션이 아직 없어 전달할 수 없습니다");
     act(() => post({ key: orderKey, resume: true, message: msg }), "이어서 전달").then(() => setMsg(""));
   };
   const queue = () => {
@@ -175,26 +171,26 @@ export default function JobConsole({
       : BADGE[s.state];
 
   return (
-    <Space orientation="vertical" size={10} style={{ width: "100%" }}>
-      <Space wrap>
-        {badge ? <Badge status={badge.status} text={badge.text} /> : <Text type="secondary">잡 없음</Text>}
+    <Stack orientation="vertical" size={10} style={{ width: "100%" }}>
+      <Stack wrap>
+        {badge ? <StatusDot status={badge.status} text={badge.text} /> : <Text type="secondary">잡 없음</Text>}
         {nn?.label && <Tag>{nn.label}</Tag>}
         {!controllable && <Text type="secondary" style={{ fontSize: 12 }}>읽기 전용</Text>}
-        <Button size="small" icon={<ReloadOutlined />} onClick={refresh} disabled={busy}>새로고침</Button>
-        {controllable && running && <Button size="small" danger icon={<StopOutlined />} onClick={stop} loading={busy}>정지</Button>}
+        <Button size="sm" icon={<RotateCw size="1em" />} onClick={refresh} disabled={busy}>새로고침</Button>
+        {controllable && running && <Button size="sm" danger icon={<CircleStop size="1em" />} onClick={stop} busy={busy}>정지</Button>}
         {controllable && !running && (
-          <Button size="small" type="primary" ghost icon={<PlayCircleOutlined />} onClick={start} loading={busy}>
+          <Button size="sm" variant="soft" icon={<CirclePlay size="1em" />} onClick={start} busy={busy}>
             {s.state === "none" ? "실행" : "새로 실행"}
           </Button>
         )}
-        {canResume && <Button size="small" icon={<RedoOutlined />} onClick={() => act(() => post({ key: orderKey, resume: true }), "이어서")} loading={busy}>이어서</Button>}
+        {canResume && <Button size="sm" icon={<Redo2 size="1em" />} onClick={() => act(() => post({ key: orderKey, resume: true }), "이어서")} busy={busy}>이어서</Button>}
         {controllable && (s.state === "done" || s.state === "failed" || s.state === "stopped") && (
-          <Button size="small" icon={<InboxOutlined />} onClick={archive} loading={busy}>보관</Button>
+          <Button size="sm" icon={<Archive size="1em" />} onClick={archive} busy={busy}>보관</Button>
         )}
-      </Space>
+      </Stack>
 
       {controllable && !autoRun && pending && (
-        <Tag icon={<ClockCircleOutlined />} color="processing" closable onClose={cancelQueue}>
+        <Tag icon={<Clock size="1em" />} color="processing" closable onClose={cancelQueue}>
           예약된 피드백: {pending.length > 40 ? pending.slice(0, 40) + "…" : pending}
         </Tag>
       )}
@@ -209,7 +205,7 @@ export default function JobConsole({
         </Text>
       )}
       {controllable && !autoRun && s.state !== "none" && (
-        <Space.Compact style={{ width: "100%" }}>
+        <span className="ui-compact">
           <TextArea
             placeholder={
               running
@@ -228,12 +224,12 @@ export default function JobConsole({
             disabled={busy}
           />
           {running ? (
-            <Button icon={<ClockCircleOutlined />} onClick={queue} loading={busy} disabled={!msg.trim()}>예약</Button>
+            <Button icon={<Clock size="1em" />} onClick={queue} busy={busy} disabled={!msg.trim()}>예약</Button>
           ) : (
-            <Button type="primary" icon={<SendOutlined />} onClick={sendNow} loading={busy} disabled={!msg.trim() || !sessionId}>전송</Button>
+            <Button variant="solid" icon={<Send size="1em" />} onClick={sendNow} busy={busy} disabled={!msg.trim() || !sessionId}>전송</Button>
           )}
-        </Space.Compact>
+        </span>
       )}
-    </Space>
+    </Stack>
   );
 }

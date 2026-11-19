@@ -1,12 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Popover, Input, Space, Typography, message, Empty, Spin, Divider, Tooltip, Tag } from "antd";
-import { BranchesOutlined, CopyOutlined, DownOutlined, ExportOutlined, RightOutlined } from "@ant-design/icons";
 import { copyText } from "@/lib/clipboard";
 import { envBranchesOf, type EnvPrs, type ExistingPr } from "@/lib/prEnv";
+import Button from "@/components/ui/Button";
+import Empty from "@/components/ui/Empty";
+import Pop from "@/components/ui/Pop";
+import Spinner from "@/components/ui/Spinner";
+import Stack from "@/components/ui/Stack";
+import Tag from "@/components/ui/Tag";
+import Tip from "@/components/ui/Tip";
+import { Field } from "@/components/ui/Form";
+import { Hr } from "@/components/ui/Misc";
+import { toast } from "@/components/ui/Toaster";
+import { Text } from "@/components/ui/Typo";
+import { ChevronDown, ChevronRight, Copy, ExternalLink, GitBranch } from "lucide-react";
 
-const { Text } = Typography;
 
 type Target = { repo: string; branch: string; repoUrl: string | null };
 
@@ -63,15 +72,15 @@ export default function PrLinkButton({ epicKey }: { epicKey: string }) {
 
   const linkButtons = (url: string) => (
     <>
-      <Tooltip title={url}>
-        <Button size="small" icon={<CopyOutlined />} onClick={() => copy(url)}>
+      <Tip title={url}>
+        <Button size="sm" icon={<Copy size="1em" />} onClick={() => copy(url)}>
           복사
         </Button>
-      </Tooltip>
+      </Tip>
       <Button
-        size="small"
-        type="primary"
-        icon={<ExportOutlined />}
+        size="sm"
+        variant="solid"
+        icon={<ExternalLink size="1em" />}
         onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
       >
         열기
@@ -111,13 +120,13 @@ export default function PrLinkButton({ epicKey }: { epicKey: string }) {
 
   const copy = async (url: string) => {
     const ok = await copyText(url);
-    if (ok) message.success("PR 링크를 복사했습니다.");
-    else message.error("복사에 실패했습니다 — 링크를 직접 선택해 복사하세요.");
+    if (ok) toast.success("PR 링크를 복사했습니다.");
+    else toast.error("복사에 실패했습니다 — 링크를 직접 선택해 복사하세요.");
   };
 
   const content = (
     <div style={{ width: 480, maxWidth: "82vw" }}>
-      <Input
+      <Field
         placeholder="병합 대상(base) 브랜치 — 예: RC, develop"
         value={base}
         onChange={(e) => setBase(e.target.value)}
@@ -126,14 +135,14 @@ export default function PrLinkButton({ epicKey }: { epicKey: string }) {
       />
       <div style={{ marginTop: 10 }}>
         {loading ? (
-          <Spin size="small" />
+          <Spinner size="sm" />
         ) : !targets || targets.length === 0 ? (
           <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            compact
             description="이 오더의 브랜치 정보를 찾을 수 없습니다"
           />
         ) : (
-          <Space orientation="vertical" size={10} style={{ width: "100%" }}>
+          <Stack orientation="vertical" size={10} style={{ width: "100%" }}>
             {targets.map((t, i) => {
               const url = prUrl(t);
               return (
@@ -163,7 +172,7 @@ export default function PrLinkButton({ epicKey }: { epicKey: string }) {
                           fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
                           wordBreak: "break-all",
                           userSelect: "all",
-                          background: "#f5f5f5",
+                          background: "var(--bg-sunken)",
                           borderRadius: 4,
                           padding: "4px 8px",
                         }}
@@ -171,17 +180,17 @@ export default function PrLinkButton({ epicKey }: { epicKey: string }) {
                         {url}
                       </div>
                       <Button
-                        size="small"
-                        icon={<CopyOutlined />}
+                        size="sm"
+                        icon={<Copy size="1em" />}
                         onClick={() => copy(url!)}
                         style={{ flexShrink: 0 }}
                       >
                         복사
                       </Button>
                       <Button
-                        size="small"
-                        type="primary"
-                        icon={<ExportOutlined />}
+                        size="sm"
+                        variant="solid"
+                        icon={<ExternalLink size="1em" />}
                         onClick={() => window.open(url!, "_blank", "noopener,noreferrer")}
                         style={{ flexShrink: 0 }}
                       >
@@ -192,15 +201,15 @@ export default function PrLinkButton({ epicKey }: { epicKey: string }) {
                 </div>
               );
             })}
-          </Space>
+          </Stack>
         )}
       </div>
       {targets && targets.some((t) => t.repoUrl) && (
         <>
-          <Divider plain style={{ margin: "12px 0 8px", fontSize: 12 }}>
-            환경별 PR {prs === null && <Spin size="small" style={{ marginLeft: 6 }} />}
-          </Divider>
-          <Space orientation="vertical" size={8} style={{ width: "100%" }}>
+          <Hr plain style={{ margin: "12px 0 8px", fontSize: 12 }}>
+            환경별 PR {prs === null && <Spinner size="sm" style={{ marginLeft: 6 }} />}
+          </Hr>
+          <Stack orientation="vertical" size={8} style={{ width: "100%" }}>
             {targets
               .filter((t) => t.repoUrl)
               .map((t, i) => (
@@ -227,10 +236,10 @@ export default function PrLinkButton({ epicKey }: { epicKey: string }) {
                             {env.previous.length > 0 && (
                               <>
                                 <Button
-                                  type="link"
-                                  size="small"
+                                  variant="link"
+                                  size="sm"
                                   data-pr-previous
-                                  icon={open ? <DownOutlined /> : <RightOutlined />}
+                                  icon={open ? <ChevronDown size="1em" /> : <ChevronRight size="1em" />}
                                   style={{ marginTop: 2, marginLeft: 10, paddingInline: 4, fontSize: 12 }}
                                   onClick={() =>
                                     setShown((cur) => {
@@ -253,14 +262,14 @@ export default function PrLinkButton({ epicKey }: { epicKey: string }) {
                   ))}
                 </div>
               ))}
-          </Space>
+          </Stack>
         </>
       )}
     </div>
   );
 
   return (
-    <Popover
+    <Pop
       title="PR 생성 링크 (개발 브랜치 → base로 머지)"
       trigger="click"
       open={open}
@@ -268,9 +277,9 @@ export default function PrLinkButton({ epicKey }: { epicKey: string }) {
       content={content}
       placement="bottomRight"
     >
-      <Button type="link" icon={<BranchesOutlined />}>
+      <Button variant="link" icon={<GitBranch size="1em" />}>
         PR 링크
       </Button>
-    </Popover>
+    </Pop>
   );
 }

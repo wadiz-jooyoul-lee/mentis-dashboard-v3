@@ -1,9 +1,11 @@
 "use client";
 
-import { Space, Tag, Typography, Table } from "antd";
 import { fmtBytes, fmtDate } from "@/components/SessionBackupTable";
+import DataTable from "@/components/ui/DataTable";
+import Stack from "@/components/ui/Stack";
+import Tag from "@/components/ui/Tag";
+import { Text } from "@/components/ui/Typo";
 
-const { Text } = Typography;
 
 export type InProgressArchive = {
   name: string;
@@ -38,10 +40,10 @@ export default function InProgressBackupTable({
       dataIndex: "day",
       key: "day",
       render: (v: string) => (
-        <Space size={6}>
+        <Stack size={6}>
           <Text strong style={{ fontSize: 13 }}>{fmtDay(v)}</Text>
           {v === today ? <Tag color="blue">오늘</Tag> : null}
-        </Space>
+        </Stack>
       ),
     },
     {
@@ -76,7 +78,7 @@ export default function InProgressBackupTable({
     },
   ];
   return (
-    <Table<InProgressArchive>
+    <DataTable<InProgressArchive>
       size="small"
       rowKey="name"
       columns={columns}

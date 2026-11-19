@@ -1,9 +1,10 @@
 "use client";
 
-import { Tag, Tooltip, Typography } from "antd";
 import { SHIP_MILESTONES, type ShipRow } from "@/lib/parseOrderStatus";
+import Tag from "@/components/ui/Tag";
+import Tip from "@/components/ui/Tip";
+import { Text } from "@/components/ui/Typo";
 
-const { Text } = Typography;
 
 /** 환경별 색. 뒤로 갈수록(dev→stage) 진해진다. */
 const ENV_COLOR: Record<string, string> = {
@@ -105,7 +106,7 @@ export function ShipProgress({ rows, repoUrl }: { rows: ShipRow[]; repoUrl?: str
           key={`${r.repo ?? "-"}:${r.env}`}
           style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}
         >
-          <Tooltip title={sourceText(r)}>
+          <Tip title={sourceText(r)}>
             <Tag
               color={ENV_COLOR[r.env] ?? "default"}
               style={{
@@ -118,13 +119,13 @@ export function ShipProgress({ rows, repoUrl }: { rows: ShipRow[]; repoUrl?: str
             >
               {r.env}
             </Tag>
-          </Tooltip>
+          </Tip>
           {multiRepo && (
-            <Tooltip title={r.repo ?? "저장소를 알 수 없습니다"}>
+            <Tip title={r.repo ?? "저장소를 알 수 없습니다"}>
               <Text type="secondary" style={{ fontSize: 11, minWidth: 28 }}>
                 {r.repo ? (REPO_SHORT[r.repo] ?? r.repo) : "?"}
               </Text>
-            </Tooltip>
+            </Tip>
           )}
           <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
             {SHIP_MILESTONES.map((m, i) => {
@@ -164,7 +165,7 @@ export function ShipProgress({ rows, repoUrl }: { rows: ShipRow[]; repoUrl?: str
               </Text>
             ))}
           {parseBuild(r.build).map((b) => (
-            <Tooltip key={b.name} title={b.runId ? `실행 ${b.runId}` : undefined}>
+            <Tip key={b.name} title={b.runId ? `실행 ${b.runId}` : undefined}>
               {href && b.runId ? (
                 <a
                   href={`${href}/actions/runs/${b.runId}`}
@@ -179,7 +180,7 @@ export function ShipProgress({ rows, repoUrl }: { rows: ShipRow[]; repoUrl?: str
                   {b.name}
                 </Text>
               )}
-            </Tooltip>
+            </Tip>
           ))}
           {r.note && (
             <Text type="danger" style={{ fontSize: 12 }}>
@@ -224,7 +225,7 @@ export function ShipTags({ rows }: { rows: ShipRow[] }) {
   return (
     <span style={{ display: "inline-flex", flexWrap: "wrap", gap: 4 }}>
       {collapseByEnv(rows).map((r) => (
-        <Tooltip
+        <Tip
           key={`${r.repo ?? "-"}:${r.env}`}
           title={`${r.stage}${r.pr ? ` · ${r.pr}` : ""}${r.note ? ` · ${r.note}` : ""} — ${sourceText(r)}`}
         >
@@ -240,7 +241,7 @@ export function ShipTags({ rows }: { rows: ShipRow[] }) {
           >
             {r.env} {r.blocked ? "⚠" : r.done ? "✓" : r.stage}
           </Tag>
-        </Tooltip>
+        </Tip>
       ))}
     </span>
   );

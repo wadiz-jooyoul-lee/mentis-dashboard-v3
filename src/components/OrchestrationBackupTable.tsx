@@ -1,9 +1,12 @@
 "use client";
 
-import { Space, Tag, Typography, Table, Tooltip } from "antd";
 import { fmtBytes, fmtDate } from "@/components/SessionBackupTable";
+import DataTable from "@/components/ui/DataTable";
+import Stack from "@/components/ui/Stack";
+import Tag from "@/components/ui/Tag";
+import Tip from "@/components/ui/Tip";
+import { Text } from "@/components/ui/Typo";
 
-const { Text } = Typography;
 
 export type OrchArchive = {
   key: string;
@@ -24,14 +27,14 @@ export default function OrchestrationBackupTable({ archives }: { archives: OrchA
       dataIndex: "key",
       key: "key",
       render: (v: string, row: OrchArchive) => (
-        <Space size={6}>
+        <Stack size={6}>
           <Text strong style={{ fontSize: 13 }}>{v}</Text>
           {row.stale ? (
-            <Tooltip title="이 백업 이후 메타가 바뀌었습니다 — 다시 백업하면 최신으로 교체됩니다">
+            <Tip title="이 백업 이후 메타가 바뀌었습니다 — 다시 백업하면 최신으로 교체됩니다">
               <Tag color="warning">변경됨</Tag>
-            </Tooltip>
+            </Tip>
           ) : null}
-        </Space>
+        </Stack>
       ),
     },
     { title: "백업 시각", dataIndex: "at", key: "at", render: (v: string) => fmtDate(v) },
@@ -53,7 +56,7 @@ export default function OrchestrationBackupTable({ archives }: { archives: OrchA
     },
   ];
   return (
-    <Table<OrchArchive>
+    <DataTable<OrchArchive>
       size="small"
       rowKey="name"
       columns={columns}

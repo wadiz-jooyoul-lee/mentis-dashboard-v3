@@ -2,8 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Typography, Button, Collapse, Badge, Table, Empty, Alert, Space, message } from "antd";
-import { CopyOutlined, ExportOutlined } from "@ant-design/icons";
 import { useCanAct } from "@/components/CanAct";
 import FeedView from "@/components/FeedView";
 import DataReport from "@/components/DataReport";
@@ -13,8 +11,17 @@ import type { FeedItem, JobState } from "@/lib/jobs";
 import type { DataOrder } from "@/lib/data";
 import type { ArtifactShare } from "@/lib/orchestration";
 import { copyText } from "@/lib/clipboard";
+import Button from "@/components/ui/Button";
+import Collapse from "@/components/ui/Disclosure";
+import DataTable from "@/components/ui/DataTable";
+import Empty from "@/components/ui/Empty";
+import Note from "@/components/ui/Note";
+import Stack from "@/components/ui/Stack";
+import { StatusDot } from "@/components/ui/Tag";
+import { toast } from "@/components/ui/Toaster";
+import { Paragraph, Text, Title } from "@/components/ui/Typo";
+import { Copy, ExternalLink } from "lucide-react";
 
-const { Paragraph, Text, Title } = Typography;
 
 type Job = { state: Exclude<JobState, "none">; feed: FeedItem[] };
 type Cmd = "spec" | "run";
@@ -106,7 +113,7 @@ function JobRecord({ title, job }: { title: string; job: Job }) {
           key: "log",
           label: (
             <span>
-              {title} <Badge status={badge.status} text={badge.text} style={{ marginLeft: 8 }} />
+              {title} <StatusDot status={badge.status} text={badge.text} style={{ marginLeft: 8 }} />
             </span>
           ),
           children: <FeedView feed={job.feed} height={360} alwaysBottom />,
@@ -120,33 +127,33 @@ function JobRecord({ title, job }: { title: string; job: Job }) {
 function ShareBar({ epicKey, share }: { epicKey: string; share: ArtifactShare | null }) {
   const cmd = `/dobby-share ${epicKey} data`;
   const copy = async () => {
-    if (await copyText(cmd)) message.success("명령을 복사했습니다. 대화형 Claude Code 에 붙여넣으세요.");
-    else message.error("복사하지 못했습니다");
+    if (await copyText(cmd)) toast.success("명령을 복사했습니다. 대화형 Claude Code 에 붙여넣으세요.");
+    else toast.error("복사하지 못했습니다");
   };
   return (
-    <Alert
+    <Note
       style={{ marginTop: 12 }}
       type={share ? "success" : "info"}
       showIcon
       title={share ? `공개 아티팩트로 게시했습니다${share.updatedAt ? ` (갱신 ${share.updatedAt})` : ""}.` : "이 해석을 공개 아티팩트로 게시할 수 있습니다."}
       description={
-        <Space orientation="vertical" size={8}>
+        <Stack orientation="vertical" size={8}>
           <Text type="secondary" style={{ fontSize: 13 }}>
             대화형 Claude Code 에서 <Text code>{cmd}</Text> 를 실행하면 claude.ai 에 게시되고 아티팩트 탭에 링크가 붙습니다.
             {share ? " 해석이 바뀐 뒤 다시 실행하면 같은 링크가 갱신됩니다." : ""}
           </Text>
-          <Space wrap>
+          <Stack wrap>
             {share && (
-              <Button size="small" type="primary" icon={<ExportOutlined />} onClick={() => window.open(share.url, "_blank", "noopener,noreferrer")}>
+              <Button size="sm" variant="solid" icon={<ExternalLink size="1em" />} onClick={() => window.open(share.url, "_blank", "noopener,noreferrer")}>
                 아티팩트 열기
               </Button>
             )}
-            <Button size="small" icon={<CopyOutlined />} onClick={copy}>
+            <Button size="sm" icon={<Copy size="1em" />} onClick={copy}>
               {share ? "갱신 명령 복사" : "게시 명령 복사"}
             </Button>
             <Link href={`/orchestration/${encodeURIComponent(epicKey)}/artifact`}>아티팩트 탭으로 →</Link>
-          </Space>
-        </Space>
+          </Stack>
+        </Stack>
       }
     />
   );
@@ -200,7 +207,7 @@ export default function DataTabView({
 
   const button = (cmd: Cmd, label: string, primary = false) =>
     canAct ? (
-      <Button type={primary ? "primary" : "default"} loading={job.busy} onClick={() => job.start(cmd)}>
+      <Button variant={primary ? "solid" : "ghost"} busy={job.busy} onClick={() => job.start(cmd)}>
         {label}
       </Button>
     ) : null;
@@ -215,8 +222,8 @@ export default function DataTabView({
     </div>
   );
   const eventTable = (
-    <Table
-      size="small"
+    <DataTable
+      size="sm"
       pagination={false}
       rowKey="name"
       dataSource={spec?.events ?? []}
@@ -269,7 +276,7 @@ export default function DataTabView({
     // 4: 측정 불가
     body = (
       <div style={{ marginTop: 16 }}>
-        <Alert type="info" showIcon message="와디태그로 측정할 수 없는 작업입니다" description={spec.reason ?? "사유가 적혀 있지 않습니다."} />
+        <Note type="info" showIcon message="와디태그로 측정할 수 없는 작업입니다" description={spec.reason ?? "사유가 적혀 있지 않습니다."} />
         <div style={{ marginTop: 12 }}>{button("spec", "스펙 다시 만들기")}</div>
       </div>
     );
@@ -321,15 +328,15 @@ export default function DataTabView({
         </Text>
         {summary.health.zeroDays.length > 0 && (
           <Collapse
-            size="small"
+            size="sm"
             ghost
             items={[
               {
                 key: "zero",
                 label: `기록이 0건인 날 ${new Set(summary.health.zeroDays.map((z) => z.date)).size}일 (자세히)`,
                 children: (
-                  <Table
-                    size="small"
+                  <DataTable
+                    size="sm"
                     pagination={false}
                     rowKey="name"
                     dataSource={[...new Set(summary.health.zeroDays.map((z) => z.name))].map((name) => ({
@@ -352,8 +359,8 @@ export default function DataTabView({
         </Section>
 
         <Section title="분석할 때마다 핵심 숫자가 어떻게 바뀌었나">
-          <Table
-            size="small"
+          <DataTable
+            size="sm"
             pagination={false}
             rowKey="runId"
             dataSource={summary.history}
@@ -369,8 +376,8 @@ export default function DataTabView({
 
         {summary.segments.length > 0 && (
           <Section title="기기 종류별">
-            <Table
-              size="small"
+            <DataTable
+              size="sm"
               pagination={false}
               rowKey="name"
               dataSource={summary.segments}
@@ -389,8 +396,8 @@ export default function DataTabView({
 
         {t.groups.length > 0 && (
           <Section title="A안·B안 그룹">
-            <Table
-              size="small"
+            <DataTable
+              size="sm"
               pagination={false}
               rowKey="grp"
               dataSource={t.groups}
@@ -405,8 +412,8 @@ export default function DataTabView({
         )}
         {t.funnel.length > 0 && (
           <Section title="단계별 기기 수">
-            <Table
-              size="small"
+            <DataTable
+              size="sm"
               pagination={false}
               rowKey={(r) => `${r.grp}-${r.step}`}
               dataSource={t.funnel}
@@ -421,8 +428,8 @@ export default function DataTabView({
         )}
         {t.continuations.length > 0 && (
           <Section title="이어진 행동">
-            <Table
-              size="small"
+            <DataTable
+              size="sm"
               pagination={false}
               rowKey={(r) => `${r.grp}-${r.name}`}
               dataSource={t.continuations}
@@ -455,8 +462,8 @@ export default function DataTabView({
               key: "runs",
               label: `회차 목록 (${runs.length})`,
               children: (
-                <Table
-                  size="small"
+                <DataTable
+                  size="sm"
                   pagination={false}
                   rowKey="runId"
                   dataSource={runs}
@@ -479,9 +486,9 @@ export default function DataTabView({
   return (
     <div>
       <OrderHeader epicKey={epicKey} {...header} />
-      {job.error && <Alert style={{ marginTop: 12 }} type="warning" showIcon message={job.error} />}
+      {job.error && <Note style={{ marginTop: 12 }} type="warning" showIcon message={job.error} />}
       {job.state === "failed" && (
-        <Alert style={{ marginTop: 12 }} type="error" showIcon message="작업이 중단되었습니다. 아래 기록을 확인하세요." />
+        <Note style={{ marginTop: 12 }} type="error" showIcon message="작업이 중단되었습니다. 아래 기록을 확인하세요." />
       )}
       {job.state === "failed" && <FeedView feed={job.feed} height={260} />}
       {body}

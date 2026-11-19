@@ -2,13 +2,19 @@
 
 import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Input, Popconfirm, Select, Space, Tag, Tooltip, Typography, message } from "antd";
-import { BellFilled, ClockCircleOutlined, CopyOutlined, ExclamationCircleFilled, QuestionCircleOutlined } from "@ant-design/icons";
 import { useCanAct } from "@/components/CanAct";
 import { copyText } from "@/lib/clipboard";
 import type { AutoDecisionNote, NextAction, NextGroup, NextItem } from "@/lib/nextAction";
+import Button from "@/components/ui/Button";
+import Confirm from "@/components/ui/Confirm";
+import Stack from "@/components/ui/Stack";
+import Tag from "@/components/ui/Tag";
+import Tip from "@/components/ui/Tip";
+import { SearchField, SelectBox } from "@/components/ui/Form";
+import { toast } from "@/components/ui/Toaster";
+import { Text } from "@/components/ui/Typo";
+import { Bell, CircleAlert, CircleHelp, Clock, Copy } from "lucide-react";
 
-const { Text } = Typography;
 
 export type { AutoDecisionNote, NextItem };
 
@@ -62,9 +68,9 @@ export const GROUP_LABEL: Record<NextGroup, { label: string; color: string }> = 
 
 /** 목록 칸에서 태그 대신 아이콘으로 보이는 묶음 */
 const GROUP_ICON: Partial<Record<NextGroup, React.ReactNode>> = {
-  mine: <ExclamationCircleFilled style={{ color: "#fa541c" }} />,
-  notice: <BellFilled style={{ color: "#13c2c2" }} />,
-  wait: <ClockCircleOutlined style={{ color: "#8c8c8c" }} />,
+  mine: <CircleAlert size="1em" style={{ color: "#fa541c" }} />,
+  notice: <Bell size="1em" fill="currentColor" style={{ color: "#13c2c2" }} />,
+  wait: <Clock size="1em" style={{ color: "var(--fg-soft)" }} />,
 };
 
 const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -116,16 +122,16 @@ export function useNextPost(item: NextItem, onDone?: () => void) {
     if (res.ok) {
       if (action === "ask") {
         const n = answerNotice(extra.value, res);
-        if (n.warn) message.warning(n.text, 8);
-        else message.success(n.text);
+        if (n.warn) toast.warning(n.text, 8);
+        else toast.success(n.text);
       } else {
-        message.success(action === "resolve" ? "해결 처리를 시작했습니다." : "시작했습니다. 진행은 오더 콘솔에서 볼 수 있습니다.");
+        toast.success(action === "resolve" ? "해결 처리를 시작했습니다." : "시작했습니다. 진행은 오더 콘솔에서 볼 수 있습니다.");
       }
       onDone?.();
       refreshNextActions(true);
       router.refresh();
     } else {
-      message.error(res.error === "already_running" ? "이미 실행 중입니다." : res.error || "요청에 실패했습니다.");
+      toast.error(res.error === "already_running" ? "이미 실행 중입니다." : res.error || "요청에 실패했습니다.");
     }
   };
   return { busy, post };
@@ -138,22 +144,22 @@ export function NextActionTag({ item }: { item?: NextItem }) {
   const icon = GROUP_ICON[item.group];
   if (icon)
     return (
-      <Tooltip title={[g.label, item.since && formatSince(item.since)].filter(Boolean).join(" · ")}>
-        <Space size={6} align="start">
+      <Tip title={[g.label, item.since && formatSince(item.since)].filter(Boolean).join(" · ")}>
+        <Stack size={6} align="start">
           {icon}
           <Text style={{ fontSize: 12 }}>{item.text}</Text>
-        </Space>
-      </Tooltip>
+        </Stack>
+      </Tip>
     );
   return (
-    <Tooltip title={item.since ? formatSince(item.since) : undefined}>
-      <Space orientation="vertical" size={2}>
+    <Tip title={item.since ? formatSince(item.since) : undefined}>
+      <Stack orientation="vertical" size={2}>
         <Tag color={g.color} style={{ marginInlineEnd: 0 }}>
           {g.label}
         </Tag>
         <Text style={{ fontSize: 12 }}>{item.text}</Text>
-      </Space>
-    </Tooltip>
+      </Stack>
+    </Tip>
   );
 }
 
@@ -207,20 +213,20 @@ export function NextActionControls({
   const [env, setEnv] = useState(item.env || "rc4");
 
   const copy = async () => {
-    if (await copyText(item.command || item.cmd)) message.success("명령을 복사했습니다. 터미널에 붙여넣으세요.");
-    else message.error("복사하지 못했습니다");
+    if (await copyText(item.command || item.cmd)) toast.success("명령을 복사했습니다. 터미널에 붙여넣으세요.");
+    else toast.error("복사하지 못했습니다");
   };
 
   /** 환경을 골라 배포·검증까지 자동으로 가는 버튼. action 은 deploy 또는 approve-deploy. */
   const deployControl = (action: NextAction, label: string, title: string, description: string, primary: boolean) => (
-    <Space.Compact key={action} size="small">
-      <Select size="small" value={env} onChange={setEnv} options={["dev", "rc1", "rc4"].map((v) => ({ value: v, label: v }))} />
-      <Popconfirm title={title} description={description} okText={label} cancelText="취소" onConfirm={() => post(action, { env })}>
-        <Button size="small" type={primary ? "primary" : "default"} loading={busy}>
+    <span className="ui-compact">
+      <SelectBox size="sm" value={env} onChange={setEnv} options={["dev", "rc1", "rc4"].map((v) => ({ value: v, label: v }))} />
+      <Confirm title={title} description={description} okText={label} cancelText="취소" onConfirm={() => post(action, { env })}>
+        <Button size="sm" variant={primary ? "solid" : "ghost"} busy={busy}>
           {label}
         </Button>
-      </Popconfirm>
-    </Space.Compact>
+      </Confirm>
+    </span>
   );
   // 설계 확인·설계 확정·구현/리뷰 이어 가기에서는 통합까지만 갈지, 배포·검증까지 갈지 고른다.
   const withDeploy = item.kind === "design-confirm" || item.kind === "run-ready" || item.kind === "resume";
@@ -231,9 +237,9 @@ export function NextActionControls({
     buttons.push(
       <Button
         key="ask"
-        size="small"
-        type="primary"
-        icon={<QuestionCircleOutlined />}
+        size="sm"
+        variant="solid"
+        icon={<CircleHelp size="1em" />}
         onClick={() => router.push(`/orchestration/${encodeURIComponent(item.key)}#order-question`)}
       >
         질문 보고 답하기
@@ -242,14 +248,14 @@ export function NextActionControls({
   } else if (canAct && item.action === "ask" && item.ask) {
     const a = item.ask;
     const stopBtn = a.waiting && (
-      <Popconfirm key="stop" title="자동 실행을 멈출까요?" okText="멈추기" cancelText="취소" onConfirm={() => post("ask", { value: "멈추기" })}>
-        <Button size="small" danger loading={busy}>
+      <Confirm key="stop" title="자동 실행을 멈출까요?" okText="멈추기" cancelText="취소" onConfirm={() => post("ask", { value: "멈추기" })}>
+        <Button size="sm" danger busy={busy}>
           멈추기
         </Button>
-      </Popconfirm>
+      </Confirm>
     );
     buttons.push(
-      <Space key="ask" orientation="vertical" size={4} style={{ width: "100%" }}>
+      <Stack key="ask" orientation="vertical" size={4} style={{ width: "100%" }}>
         {a.why && <Text style={{ fontSize: 12 }}>{a.why}</Text>}
         {a.todo && (
           <Text style={{ fontSize: 12 }} code copyable={{ text: a.todo.replace(/^[^:]*:\s*/, "") }}>
@@ -257,35 +263,35 @@ export function NextActionControls({
           </Text>
         )}
         {a.note && <Text type="warning" style={{ fontSize: 12 }}>{a.note}</Text>}
-        <Space wrap size={6}>
+        <Stack wrap size={6}>
           {a.kind === "action" && (
-            <Tooltip title="1분마다 저절로 확인합니다. 누르면 지금 다시 확인합니다.">
-              <Button size="small" type="primary" loading={busy} onClick={() => post("ask", { value: "했어요" })}>
+            <Tip title="1분마다 저절로 확인합니다. 누르면 지금 다시 확인합니다.">
+              <Button size="sm" variant="solid" busy={busy} onClick={() => post("ask", { value: "했어요" })}>
                 했어요
               </Button>
-            </Tooltip>
+            </Tip>
           )}
           {a.kind === "choice" &&
             a.choices
               .filter((c) => c !== "멈추기")
               .map((c, i) => (
-                <Button key={c} size="small" type={i === 0 ? "primary" : "default"} loading={busy} onClick={() => post("ask", { value: c })}>
+                <Button key={c} size="sm" variant={i === 0 ? "solid" : "ghost"} busy={busy} onClick={() => post("ask", { value: c })}>
                   {c}
                 </Button>
               ))}
           {a.kind === "input" && (
-            <Input.Search
-              size="small"
+            <SearchField
+              size="sm"
               placeholder="값을 적어 주세요"
               enterButton="보내기"
-              loading={busy}
+              busy={busy}
               style={{ width: 260 }}
               onSearch={(v) => v.trim() && post("ask", { value: v.trim() })}
             />
           )}
           {stopBtn}
-        </Space>
-      </Space>
+        </Stack>
+      </Stack>
     );
   } else if (canAct && item.action === "deploy") {
     buttons.push(
@@ -304,11 +310,11 @@ export function NextActionControls({
     // TASK- 작업은 배포하지 않고 통합에서 PR 을 만들고 끝난다.
     const isTask = item.key.startsWith("TASK-");
     buttons.push(
-      <Popconfirm key="act" title={c.title} description={c.description} okText={label} cancelText="취소" onConfirm={() => post(item.action)}>
-        <Button size="small" type="primary" loading={busy}>
+      <Confirm key="act" title={c.title} description={c.description} okText={label} cancelText="취소" onConfirm={() => post(item.action)}>
+        <Button size="sm" variant="solid" busy={busy}>
           {label}
         </Button>
-      </Popconfirm>,
+      </Confirm>,
       !isTask && !item.product && deployControl(
         item.action === "approve" ? "approve-deploy" : "deploy",
         "배포·검증까지",
@@ -319,37 +325,37 @@ export function NextActionControls({
     );
   } else if (canAct && item.action === "resolve") {
     buttons.push(
-      <Popconfirm key="resolve" title="이 오더를 해결로 표시할까요?" okText="해결 처리" cancelText="취소" onConfirm={() => post("resolve")}>
-        <Button size="small" type="primary" loading={busy}>
+      <Confirm key="resolve" title="이 오더를 해결로 표시할까요?" okText="해결 처리" cancelText="취소" onConfirm={() => post("resolve")}>
+        <Button size="sm" variant="solid" busy={busy}>
           해결 처리
         </Button>
-      </Popconfirm>
+      </Confirm>
     );
   } else if (canAct && item.action) {
     const c = CONFIRM[item.action];
     if (c) {
       buttons.push(
-        <Popconfirm key="act" title={c.title} description={c.description} okText={c.ok} cancelText="취소" onConfirm={() => post(item.action)}>
-          <Button size="small" type="primary" loading={busy}>
+        <Confirm key="act" title={c.title} description={c.description} okText={c.ok} cancelText="취소" onConfirm={() => post(item.action)}>
+          <Button size="sm" variant="solid" busy={busy}>
             {c.ok}
           </Button>
-        </Popconfirm>
+        </Confirm>
       );
     }
   }
   if (item.cmd) {
     buttons.push(
-      <Tooltip key="cmd" title={item.command || item.cmd}>
-        <Button size="small" type={buttons.length ? "default" : "primary"} icon={<CopyOutlined />} onClick={copy}>
+      <Tip key="cmd" title={item.command || item.cmd}>
+        <Button size="sm" variant={buttons.length ? "ghost" : "solid"} icon={<Copy size="1em" />} onClick={copy}>
           {item.cmd.split(" ")[0]} 명령 복사
         </Button>
-      </Tooltip>
+      </Tip>
     );
   }
   if (item.link) {
     const external = /^https?:\/\//.test(item.link);
     buttons.push(
-      <Button key="link" size="small" type={buttons.length ? "default" : "primary"} onClick={() => (external ? window.open(item.link, "_blank", "noopener,noreferrer") : router.push(item.link))}>
+      <Button key="link" size="sm" variant={buttons.length ? "ghost" : "solid"} onClick={() => (external ? window.open(item.link, "_blank", "noopener,noreferrer") : router.push(item.link))}>
         {external ? "PR 열기" : item.link.startsWith("/releases") ? "릴리즈 화면 열기" : "열기"}
       </Button>
     );
@@ -357,10 +363,10 @@ export function NextActionControls({
   // 새 형식의 질문은 위 "질문 보고 답하기"가 오더 화면을 연다.
   if (showOpen && !(item.action === "ask" && item.ask && item.ask.v >= 2)) {
     buttons.push(
-      <Button key="open" size="small" onClick={() => router.push(`/orchestration/${encodeURIComponent(item.key)}`)}>
+      <Button key="open" size="sm" onClick={() => router.push(`/orchestration/${encodeURIComponent(item.key)}`)}>
         오더 열기
       </Button>
     );
   }
-  return buttons.length ? <Space wrap size={6}>{buttons}</Space> : null;
+  return buttons.length ? <Stack wrap size={6}>{buttons}</Stack> : null;
 }

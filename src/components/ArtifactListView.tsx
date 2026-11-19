@@ -2,29 +2,19 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  Typography,
-  Space,
-  Card,
-  Tag,
-  Empty,
-  Button,
-  Row,
-  Col,
-  Input,
-  Tooltip,
-  Breadcrumb,
-  message,
-} from "antd";
-import {
-  CopyOutlined,
-  ExportOutlined,
-  ShareAltOutlined,
-  SearchOutlined,
-} from "@ant-design/icons";
 import type { ArtifactEntry } from "@/lib/orchestration";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import Crumbs from "@/components/ui/Crumbs";
+import Empty from "@/components/ui/Empty";
+import Stack from "@/components/ui/Stack";
+import Tag from "@/components/ui/Tag";
+import Tip from "@/components/ui/Tip";
+import { Field } from "@/components/ui/Form";
+import { toast } from "@/components/ui/Toaster";
+import { Paragraph, Text, Title } from "@/components/ui/Typo";
+import { Copy, ExternalLink, Search, Share2 } from "lucide-react";
 
-const { Title, Text, Paragraph } = Typography;
 
 /** http://IP(비보안 컨텍스트)에선 navigator.clipboard가 없으므로 execCommand로 폴백. */
 async function copyText(text: string) {
@@ -41,9 +31,9 @@ async function copyText(text: string) {
       document.execCommand("copy");
       document.body.removeChild(ta);
     }
-    message.success("링크를 복사했습니다.");
+    toast.success("링크를 복사했습니다.");
   } catch {
-    message.error("복사에 실패했습니다.");
+    toast.error("복사에 실패했습니다.");
   }
 }
 
@@ -74,9 +64,8 @@ export default function ArtifactListView({ items }: { items: ArtifactEntry[] }) 
   // 최상위 화면이라 상세처럼 OrderHeader가 없다 — 홈으로 돌아갈 길을 여기서 준다
   // (/agents 와 같은 형식).
   const crumb = (
-    <Breadcrumb
-      items={[{ title: <Link href="/">홈</Link> }, { title: "아티팩트" }]}
-      style={{ marginBottom: 12 }}
+    <Crumbs
+      items={[{ href: "/", label: "홈" }, { label: "아티팩트" }]}
     />
   );
 
@@ -114,10 +103,9 @@ export default function ArtifactListView({ items }: { items: ArtifactEntry[] }) 
         공개용으로 게시한 아티팩트를 갱신 최신순으로 모았습니다. 오더 {orders}개에서 나왔습니다.
       </Paragraph>
 
-      <Input
+      <Field
         allowClear
-        size="large"
-        prefix={<SearchOutlined style={{ color: "#bfbfbf" }} />}
+        prefix={<Search size="1em" />}
         placeholder="제목·오더로 검색"
         value={q}
         onChange={(e) => setQ(e.target.value)}
@@ -127,18 +115,18 @@ export default function ArtifactListView({ items }: { items: ArtifactEntry[] }) 
       {shown.length === 0 ? (
         <Empty description={`"${q}" 와 맞는 아티팩트가 없습니다.`} />
       ) : (
-      <Row gutter={[16, 16]}>
+      <div className="ui-grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
         {shown.map((a) => (
-          <Col key={`${a.epicKey}-${a.slug}-${a.url}`} xs={24} sm={12} lg={8}>
+          <div key={`${a.epicKey}-${a.slug}-${a.url}`}>
             <Card
               size="small"
-              hoverable
+              hover
               style={{ height: "100%" }}
               // 본문과 버튼 사이를 밀어 카드 높이가 달라도 버튼 줄이 아래에 맞춰 선다.
-              styles={{ body: { display: "flex", flexDirection: "column", height: "100%" } }}
+              bodyStyle={{ display: "flex", flexDirection: "column", height: "100%" }}
             >
-              <Space size={6} wrap align="center" style={{ marginBottom: 8 }}>
-                <ShareAltOutlined style={{ color: "#1677ff" }} />
+              <Stack size={6} wrap align="center" style={{ marginBottom: 8 }}>
+                <Share2 size={15} style={{ color: "var(--accent)" }} />
                 {/* 옛 불릿 형식은 슬러그가 없어 파서가 legacy를 붙인다 — 사용자에겐 의미 없어 숨긴다. */}
                 {a.slug !== "legacy" && <Tag style={{ margin: 0 }}>{a.slug}</Tag>}
                 {a.epicKey && (
@@ -146,7 +134,7 @@ export default function ArtifactListView({ items }: { items: ArtifactEntry[] }) 
                     {a.workType === "code" ? "개발" : "비개발"}
                   </Tag>
                 )}
-              </Space>
+              </Stack>
 
               {/* 제목 자체가 아티팩트로 가는 링크다 — 카드마다 큰 버튼을 두는 것보다 조용하다. */}
               <a
@@ -192,31 +180,31 @@ export default function ArtifactListView({ items }: { items: ArtifactEntry[] }) 
                   갱신 {a.sortAt}
                   {a.updateNote && ` (${a.updateNote})`}
                 </Text>
-                <Space size={0}>
-                  <Tooltip title="링크 복사">
+                <Stack size={0}>
+                  <Tip title="링크 복사">
                     <Button
-                      type="text"
-                      size="small"
-                      icon={<CopyOutlined />}
+                      variant="text"
+                      size="sm"
+                      icon={<Copy size="1em" />}
                       onClick={() => copyText(a.url)}
                     />
-                  </Tooltip>
-                  <Tooltip title="새 탭에서 열기">
+                  </Tip>
+                  <Tip title="새 탭에서 열기">
                     <Button
-                      type="text"
-                      size="small"
-                      icon={<ExportOutlined />}
+                      variant="text"
+                      size="sm"
+                      icon={<ExternalLink size="1em" />}
                       href={a.url}
                       target="_blank"
                       rel="noreferrer"
                     />
-                  </Tooltip>
-                </Space>
+                  </Tip>
+                </Stack>
               </div>
             </Card>
-          </Col>
+          </div>
         ))}
-      </Row>
+      </div>
       )}
     </div>
   );

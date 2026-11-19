@@ -1,14 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Card, Space, Typography, Table, Tabs, Tag } from "antd";
-import { PictureOutlined } from "@ant-design/icons";
 import type { TestSummary, EnvSummary, ItemLine, ConditionLine } from "@/lib/testSummary";
 import type { Verdict } from "@/lib/parseReport";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import DataTable from "@/components/ui/DataTable";
+import Stack from "@/components/ui/Stack";
+import Tabs from "@/components/ui/Tabs";
+import Tag from "@/components/ui/Tag";
+import { Text, Title } from "@/components/ui/Typo";
+import { ImageIcon } from "lucide-react";
 
-const { Title, Text } = Typography;
 
-const TONE = { pass: "#52c41a", fail: "#ff4d4f", skip: "#bfbfbf" } as const;
+const TONE = { pass: "var(--ok-fg)", fail: "var(--danger-fg)", skip: "var(--line)" } as const;
 const LABEL: Record<Verdict, string> = {
   pass: "통과",
   fail: "실패",
@@ -87,12 +92,12 @@ export default function TestSummaryView({
   const [active, setActive] = useState(runs[runs.length - 1]?.env ?? "");
 
   return (
-    <Space orientation="vertical" size={24} style={{ width: "100%" }}>
+    <Stack orientation="vertical" size={24} style={{ width: "100%" }}>
       <div>
         <Title level={4} style={{ marginTop: 0, marginBottom: 12 }}>
           환경별 현황
         </Title>
-        <Table<EnvSummary>
+        <DataTable<EnvSummary>
           rowKey={(e) => e.env || "-"}
           size="small"
           pagination={false}
@@ -141,7 +146,7 @@ export default function TestSummaryView({
           children: <EnvPanel es={e} closing={closing} epicKey={epicKey} />,
         }))}
       />
-    </Space>
+    </Stack>
   );
 }
 
@@ -169,7 +174,7 @@ function EnvPanel({
         flex: 1,
         minWidth: 92,
         padding: "14px 16px",
-        background: "#fafafa",
+        background: "var(--bg-sunken)",
         borderRadius: 8,
         textAlign: "center",
       }}
@@ -182,12 +187,12 @@ function EnvPanel({
   );
 
   return (
-    <Space orientation="vertical" size={24} style={{ width: "100%" }}>
+    <Stack orientation="vertical" size={24} style={{ width: "100%" }}>
       {/* 한 줄 판정 + 집계 */}
       <Card
-        styles={{ body: { padding: "20px 24px" } }}
+        bodyStyle={{ padding: "20px 24px" }}
         style={{
-          borderColor: fail > 0 ? "#ffccc7" : "#f0f0f0",
+          borderColor: fail > 0 ? "color-mix(in srgb, var(--danger-fg) 30%, var(--line))" : "var(--line)",
           background: fail > 0 ? "#fff8f7" : "#fafffa",
         }}
       >
@@ -255,9 +260,9 @@ function EnvPanel({
         <Title level={4} style={{ marginTop: 0, marginBottom: 12 }}>
           회차 {runs.length}회
         </Title>
-        <Table
+        <DataTable
           rowKey="id"
-          size="small"
+          size="sm"
           pagination={false}
           dataSource={runs}
           columns={[
@@ -285,9 +290,9 @@ function EnvPanel({
                     render: (_: unknown, r: (typeof runs)[number]) =>
                       r.hasSummary ? (
                         <Button
-                          type="link"
-                          size="small"
-                          icon={<PictureOutlined />}
+                          variant="link"
+                          size="sm"
+                          icon={<ImageIcon size="1em" />}
                           href={`/api/orders/${epicKey}/run-summary?run=${encodeURIComponent(r.id)}`}
                           target="_blank"
                           style={{ padding: 0 }}
@@ -311,7 +316,7 @@ function EnvPanel({
         <Title level={4} style={{ marginTop: 0, marginBottom: 12 }}>
           확인한 항목 {items.length}가지
         </Title>
-        <Table<ItemLine>
+        <DataTable<ItemLine>
           rowKey={(r) => r.num || r.name}
           size="small"
           pagination={false}
@@ -358,6 +363,6 @@ function EnvPanel({
           }}
         />
       </div>
-    </Space>
+    </Stack>
   );
 }

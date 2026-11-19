@@ -2,8 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Button, Popconfirm, Space, Tag, message } from "antd";
-import { CaretRightOutlined, DeleteOutlined, ReloadOutlined, StepForwardOutlined } from "@ant-design/icons";
+import Button from "@/components/ui/Button";
+import Confirm from "@/components/ui/Confirm";
+import Stack from "@/components/ui/Stack";
+import Tag from "@/components/ui/Tag";
+import { toast } from "@/components/ui/Toaster";
+import { ChevronRight, RotateCw, SkipForward, Trash2 } from "lucide-react";
 
 type DemoState = { step: number; total: number; label: string };
 
@@ -55,9 +59,9 @@ export default function DemoControls() {
       }).catch(() => null);
       const j = await r?.json().catch(() => null);
       setBusy(false);
-      if (!j?.ok) return void message.error(j?.error ?? "실패");
+      if (!j?.ok) return void toast.error(j?.error ?? "실패");
       setState((j.state as DemoState) ?? null);
-      message.success(j.message ?? action);
+      toast.success(j.message ?? action);
       router.refresh(); // 화면이 5초 갱신을 기다리지 않고 바로 따라오게
     },
     [router]
@@ -80,24 +84,24 @@ export default function DemoControls() {
         boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
       }}
     >
-    <Space size={6}>
+    <Stack size={6}>
       <Tag color="purple" style={{ marginRight: 0 }}>
         데모 {stepText}
       </Tag>
       {!started || state!.step >= state!.total ? (
-        <Button size="small" type="primary" icon={<CaretRightOutlined />} loading={busy} onClick={() => act("start")}>
+        <Button size="sm" variant="solid" icon={<ChevronRight size="1em" />} busy={busy} onClick={() => act("start")}>
           시작
         </Button>
       ) : (
-        <Button size="small" type="primary" icon={<StepForwardOutlined />} loading={busy} onClick={() => act("next")}>
+        <Button size="sm" variant="solid" icon={<SkipForward size="1em" />} busy={busy} onClick={() => act("next")}>
           다음
         </Button>
       )}
-      <Button size="small" icon={<ReloadOutlined />} disabled={busy} onClick={() => act("reset")} title="처음부터" />
-      <Popconfirm title="데모 데이터(.demo-meta)를 삭제할까요?" okText="삭제" cancelText="취소" onConfirm={() => act("clean")}>
-        <Button size="small" danger icon={<DeleteOutlined />} disabled={busy} title="데모 데이터 삭제" />
-      </Popconfirm>
-    </Space>
+      <Button size="sm" icon={<RotateCw size="1em" />} disabled={busy} onClick={() => act("reset")} title="처음부터" />
+      <Confirm title="데모 데이터(.demo-meta)를 삭제할까요?" okText="삭제" cancelText="취소" onConfirm={() => act("clean")}>
+        <Button size="sm" danger icon={<Trash2 size="1em" />} disabled={busy} title="데모 데이터 삭제" />
+      </Confirm>
+    </Stack>
     </div>
   );
 }

@@ -2,9 +2,11 @@
 
 import { useCanAct } from "@/components/CanAct";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Button, Popover, message } from "antd";
-import { ReloadOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
+import Button from "@/components/ui/Button";
+import Pop from "@/components/ui/Pop";
+import { toast } from "@/components/ui/Toaster";
+import { RotateCw } from "lucide-react";
 
 /**
  * 아바타 소감(재미기능) 트리거 + 수동 새로고침 버튼.
@@ -27,7 +29,7 @@ export default function QuipsControl({ epicKey }: { epicKey: string }) {
   };
 
   const fail = (msg: string) => {
-    if (manualRef.current) message.error(msg);
+    if (manualRef.current) toast.error(msg);
   };
 
   const poll = useCallback(async () => {
@@ -88,7 +90,7 @@ export default function QuipsControl({ epicKey }: { epicKey: string }) {
             const j = (await r.json().catch(() => null)) as { error?: string } | null;
             if (typeof j?.error === "string" && j.error.startsWith("busy")) {
               setBusy(false);
-              if (manual) message.info("다른 작업이 실행 중이라 소감 생성을 건너뜁니다");
+              if (manual) toast.info("다른 작업이 실행 중이라 소감 생성을 건너뜁니다");
               return;
             }
           }
@@ -99,7 +101,7 @@ export default function QuipsControl({ epicKey }: { epicKey: string }) {
             return;
           }
         } else {
-          if (manual) message.info("소감이 이미 최신이에요");
+          if (manual) toast.info("소감이 이미 최신이에요");
           return; // 다시 만들 대상 없음
         }
         polls.current = 0;
@@ -139,15 +141,15 @@ export default function QuipsControl({ epicKey }: { epicKey: string }) {
 
   if (!canAct) return null; // 읽기 전용 화면에는 리프레시 버튼을 그리지 않는다
   return (
-    <Popover content={busy ? "소감 생성 중…" : "소감 리프레시"}>
+    <Pop trigger="hover" content={busy ? "소감 생성 중…" : "소감 리프레시"}>
       <Button
-        type="text"
-        size="small"
-        icon={<ReloadOutlined />}
-        loading={busy}
+        variant="text"
+        size="sm"
+        icon={<RotateCw size="1em" />}
+        busy={busy}
         onClick={() => start(true)}
         aria-label="소감 리프레시"
       />
-    </Popover>
+    </Pop>
   );
 }

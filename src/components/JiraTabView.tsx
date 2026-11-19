@@ -3,12 +3,19 @@ import { useCanAct } from "@/components/CanAct";
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Tabs, Button, Space, Empty, Collapse, Input, Tag, message, Alert } from "antd";
-import { ReloadOutlined, SaveOutlined } from "@ant-design/icons";
 import OrderHeader from "@/components/OrderHeader";
 import MarkdownDoc from "@/components/MarkdownDoc";
+import Button from "@/components/ui/Button";
+import Collapse from "@/components/ui/Disclosure";
+import Empty from "@/components/ui/Empty";
+import Note from "@/components/ui/Note";
+import Stack from "@/components/ui/Stack";
+import Tabs from "@/components/ui/Tabs";
+import Tag from "@/components/ui/Tag";
+import { TextArea } from "@/components/ui/Form";
+import { toast } from "@/components/ui/Toaster";
+import { RotateCw, Save } from "lucide-react";
 
-const { TextArea } = Input;
 
 type Props = {
   epicKey: string;
@@ -77,7 +84,7 @@ export default function JiraTabView(props: Props) {
       if (tries > 140) {
         stopPoll();
         setBusy(null);
-        message.info(
+        toast.info(
           "아직 백그라운드에서 진행 중일 수 있어요 — 완료되면 자동 반영됩니다. 오래 걸리면 콘솔에서 진행을 확인하세요(사용량 한도일 수 있음)."
         );
         return;
@@ -167,10 +174,10 @@ export default function JiraTabView(props: Props) {
     const res = await postJira({ jira: "save", key: props.epicKey, text: draft });
     setBusy(null);
     if (res.ok) {
-      message.success("초안을 저장했습니다");
+      toast.success("초안을 저장했습니다");
       router.refresh();
     } else {
-      message.error("저장에 실패했습니다");
+      toast.error("저장에 실패했습니다");
     }
   };
 
@@ -180,16 +187,16 @@ export default function JiraTabView(props: Props) {
   const issueTab = hasIssue ? (
     <div>
       {canAct && (
-      <Space style={{ marginBottom: 12 }}>
+      <Stack style={{ marginBottom: 12 }}>
         <Button
-          size="small"
-          icon={<ReloadOutlined />}
-          loading={busy === "clean"}
+          size="sm"
+          icon={<RotateCw size="1em" />}
+          busy={busy === "clean"}
           onClick={() => trigger("clean")}
         >
           {props.jiraIssueCleanMd ? "다시 정리" : "읽기 쉽게 정리"}
         </Button>
-      </Space>
+      </Stack>
       )}
       <MarkdownDoc md={props.jiraIssueCleanMd ?? props.jiraIssueMd ?? ""} />
       {props.jiraIssueCleanMd && (
@@ -210,8 +217,8 @@ export default function JiraTabView(props: Props) {
     <Empty description="이슈 내용을 아직 불러오지 않았습니다 (작업 시작 전이거나 이전 오더)">
       {canAct && (
       <Button
-        type="primary"
-        loading={busy === "snapshot"}
+        variant="solid"
+        busy={busy === "snapshot"}
         onClick={() => trigger("snapshot")}
       >
         Jira에서 이슈 불러오기
@@ -224,16 +231,16 @@ export default function JiraTabView(props: Props) {
   const commentsTab = props.jiraCommentsMd ? (
     <div>
       {canAct && (
-      <Space style={{ marginBottom: 12 }}>
+      <Stack style={{ marginBottom: 12 }}>
         <Button
-          size="small"
-          icon={<ReloadOutlined />}
-          loading={busy === "comments"}
+          size="sm"
+          icon={<RotateCw size="1em" />}
+          busy={busy === "comments"}
           onClick={() => trigger("comments")}
         >
           다시 정리
         </Button>
-      </Space>
+      </Stack>
       )}
       <MarkdownDoc md={props.jiraCommentsMd} />
     </div>
@@ -241,8 +248,8 @@ export default function JiraTabView(props: Props) {
     <Empty description="코멘트 핵심 정리가 아직 없습니다">
       {canAct && (
       <Button
-        type="primary"
-        loading={busy === "comments"}
+        variant="solid"
+        busy={busy === "comments"}
         onClick={() => trigger("comments")}
       >
         코멘트 핵심 정리 생성
@@ -255,34 +262,34 @@ export default function JiraTabView(props: Props) {
   const enrichTab = props.jiraEnrichMd ? (
     <div>
       {canAct && (
-      <Space wrap style={{ marginBottom: 12 }}>
+      <Stack wrap style={{ marginBottom: 12 }}>
         <Button
-          size="small"
-          icon={<ReloadOutlined />}
-          loading={busy === "enrich"}
+          size="sm"
+          icon={<RotateCw size="1em" />}
+          busy={busy === "enrich"}
           onClick={() => trigger("enrich")}
         >
           다시 생성
         </Button>
         <Button
-          size="small"
-          icon={<SaveOutlined />}
-          loading={busy === "save"}
+          size="sm"
+          icon={<Save size="1em" />}
+          busy={busy === "save"}
           onClick={saveDraft}
         >
           편집 저장
         </Button>
         <Button
-          type="primary"
-          size="small"
-          loading={busy === "postdesc"}
+          variant="solid"
+          size="sm"
+          busy={busy === "postdesc"}
           onClick={() => trigger("post", { target: "desc" })}
         >
           설명에 보강
         </Button>
         <Button
-          size="small"
-          loading={busy === "postcomment"}
+          size="sm"
+          busy={busy === "postcomment"}
           onClick={() => trigger("post", { target: "comment" })}
         >
           코멘트로 보강
@@ -291,7 +298,7 @@ export default function JiraTabView(props: Props) {
         {props.jiraPosted.comment && (
           <Tag color="success">코멘트 추가됨 · {props.jiraPosted.comment}</Tag>
         )}
-      </Space>
+      </Stack>
       )}
       <TextArea
         readOnly={!canAct}
@@ -300,7 +307,7 @@ export default function JiraTabView(props: Props) {
         autoSize={{ minRows: 10, maxRows: 30 }}
         style={{ fontFamily: "monospace", fontSize: 13 }}
       />
-      <div style={{ marginTop: 16, borderTop: "1px solid #f0f0f0", paddingTop: 12 }}>
+      <div style={{ marginTop: 16, borderTop: "1px solid var(--line)", paddingTop: 12 }}>
         <MarkdownDoc md={draft} />
       </div>
     </div>
@@ -313,7 +320,7 @@ export default function JiraTabView(props: Props) {
       }
     >
       {canAct && props.canEnrich && (
-        <Button type="primary" loading={busy === "enrich"} onClick={() => trigger("enrich")}>
+        <Button variant="solid" busy={busy === "enrich"} onClick={() => trigger("enrich")}>
           업데이트 내용 정리 생성
         </Button>
       )}
@@ -332,14 +339,14 @@ export default function JiraTabView(props: Props) {
         hasDesign={props.hasDesign ?? false}
         hasQa={props.hasQa ?? false}
       />
-      <Alert
+      <Note
         type="info"
         showIcon
         style={{ marginTop: 12, marginBottom: 12 }}
         title="이슈 내용은 작업 시작 때 읽은 걸 재활용합니다. 정리·코멘트·업데이트·게시는 버튼으로 실행되며, 게시 후 Jira와 동기화하지는 않습니다."
       />
       {error && (
-        <Alert
+        <Note
           type="error"
           showIcon
           closable={{ onClose: () => setError(null) }}

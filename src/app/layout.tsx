@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
-import { AntdRegistry } from "@ant-design/nextjs-registry";
-import { ConfigProvider } from "antd";
-import koKR from "antd/locale/ko_KR";
 import "@/styles/tokens.css";
 import "@/styles/ui.css";
 import AppShell from "@/components/AppShell";
+import Toaster from "@/components/ui/Toaster";
 import { isDemoMode } from "@/lib/demo";
 
 export const metadata: Metadata = {
@@ -20,11 +18,8 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body style={{ margin: 0 }}>
-        <AntdRegistry>
-          <ConfigProvider locale={koKR}>
-            <AppShell demo={isDemoMode()}>{children}</AppShell>
-          </ConfigProvider>
-        </AntdRegistry>
+        <AppShell demo={isDemoMode()}>{children}</AppShell>
+        <Toaster />
       </body>
     </html>
   );

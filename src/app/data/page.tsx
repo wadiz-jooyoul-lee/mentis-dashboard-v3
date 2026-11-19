@@ -32,8 +32,8 @@ export default async function DataListPage({ searchParams }: { searchParams: Pro
             style={{
               padding: "2px 10px",
               borderRadius: 12,
-              border: `1px solid ${f.on ? "#1677ff" : "#d9d9d9"}`,
-              color: f.on ? "#1677ff" : "inherit",
+              border: `1px solid ${f.on ? "var(--accent)" : "var(--line)"}`,
+              color: f.on ? "var(--accent)" : "inherit",
               fontSize: 13,
             }}
           >

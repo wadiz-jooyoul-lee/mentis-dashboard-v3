@@ -3,8 +3,10 @@
 import { useCanAct } from "@/components/CanAct";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Popconfirm, message } from "antd";
-import { CheckCircleOutlined, UndoOutlined } from "@ant-design/icons";
+import Button from "@/components/ui/Button";
+import Confirm from "@/components/ui/Confirm";
+import { toast } from "@/components/ui/Toaster";
+import { CircleCheck, Undo2 } from "lucide-react";
 
 /**
  * 목록 행별 해결 토글 버튼 — /dobby-resolve {키} [undo]를 백그라운드로 실행.
@@ -45,7 +47,7 @@ export default function ResolveButton({
     }
     if (!res.ok || !res.key) {
       setBusy(false);
-      message.error(
+      toast.error(
         res.error === "already_running" ? "이미 처리 중입니다." : "요청에 실패했습니다."
       );
       return;
@@ -58,7 +60,7 @@ export default function ResolveButton({
       if (tries > 40) {
         stop();
         setBusy(false);
-        message.info("아직 진행 중일 수 있어요 — 완료되면 자동 반영됩니다.");
+        toast.info("아직 진행 중일 수 있어요 — 완료되면 자동 반영됩니다.");
         return;
       }
       let st: { state?: string; result?: string } = {};
@@ -74,17 +76,17 @@ export default function ResolveButton({
       setBusy(false);
       const result = st.result ?? "";
       if (/unknown command|command not found|not found/i.test(result)) {
-        message.error("dobby-resolve 스킬이 없어 실패했습니다. go-dobby 플러그인을 업데이트하세요.");
+        toast.error("dobby-resolve 스킬이 없어 실패했습니다. go-dobby 플러그인을 업데이트하세요.");
         return;
       }
       if (st.state === "failed") {
-        message.error("처리에 실패했습니다 — 콘솔을 확인하세요.");
+        toast.error("처리에 실패했습니다 — 콘솔을 확인하세요.");
         return;
       }
       // 스킬이 정상 종료(exit 0)했지만 실제로는 해결을 적용하지 못한 경우(메타/설정 못 찾음)를 잡는다.
       // 예: status.md를 못 찾아 "먼저 dobby-order로 진행하라"며 아무것도 안 하고 끝나면 성공으로 오인된다.
       if (/status\.md[\s\S]*?없|먼저\s*(\/?go-dobby:)?dobby-order|dobby-order로\s*(먼저\s*)?진행|config\.env[\s\S]*?없|dobby-init.*먼저|먼저.*dobby-init/i.test(result)) {
-        message.warning(
+        toast.warning(
           undo
             ? "해결 취소가 적용되지 않았습니다 — 오더 메타를 찾지 못했습니다. 경로/설정을 확인하세요."
             : "해결 처리가 적용되지 않았습니다 — 오더 메타(status.md)를 찾지 못했습니다. 경로/설정을 확인하세요."
@@ -92,7 +94,7 @@ export default function ResolveButton({
         router.refresh();
         return;
       }
-      message.success(undo ? "해결 표시를 취소했습니다." : "해결로 표시했습니다.");
+      toast.success(undo ? "해결 표시를 취소했습니다." : "해결로 표시했습니다.");
       router.refresh();
     }, 3000);
   };
@@ -100,21 +102,21 @@ export default function ResolveButton({
   // 다른 기기에서 열람 중이면 실행 버튼을 그리지 않는다(서버 가드는 별도).
   if (!canAct) return null;
   return (
-    <Popconfirm
+    <Confirm
       title={resolved ? "해결 표시를 취소할까요?" : "이 오더를 해결로 표시할까요?"}
       okText={resolved ? "해결 취소" : "해결 처리"}
       cancelText="취소"
       onConfirm={() => run(resolved)}
     >
       <Button
-        size="small"
-        {...(resolved ? { type: "default" as const } : { color: "geekblue" as const, variant: "outlined" as const, style: { background: "#f0f5ff", borderColor: "#597ef7", color: "#597ef7" } })}
-        icon={resolved ? <UndoOutlined /> : <CheckCircleOutlined />}
-        loading={busy}
+        size="sm"
+        variant={resolved ? "ghost" : "soft"}
+        icon={resolved ? <Undo2 size="1em" /> : <CircleCheck size="1em" />}
+        busy={busy}
         onClick={(e) => e.stopPropagation()}
       >
         {resolved ? "해결 취소" : "해결 처리"}
       </Button>
-    </Popconfirm>
+    </Confirm>
   );
 }

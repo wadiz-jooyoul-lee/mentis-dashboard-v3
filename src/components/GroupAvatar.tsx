@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Popover } from "antd";
 import BtsAvatar from "@/components/BtsAvatar";
 import Fromis9Avatar from "@/components/Fromis9Avatar";
 import IveAvatar from "@/components/IveAvatar";
@@ -11,6 +10,7 @@ import DobbyIcon, { dobbyExpression } from "@/components/DobbyIcon";
 import { dobbyColor } from "@/lib/dobby";
 import type { AssignedAvatar } from "@/lib/avatarAssign";
 import type { Quip } from "@/lib/quipTypes";
+import Pop from "@/components/ui/Pop";
 
 /** 그룹 표시 이름(에픽 대표 아바타 말풍선용). */
 const GROUP_NAME: Record<string, string> = {
@@ -249,31 +249,27 @@ export default function GroupAvatar({
 
   if (speaks) {
     return (
-      <Popover
+      <Pop
         open={!!quip && !hidden}
         placement={placement}
-        zIndex={QUIP_Z}
         // 스스로 떠 있는 말풍선이 마우스를 가로채면 그 자리의 카드를 누를 수 없다.
-        overlayStyle={{ maxWidth: 200, pointerEvents: "none" }}
-        styles={{ container: BUBBLE_PAD }}
+        style={{ ...BUBBLE_PAD, zIndex: QUIP_Z, maxWidth: 200, minWidth: 0, pointerEvents: "none" }}
         content={content}
       >
         <span style={{ display: "inline-flex" }}>{icon}</span>
-      </Popover>
+      </Pop>
     );
   }
 
   return (
-    <Popover
+    <Pop
       trigger="hover"
       onOpenChange={hover.onOpenChange}
       placement={placement}
-      zIndex={QUIP_Z}
-      overlayStyle={{ maxWidth: 240 }}
-      styles={{ container: BUBBLE_PAD }}
+      style={{ ...BUBBLE_PAD, zIndex: QUIP_Z, maxWidth: 240, minWidth: 0 }}
       content={content}
     >
       <span style={{ display: "inline-flex", cursor: "help" }}>{icon}</span>
-    </Popover>
+    </Pop>
   );
 }
