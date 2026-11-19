@@ -51,7 +51,8 @@ export default function LanToggle() {
     <Tooltip title={tip}>
       <span
         style={{
-          color: s.on ? "#ffc53d" : "rgba(255,255,255,0.85)",
+          // 밝은 머리띠 위 글자색 — 켜짐은 경고 성격이라 경고색, 꺼짐은 보조 글색(토큰).
+          color: s.on ? "var(--warn-fg)" : "var(--fg-soft)",
           fontSize: 13,
           display: "inline-flex",
           alignItems: "center",
@@ -65,12 +66,7 @@ export default function LanToggle() {
           loading={busy}
           disabled={!s.canToggle}
           onChange={toggle}
-          // antd 기본 꺼짐 색(rgba(0,0,0,0.25))은 검은 헤더 위에서 묻혀 버튼이 안 보인다.
-          // 헤더 배경(#001529)과 대비되는 밝은 회색으로 직접 지정하고, 켜짐은 경고 성격이라 주황으로.
-          style={{
-            background: s.on ? "#fa8c16" : "rgba(255,255,255,0.45)",
-            boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.5)",
-          }}
+          // 머리띠가 밝아졌으므로 antd Switch 기본 색을 그대로 쓴다(어두운 머리띠 전제의 보정 제거).
         />
       </span>
     </Tooltip>

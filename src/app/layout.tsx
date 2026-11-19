@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
 import { ConfigProvider } from "antd";
 import koKR from "antd/locale/ko_KR";
+import "@/styles/tokens.css";
+import "@/styles/ui.css";
 import AppShell from "@/components/AppShell";
 import { isDemoMode } from "@/lib/demo";
 

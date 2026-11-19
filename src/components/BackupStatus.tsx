@@ -3,10 +3,10 @@
 import { useCanAct } from "@/components/CanAct";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Card, Space, Tag, Button, Typography, message } from "antd";
-import { CloudUploadOutlined, SaveOutlined, CheckCircleOutlined, RightOutlined } from "@ant-design/icons";
-
-const { Text } = Typography;
+import Card from "@/components/ui/Card";
+import Chip from "@/components/ui/Chip";
+import Button from "@/components/ui/Button";
+import { IconSave, IconCloudUpload, IconCheckCircle, IconChevronRight } from "@/components/ui/icons";
 
 type Status = {
   lastBackupAt: string | null;
@@ -35,6 +35,14 @@ export default function BackupStatus({ initial = null }: { initial?: Status | nu
   const [busy, setBusy] = useState(false);
   const autoFired = useRef(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  // 전역 토스트(antd message) 대신 카드 안 인라인 문구. 4초 뒤 사라진다.
+  const [note, setNote] = useState<{ text: string; tone: "ok" | "danger" } | null>(null);
+  const noteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flash = useCallback((text: string, tone: "ok" | "danger") => {
+    if (noteTimer.current) clearTimeout(noteTimer.current);
+    setNote({ text, tone });
+    noteTimer.current = setTimeout(() => setNote(null), 4000);
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -51,16 +59,16 @@ export default function BackupStatus({ initial = null }: { initial?: Status | nu
       try {
         const r = await fetch("/api/backup", { method: "POST" });
         if (r.ok) {
-          if (!auto) message.success("백업을 시작했습니다");
+          if (!auto) flash("백업을 시작했습니다", "ok");
           await load();
         } else if (!auto) {
-          message.error("백업 시작 실패");
+          flash("백업 시작 실패", "danger");
         }
       } finally {
         setBusy(false);
       }
     },
-    [load]
+    [load, flash]
   );
 
   // 최초 로드
@@ -93,37 +101,48 @@ export default function BackupStatus({ initial = null }: { initial?: Status | nu
   const upToDate = st.pending === 0;
 
   return (
-    <Card size="small" style={{ marginBottom: 16 }} styles={{ body: { padding: "10px 16px" } }}>
+    <Card style={{ marginBottom: 16, padding: "10px 16px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <Space size={12} wrap>
-          <Space size={6}>
-            <CloudUploadOutlined style={{ color: "#8c8c8c" }} />
-            <Text strong>세션 백업</Text>
-          </Space>
-          <Text type="secondary">마지막 백업: {fmt(st.lastBackupAt)}</Text>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
+            <span style={{ color: "var(--fg-soft)", display: "inline-flex" }}>
+              <IconCloudUpload size={16} />
+            </span>
+            세션 백업
+          </span>
+          <span className="ui-sub">마지막 백업: {fmt(st.lastBackupAt)}</span>
           {st.running ? (
-            <Tag color="processing">백업 중…</Tag>
+            <Chip tone="info">백업 중…</Chip>
           ) : upToDate ? (
-            <Tag color="success" icon={<CheckCircleOutlined />}>최신</Tag>
+            <Chip tone="ok">
+              <IconCheckCircle size={12} />
+              최신
+            </Chip>
           ) : (
-            <Tag color={showButton ? "warning" : "default"}>미백업 {st.pending}개</Tag>
+            <Chip tone={showButton ? "warn" : "neutral"}>미백업 {st.pending}개</Chip>
           )}
-        </Space>
-        <Space size={8}>
+          {note && <span className={`ui-note tone-${note.tone}`} role="status">{note.text}</span>}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {canAct && showButton && !st.running && (
-            <Button type="primary" size="small" icon={<SaveOutlined />} loading={busy} onClick={() => run(false)}>
+            <Button variant="solid" size="sm" busy={busy} onClick={() => run(false)}>
+              {!busy && <IconSave size={14} />}
               백업하기
             </Button>
           )}
-          <Link href="/backup" style={{ fontSize: 12, whiteSpace: "nowrap" }}>
-            목록·히스토리 <RightOutlined style={{ fontSize: 10 }} />
+          <Link
+            href="/backup"
+            className="ui-link"
+            style={{ fontSize: 12, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 2 }}
+          >
+            목록·히스토리 <IconChevronRight size={12} />
           </Link>
-        </Space>
+        </div>
       </div>
       {st.pending >= st.autoThreshold && st.running && (
-        <Text type="secondary" style={{ fontSize: 12, display: "block", marginTop: 6 }}>
+        <span className="ui-sm" style={{ fontSize: 12, display: "block", marginTop: 6 }}>
           미백업이 {st.autoThreshold}개를 넘어 자동으로 백업하고 있습니다.
-        </Text>
+        </span>
       )}
     </Card>
   );
