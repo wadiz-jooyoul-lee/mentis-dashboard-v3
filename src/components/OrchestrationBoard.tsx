@@ -545,7 +545,7 @@ export default function OrchestrationBoard({
       extra={
         <>
           {epic?.runMode?.startsWith("light") && (
-            <Tip title={epic.runMode.includes("중단") ? `light 로 시작했다가 일반 실행으로 넘김 — ${epic.runMode}` : epic.runMode === "light auto" ? "한 세션 실행 · 리뷰 없음 · 사람 확인 없이 스스로 판단" : "한 세션 실행 · 리뷰 없음 · 사람 확인 한 번"}>
+            <Tip title={epic.runMode.includes("중단") ? `light 로 시작했다가 일반 실행으로 넘김 — ${epic.runMode}` : epic.runMode === "light auto" ? "한 세션 실행 · 리뷰는 별도 세션 · 사람 확인 없이 스스로 판단" : "한 세션 실행 · 리뷰는 별도 세션 · 사람 확인 한 번"}>
               <Tag color="gold">{epic.runMode.includes("중단") ? "light 중단" : epic.runMode === "light auto" ? "light auto" : "light"}</Tag>
             </Tip>
           )}
