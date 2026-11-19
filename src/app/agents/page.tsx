@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Breadcrumb, Card, Col, Row, Typography, Tag, Space } from "antd";
+import Card from "@/components/ui/Card";
+import Chip from "@/components/ui/Chip";
+import Crumbs from "@/components/ui/Crumbs";
 import DobbyIcon, { type DobbyExpression } from "@/components/DobbyIcon";
 import BtsAvatar, { btsColor } from "@/components/BtsAvatar";
 import Fromis9Avatar, { fromisColor } from "@/components/Fromis9Avatar";
@@ -12,8 +14,6 @@ import { resceneColor } from "@/lib/rescene";
 import AespaAvatar from "@/components/AespaAvatar";
 import { aespaColor } from "@/lib/aespa";
 import { dobbyColor } from "@/lib/dobby";
-
-const { Title, Paragraph, Text } = Typography;
 
 type Agent = {
   name: string;
@@ -111,7 +111,7 @@ function AgentCard({ a }: { a: Agent }) {
       : null;
   const color = sig || dobbyColor(a.name);
   return (
-    <Card style={{ height: "100%" }}>
+    <Card style={{ height: "100%", boxSizing: "border-box" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         {a.avatar === "bts" ? (
           <BtsAvatar member={a.name} size={56} />
@@ -127,33 +127,25 @@ function AgentCard({ a }: { a: Agent }) {
           <DobbyIcon size={56} expression={a.expression} color={color} />
         )}
         <div>
-          <Title level={4} style={{ margin: 0 }}>
-            {a.name}
-          </Title>
-          <Space size={4} wrap style={{ marginTop: 4 }}>
-            <Tag
-              style={{
-                color,
-                borderColor: color,
-                background: "transparent",
-                fontWeight: 600,
-              }}
-            >
+          <h3 className="ui-h3">{a.name}</h3>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
+            {/* 에이전트 고유색은 정보 자체라 tone 으로 바꾸지 않고 그대로 넘긴다. */}
+            <Chip outline color={color}>
               {color}
-            </Tag>
-            {a.position && <Tag color="geekblue">{a.position}</Tag>}
-          </Space>
+            </Chip>
+            {a.position && <Chip tone="info">{a.position}</Chip>}
+          </div>
         </div>
       </div>
       {(a.realName || a.birth) && (
-        <Text type="secondary" style={{ display: "block", marginTop: 10, fontSize: 13 }}>
+        <span className="ui-sub" style={{ display: "block", marginTop: 10, fontSize: 13 }}>
           {[a.realName, a.birth].filter(Boolean).join(" · ")}
-        </Text>
+        </span>
       )}
-      <Paragraph style={{ marginTop: 12, marginBottom: 8 }}>{a.personality}</Paragraph>
-      <Text type="secondary" style={{ fontSize: 13 }}>
+      <p style={{ marginTop: 12, marginBottom: 8 }}>{a.personality}</p>
+      <span className="ui-sub" style={{ fontSize: 13 }}>
         💜 좋아하는 것: {a.likes}
-      </Text>
+      </span>
     </Card>
   );
 }
@@ -161,100 +153,75 @@ function AgentCard({ a }: { a: Agent }) {
 export default function AgentsPage() {
   return (
     <div>
-      <Breadcrumb
-        items={[{ title: <Link href="/">홈</Link> }, { title: "에이전트 소개" }]}
-        style={{ marginBottom: 12 }}
-      />
-      <Title level={2} style={{ marginTop: 0 }}>
-        에이전트 소개
-      </Title>
-      <Paragraph type="secondary">
+      <Crumbs items={[{ href: "/", label: "홈" }, { label: "에이전트 소개" }]} />
+      <h1 className="ui-h1">에이전트 소개</h1>
+      <p className="ui-sub" style={{ margin: "0 0 20px" }}>
         work-dobby가 부리는 도비 에이전트들. 이름마다 고유한 색과 표정을 가집니다.{" "}
-        <Link href="/avatars">그룹 아바타 상태별 표정 보기 →</Link>
-      </Paragraph>
+        <Link href="/avatars" className="ui-link">
+          그룹 아바타 상태별 표정 보기 →
+        </Link>
+      </p>
 
-      <Row gutter={[16, 16]}>
+      <div className="ui-grid">
         {AGENTS.map((a) => (
-          <Col key={a.name} xs={24} sm={12} md={8} lg={6}>
-            <AgentCard a={a} />
-          </Col>
+          <AgentCard key={a.name} a={a} />
         ))}
-      </Row>
+      </div>
 
-      <Title level={3} style={{ marginTop: 40 }}>
-        방탄소년단 (BTS)
-      </Title>
-      <Paragraph type="secondary">
+      <h2 className="ui-h2" style={{ marginTop: 40 }}>방탄소년단 (BTS)</h2>
+      <p className="ui-sub" style={{ margin: "0 0 16px" }}>
         재미로 추가한 BTS 멤버 에이전트. 본명·생년월일·포지션은 실제 프로필을, 성격 한 줄은 대표 특징을 담았습니다.
-      </Paragraph>
+      </p>
 
-      <Row gutter={[16, 16]}>
+      <div className="ui-grid">
         {BTS.map((a) => (
-          <Col key={a.name} xs={24} sm={12} md={8} lg={6}>
-            <AgentCard a={a} />
-          </Col>
+          <AgentCard key={a.name} a={a} />
         ))}
-      </Row>
+      </div>
 
-      <Title level={3} style={{ marginTop: 40 }}>
-        프로미스나인 (fromis_9)
-      </Title>
-      <Paragraph type="secondary">
+      <h2 className="ui-h2" style={{ marginTop: 40 }}>프로미스나인 (fromis_9)</h2>
+      <p className="ui-sub" style={{ margin: "0 0 16px" }}>
         재미로 추가한 프로미스나인 현재 멤버 에이전트. 본명·생년월일·포지션은 실제 프로필을, 성격 한 줄은 대표 특징을 담았습니다.
-      </Paragraph>
+      </p>
 
-      <Row gutter={[16, 16]}>
+      <div className="ui-grid">
         {FROMIS.map((a) => (
-          <Col key={a.name} xs={24} sm={12} md={8} lg={6}>
-            <AgentCard a={a} />
-          </Col>
+          <AgentCard key={a.name} a={a} />
         ))}
-      </Row>
+      </div>
 
-      <Title level={3} style={{ marginTop: 40 }}>
-        아이브 (IVE)
-      </Title>
-      <Paragraph type="secondary">
+      <h2 className="ui-h2" style={{ marginTop: 40 }}>아이브 (IVE)</h2>
+      <p className="ui-sub" style={{ margin: "0 0 16px" }}>
         재미로 추가한 IVE 멤버 에이전트. 본명·생년월일·포지션은 실제 프로필을 담았고, 아바타는 웹에서 수집해 본인·표정을 확인한 실사진(로컬 전용)입니다.
-      </Paragraph>
+      </p>
 
-      <Row gutter={[16, 16]}>
+      <div className="ui-grid">
         {IVE.map((a) => (
-          <Col key={a.name} xs={24} sm={12} md={8} lg={6}>
-            <AgentCard a={a} />
-          </Col>
+          <AgentCard key={a.name} a={a} />
         ))}
-      </Row>
+      </div>
 
-      <Title level={3} style={{ marginTop: 40 }}>
-        리센느 (RESCENE)
-      </Title>
-      <Paragraph type="secondary">
+      <h2 className="ui-h2" style={{ marginTop: 40 }}>리센느 (RESCENE)</h2>
+      <p className="ui-sub" style={{ margin: "0 0 16px" }}>
         재미로 추가한 RESCENE 멤버 에이전트. 본명·생년월일·포지션은 실제 프로필을 담았고, 아바타는 웹에서 수집해 본인·표정을 확인한 실사진(로컬 전용)입니다.
-      </Paragraph>
+      </p>
 
-      <Row gutter={[16, 16]}>
+      <div className="ui-grid">
         {RESCENE.map((a) => (
-          <Col key={a.name} xs={24} sm={12} md={8} lg={6}>
-            <AgentCard a={a} />
-          </Col>
+          <AgentCard key={a.name} a={a} />
         ))}
-      </Row>
+      </div>
 
-      <Title level={3} style={{ marginTop: 40 }}>
-        에스파 (aespa)
-      </Title>
-      <Paragraph type="secondary">
+      <h2 className="ui-h2" style={{ marginTop: 40 }}>에스파 (aespa)</h2>
+      <p className="ui-sub" style={{ margin: "0 0 16px" }}>
         재미로 추가한 aespa 멤버 에이전트. 본명·생년월일·포지션은 실제 프로필을 담았고, 아바타는 멤버마다 사진 한 장(로컬 전용)을 모든 상태에 씁니다.
-      </Paragraph>
+      </p>
 
-      <Row gutter={[16, 16]}>
+      <div className="ui-grid">
         {AESPA.map((a) => (
-          <Col key={a.name} xs={24} sm={12} md={8} lg={6}>
-            <AgentCard a={a} />
-          </Col>
+          <AgentCard key={a.name} a={a} />
         ))}
-      </Row>
+      </div>
     </div>
   );
 }

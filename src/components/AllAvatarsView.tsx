@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { Breadcrumb, Typography, Card, Tag } from "antd";
 import BtsAvatar, { BTS_AVATARS, btsColor } from "@/components/BtsAvatar";
 import Fromis9Avatar, { FROMIS_AVATARS, fromisColor } from "@/components/Fromis9Avatar";
 import IveAvatar, { IVE_AVATARS } from "@/components/IveAvatar";
@@ -12,8 +10,11 @@ import AespaAvatar, { AESPA_AVATARS } from "@/components/AespaAvatar";
 import { aespaColor } from "@/lib/aespa";
 import DobbyIcon, { dobbyExpression } from "@/components/DobbyIcon";
 import { dobbyColor } from "@/lib/dobby";
+import Card from "@/components/ui/Card";
+import Crumbs from "@/components/ui/Crumbs";
+import Tag from "@/components/ui/Tag";
+import { Paragraph, Text, Title } from "@/components/ui/Typo";
 
-const { Title, Paragraph, Text } = Typography;
 
 // 에이전트 상태 어휘(순서). 표정이 바뀌는 상태만 캡션을 붙인다.
 const STATES = ["대기", "분석", "구현", "리뷰", "완료"];
@@ -91,12 +92,11 @@ export default function AllAvatarsView() {
   const aespa = Object.keys(AESPA_AVATARS);
   return (
     <div>
-      <Breadcrumb
-        style={{ marginBottom: 12 }}
+      <Crumbs
         items={[
-          { title: <Link href="/">홈</Link> },
-          { title: <Link href="/agents">에이전트 소개</Link> },
-          { title: "상태별 표정" },
+          { href: "/", label: "홈" },
+          { href: "/agents", label: "에이전트 소개" },
+          { label: "상태별 표정" },
         ]}
       />
       <Title level={2} style={{ marginTop: 0 }}>
@@ -159,7 +159,7 @@ export default function AllAvatarsView() {
               <div key={s} style={{ textAlign: "center", flexShrink: 0, width: 60 }}>
                 <DobbyIcon size={52} expression={dobbyExpression(s)} color={dobbyColor("도비")} />
                 <div style={{ fontSize: 12, marginTop: 2 }}>{s}</div>
-                <div style={{ fontSize: 11, color: "#8c8c8c" }}>{dobbyExpression(s)}</div>
+                <div style={{ fontSize: 11, color: "var(--fg-soft)" }}>{dobbyExpression(s)}</div>
               </div>
             ))}
           </div>

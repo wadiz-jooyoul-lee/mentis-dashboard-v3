@@ -1,15 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, Card, Input, Popconfirm, Space, Tag, Tooltip, Typography, message } from "antd";
-import { CopyOutlined, QuestionCircleFilled } from "@ant-design/icons";
 import { useCanAct } from "@/components/CanAct";
 import MarkdownDoc from "@/components/MarkdownDoc";
 import { formatSince, useNextActions, useNextPost, type NextItem } from "@/components/NextAction";
 import { copyText } from "@/lib/clipboard";
 import type { AskInfo, AskKind } from "@/lib/nextAction";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import Confirm from "@/components/ui/Confirm";
+import Stack from "@/components/ui/Stack";
+import Tag from "@/components/ui/Tag";
+import Tip from "@/components/ui/Tip";
+import { Field as Input, SearchField, TextArea } from "@/components/ui/Form";
+import { toast } from "@/components/ui/Toaster";
+import { Text } from "@/components/ui/Typo";
+import { CircleHelp, Copy } from "lucide-react";
 
-const { Text } = Typography;
 
 /** 머리의 "답을 기다리는 중" 버튼과 알림 카드가 이 카드로 내려올 때 쓰는 자리 이름 */
 export const ORDER_QUESTION_ID = "order-question";
@@ -59,24 +66,24 @@ function AskAnswer({ ask, busy, send }: { ask: AskInfo; busy: boolean; send: (va
 
   if (ask.kind === "yesno") {
     return (
-      <Space wrap size={6}>
+      <Stack wrap size={6}>
         {["예", "아니오"].map((c, i) => (
-          <Popconfirm key={c} title={`"${c}"로 답할까요?`} okText={c} cancelText="취소" onConfirm={() => send(c)}>
-            <Button size="small" type={i === 0 ? "primary" : "default"} loading={busy}>
+          <Confirm key={c} title={`"${c}"로 답할까요?`} okText={c} cancelText="취소" onConfirm={() => send(c)}>
+            <Button size="sm" variant={i === 0 ? "solid" : "ghost"} busy={busy}>
               {c}
             </Button>
-          </Popconfirm>
+          </Confirm>
         ))}
-      </Space>
+      </Stack>
     );
   }
 
   if (ask.kind === "choice" && isNew && ask.options.length > 0) {
     return (
-      <Space orientation="vertical" size={6} style={{ width: "100%" }}>
-        <Space wrap size={6}>
+      <Stack orientation="vertical" size={6} style={{ width: "100%" }}>
+        <Stack wrap size={6}>
           {ask.options.map((o) => (
-            <Popconfirm
+            <Confirm
               key={o.label}
               title={`"${o.label}"(으)로 답할까요?`}
               description={<div style={{ maxWidth: 360 }}>{o.effect || o.does}</div>}
@@ -84,48 +91,48 @@ function AskAnswer({ ask, busy, send }: { ask: AskInfo; busy: boolean; send: (va
               cancelText="취소"
               onConfirm={() => send(o.label)}
             >
-              <Button size="small" type={o.recommended ? "primary" : "default"} loading={busy}>
+              <Button size="sm" variant={o.recommended ? "solid" : "ghost"} busy={busy}>
                 {o.label}
                 {o.recommended ? " (권장)" : ""}
               </Button>
-            </Popconfirm>
+            </Confirm>
           ))}
-        </Space>
-        <Space.Compact style={{ width: "100%", maxWidth: 560 }}>
+        </Stack>
+        <span className="ui-compact">
           <Input
-            size="small"
+            size="sm"
             placeholder="다른 의견 — 다른 방법을 원하시면 여기에 적어 주세요"
             value={text}
             onChange={(e) => setText(e.target.value)}
             onPressEnter={sendText}
             disabled={busy}
           />
-          <Button size="small" loading={busy} disabled={!text.trim()} onClick={sendText}>
+          <Button size="sm" busy={busy} disabled={!text.trim()} onClick={sendText}>
             다른 의견 보내기
           </Button>
-        </Space.Compact>
-      </Space>
+        </span>
+      </Stack>
     );
   }
 
   if (ask.kind === "choice") {
     // 옛 형식의 하나 고르기는 선택지 안의 값만 받는다.
     return (
-      <Space wrap size={6}>
+      <Stack wrap size={6}>
         {ask.choices
           .filter((c) => c !== "멈추기")
           .map((c, i) => (
-            <Button key={c} size="small" type={i === 0 ? "primary" : "default"} loading={busy} onClick={() => send(c)}>
+            <Button key={c} size="sm" variant={i === 0 ? "solid" : "ghost"} busy={busy} onClick={() => send(c)}>
               {c}
             </Button>
           ))}
-      </Space>
+      </Stack>
     );
   }
 
   if (ask.kind === "action") {
     return (
-      <Tooltip
+      <Tip
         title={
           ask.hasCheck
             ? ask.waiting
@@ -134,39 +141,39 @@ function AskAnswer({ ask, busy, send }: { ask: AskInfo; busy: boolean; send: (va
             : undefined
         }
       >
-        <Button size="small" type="primary" loading={busy} onClick={() => send("했어요")}>
+        <Button size="sm" variant="solid" busy={busy} onClick={() => send("했어요")}>
           {isNew ? "했습니다" : "했어요"}
         </Button>
-      </Tooltip>
+      </Tip>
     );
   }
 
   // 글로 적기
   if (!isNew) {
     return (
-      <Input.Search
-        size="small"
+      <SearchField
+        size="sm"
         placeholder="값을 적어 주세요"
         enterButton="보내기"
-        loading={busy}
+        busy={busy}
         style={{ width: 260 }}
         onSearch={(v) => v.trim() && send(v.trim())}
       />
     );
   }
   return (
-    <Space orientation="vertical" size={6} style={{ width: "100%", maxWidth: 560 }}>
-      <Input.TextArea
+    <Stack orientation="vertical" size={6} style={{ width: "100%", maxWidth: 560 }}>
+      <TextArea
         placeholder="여기에 적어 주세요"
         autoSize={{ minRows: 2, maxRows: 8 }}
         value={text}
         onChange={(e) => setText(e.target.value)}
         disabled={busy}
       />
-      <Button size="small" type="primary" loading={busy} disabled={!text.trim()} onClick={sendText}>
+      <Button size="sm" variant="solid" busy={busy} disabled={!text.trim()} onClick={sendText}>
         보내기
       </Button>
-    </Space>
+    </Stack>
   );
 }
 
@@ -197,12 +204,12 @@ function AskCard({ item, ask }: { item: NextItem; ask: AskInfo }) {
       size="small"
       style={CARD_STYLE}
       title={
-        <Space size={8}>
-          <QuestionCircleFilled style={{ color: "#fa541c" }} />
+        <Stack size={8}>
+          <CircleHelp size="1em" style={{ color: "#fa541c" }} />
           <span>
             {item.key} · {KIND_HEAD[ask.kind]}
           </span>
-        </Space>
+        </Stack>
       }
       extra={
         <Text type="secondary" style={{ fontSize: 12 }}>
@@ -210,7 +217,7 @@ function AskCard({ item, ask }: { item: NextItem; ask: AskInfo }) {
         </Text>
       }
     >
-      <Space orientation="vertical" size={12} style={{ width: "100%" }}>
+      <Stack orientation="vertical" size={12} style={{ width: "100%" }}>
         <Field label="질문">
           <Text strong style={{ fontSize: 16, ...PRE }}>
             {ask.title}
@@ -248,14 +255,14 @@ function AskCard({ item, ask }: { item: NextItem; ask: AskInfo }) {
         {isNew && (
           <Field label="방법">
             {ask.options.length ? (
-              <Space orientation="vertical" size={8} style={{ width: "100%" }}>
+              <Stack orientation="vertical" size={8} style={{ width: "100%" }}>
                 {ask.options.map((o) => (
                   <div key={o.label}>
-                    <Space size={6} align="start" wrap>
+                    <Stack size={6} align="start" wrap>
                       <Text strong>{o.label}.</Text>
                       <Text style={PRE}>{o.does}</Text>
                       {o.recommended && <Tag color="volcano">권장</Tag>}
-                    </Space>
+                    </Stack>
                     {o.effect && (
                       <div style={{ paddingInlineStart: 20 }}>
                         <Text type="secondary" style={PRE}>
@@ -272,7 +279,7 @@ function AskCard({ item, ask }: { item: NextItem; ask: AskInfo }) {
                     )}
                   </div>
                 ))}
-              </Space>
+              </Stack>
             ) : (
               <Text>
                 {ask.kind === "yesno"
@@ -286,7 +293,7 @@ function AskCard({ item, ask }: { item: NextItem; ask: AskInfo }) {
         )}
 
         <Field label={isNew ? `답하는 방식: ${how}` : "답하기"}>
-          <Space orientation="vertical" size={8} style={{ width: "100%" }}>
+          <Stack orientation="vertical" size={8} style={{ width: "100%" }}>
             <Todo ask={ask} />
             {ask.note && (
               <Text type="warning" style={{ fontSize: 12 }}>
@@ -300,38 +307,38 @@ function AskCard({ item, ask }: { item: NextItem; ask: AskInfo }) {
                 읽기 전용 화면입니다. 답은 대시보드가 실행 중인 맥에서 할 수 있습니다.
               </Text>
             )}
-          </Space>
+          </Stack>
         </Field>
 
         {(isNew || !ask.waiting) && (
           <Field label="답한 뒤">
-            <Space orientation="vertical" size={2}>
+            <Stack orientation="vertical" size={2}>
               {ask.after && <Text style={PRE}>{ask.after}</Text>}
               <Text type="secondary" style={{ fontSize: 12 }}>
                 {ask.waiting
                   ? "자동 실행이 답을 기다리고 있습니다. 답하면 1분 안에 읽고 이어 갑니다."
                   : "자동 실행이 멈춰 있습니다. 답하면 자동 실행을 다시 시작해 이어 갑니다."}
               </Text>
-            </Space>
+            </Stack>
           </Field>
         )}
 
         {canAct && ask.waiting && (
           <div>
-            <Popconfirm
+            <Confirm
               title="자동 실행을 멈출까요?"
               description="질문에 답하지 않고 자동 실행을 끝냅니다."
               okText="멈추기"
               cancelText="취소"
               onConfirm={() => send("멈추기")}
             >
-              <Button size="small" danger loading={busy}>
+              <Button size="sm" danger busy={busy}>
                 답하지 않고 멈추기
               </Button>
-            </Popconfirm>
+            </Confirm>
           </div>
         )}
-      </Space>
+      </Stack>
     </Card>
   );
 }
@@ -339,8 +346,8 @@ function AskCard({ item, ask }: { item: NextItem; ask: AskInfo }) {
 /** 옛 오더의 판단 요청(단계가 보류) — 설계 문서에 적힌 "확인이 필요했던 것"을 보여 주고 터미널 명령을 건넨다. */
 function DecisionCard({ item }: { item: NextItem }) {
   const copy = async () => {
-    if (await copyText(item.command || item.cmd)) message.success("명령을 복사했습니다. 터미널에 붙여넣으세요.");
-    else message.error("복사하지 못했습니다");
+    if (await copyText(item.command || item.cmd)) toast.success("명령을 복사했습니다. 터미널에 붙여넣으세요.");
+    else toast.error("복사하지 못했습니다");
   };
   return (
     <Card
@@ -348,10 +355,10 @@ function DecisionCard({ item }: { item: NextItem }) {
       size="small"
       style={CARD_STYLE}
       title={
-        <Space size={8}>
-          <QuestionCircleFilled style={{ color: "#fa541c" }} />
+        <Stack size={8}>
+          <CircleHelp size="1em" style={{ color: "#fa541c" }} />
           <span>{item.key} · 판단이 필요합니다</span>
-        </Space>
+        </Stack>
       }
       extra={
         item.since ? (
@@ -361,24 +368,24 @@ function DecisionCard({ item }: { item: NextItem }) {
         ) : null
       }
     >
-      <Space orientation="vertical" size={12} style={{ width: "100%" }}>
+      <Stack orientation="vertical" size={12} style={{ width: "100%" }}>
         <Text>스스로 정할 수 없는 일이 있어 멈춰 있습니다. 아래 내용을 보고 터미널에서 답해 주세요.</Text>
         <Field label="확인이 필요했던 것">
           <MarkdownDoc md={item.detail} bare />
         </Field>
         {item.cmd && (
           <Field label="답하는 방식: 터미널에서 답하기">
-            <Space size={8} wrap>
+            <Stack size={8} wrap>
               <Text code>{item.cmd}</Text>
-              <Tooltip title={item.command || item.cmd}>
-                <Button size="small" type="primary" icon={<CopyOutlined />} onClick={copy}>
+              <Tip title={item.command || item.cmd}>
+                <Button size="sm" variant="solid" icon={<Copy size="1em" />} onClick={copy}>
                   명령 복사
                 </Button>
-              </Tooltip>
-            </Space>
+              </Tip>
+            </Stack>
           </Field>
         )}
-      </Space>
+      </Stack>
     </Card>
   );
 }

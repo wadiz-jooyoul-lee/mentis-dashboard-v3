@@ -2,12 +2,15 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Button, ConfigProvider, Space, Tag, Typography, notification } from "antd";
-import { BellTwoTone, BulbTwoTone } from "@ant-design/icons";
 import { useCanAct } from "@/components/CanAct";
 import { NextActionControls, formatSince, useNextActions, type AutoDecisionNote, type NextItem } from "@/components/NextAction";
+import Button from "@/components/ui/Button";
+import Stack from "@/components/ui/Stack";
+import Tag from "@/components/ui/Tag";
+import { Text } from "@/components/ui/Typo";
+import { toast } from "@/components/ui/Toaster";
+import { BellRing, Lightbulb } from "lucide-react";
 
-const { Text } = Typography;
 
 /** 닫은 카드 기록(브라우저 저장소). 상태가 바뀌면 카드 아이디가 달라져 다시 뜬다. */
 const ACK_STORE = "mentis.next.ack";
@@ -43,7 +46,8 @@ export default function NextActionNotifier() {
   const { items, notes, loaded } = useNextActions();
   const router = useRouter();
   const openNotes = useRef(new Set<string>());
-  const [api, holder] = notification.useNotification({ top: 72, stack: { threshold: 4 } });
+  // 사람이 닫을 때까지 남는 카드는 전역 알림(toast.sticky)으로 띄운다(antd notification 의 duration 0 자리).
+  const api = { destroy: (id: string) => toast.close(id) };
   const open = useRef(new Map<string, NextItem>());
   const first = useRef(true);
   const mine = items.filter((i) => i.group === "mine");
@@ -62,15 +66,18 @@ export default function NextActionNotifier() {
     for (const [id, i] of now) {
       if (open.current.has(id) || acks.has(id)) continue;
       open.current.set(id, i);
-      api.open({
+      toast.sticky({
         key: id,
-        duration: 0,
-        icon: <BellTwoTone twoToneColor={i.group === "mine" ? "#fa541c" : "#13c2c2"} />,
-        title: `${i.key} · ${i.text}`,
+        kind: i.group === "mine" ? "warning" : "info",
+        title: (
+          <Stack size={6}>
+            <BellRing size={15} style={{ color: i.group === "mine" ? "var(--warn-fg)" : "var(--info-fg)" }} />
+            {`${i.key} · ${i.text}`}
+          </Stack>
+        ),
+        // 카드 안의 확인창·목록(떠 있는 요소)은 ui.css 에서 알림 카드보다 위 층에 뜬다.
         description: (
-          // 카드(2050)보다 안쪽 확인창·목록이 위에 뜨도록 팝업 기본값을 올린다(기본 1000).
-          <ConfigProvider theme={{ token: { zIndexPopupBase: 2100 } }}>
-            <Space orientation="vertical" size={6} style={{ width: "100%" }}>
+            <Stack orientation="vertical" size={6} style={{ width: "100%" }}>
               {i.title && <Text strong>{i.title}</Text>}
               {i.since && <Text type="secondary" style={{ fontSize: 12 }}>{formatSince(i.since)}</Text>}
               {i.note && <Text type="secondary" style={{ fontSize: 12 }}>멈춘 이유: {i.note}</Text>}
@@ -84,8 +91,7 @@ export default function NextActionNotifier() {
                   api.destroy(id);
                 }}
               />
-            </Space>
-          </ConfigProvider>
+            </Stack>
         ),
         onClose: () => {
           addAck(id);
@@ -97,7 +103,7 @@ export default function NextActionNotifier() {
     first.current = false;
     // cards 는 items 에서 매번 새로 만든다. items 가 바뀔 때만 돈다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, loaded, canAct, api]);
+  }, [items, loaded, canAct]);
 
   // 스스로 정한 결정 — 새로 생기면 한 번 알린다. 닫거나 열어 보면 다시 뜨지 않고, 오더가 끝나 목록에서 빠지면 저절로 닫힌다.
   useEffect(() => {
@@ -117,26 +123,30 @@ export default function NextActionNotifier() {
         addAck(id);
         openNotes.current.delete(id);
       };
-      api.open({
+      toast.sticky({
         key: id,
-        duration: 0,
-        icon: <BulbTwoTone twoToneColor="#722ed1" />,
-        title: `${n.key} · 스스로 정한 결정 ${n.count}건`,
+        kind: "info",
+        title: (
+          <Stack size={6}>
+            <Lightbulb size={15} style={{ color: "var(--accent)" }} />
+            {`${n.key} · 스스로 정한 결정 ${n.count}건`}
+          </Stack>
+        ),
         description: (
-          <Space orientation="vertical" size={6} style={{ width: "100%" }}>
+          <Stack orientation="vertical" size={6} style={{ width: "100%" }}>
             {n.title && <Text strong>{n.title}</Text>}
             <Text style={{ fontSize: 12 }}>
               사람에게 묻지 않고 진행하면서 정했습니다. 최근 결정: {n.what}
               {n.pick && ` → ${n.pick}`}
             </Text>
-            <Space size={6} wrap>
+            <Stack size={6} wrap>
               {n.check > 0 && (
                 <Tag color="orange" style={{ margin: 0 }}>
                   확인해 보세요 {n.check}건
                 </Tag>
               )}
               <Button
-                size="small"
+                size="sm"
                 onClick={() => {
                   done();
                   api.destroy(id);
@@ -145,13 +155,15 @@ export default function NextActionNotifier() {
               >
                 결정 보기
               </Button>
-            </Space>
-          </Space>
+            </Stack>
+          </Stack>
         ),
         onClose: done,
       });
     }
-  }, [notes, loaded, canAct, api, router]);
+    // api 는 toast.close 를 감싼 고정 동작이라 의존에 넣지 않는다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notes, loaded, canAct, router]);
 
   // 탭 제목 앞에 TODO 수(알림은 세지 않는다). 화면 이동 때 제목이 바뀔 수 있어 주기마다 다시 붙인다.
   const count = canAct ? mine.length : 0;
@@ -166,7 +178,7 @@ export default function NextActionNotifier() {
     return () => clearInterval(id);
   }, [count]);
 
-  return holder;
+  return null;
 }
 
 function notifyOs(i: NextItem) {

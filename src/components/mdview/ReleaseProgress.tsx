@@ -1,15 +1,14 @@
 "use client";
 
-import { Typography } from "antd";
 import type { ReleaseCounts } from "@/lib/releases";
+import { Text } from "@/components/ui/Typo";
 
-const { Text } = Typography;
 
 export const RELEASE_TONE = {
-  pass: "#52c41a",
-  fail: "#ff4d4f",
-  hold: "#faad14",
-  skip: "#bfbfbf",
+  pass: "var(--ok-fg)",
+  fail: "var(--danger-fg)",
+  hold: "var(--warn-fg)",
+  skip: "var(--line)",
 } as const;
 
 /** 핵심 TC 진행 막대. 칸 비율은 전체 대비, 판정 칸이 빈 TC 몫은 비워 둔다. */
@@ -23,7 +22,7 @@ export default function ReleaseProgress({ counts, height = 6 }: { counts: Releas
   ];
   return (
     <div style={{ width: "100%", minWidth: 140 }}>
-      <div style={{ display: "flex", height, borderRadius: height / 2, overflow: "hidden", background: "#f0f0f0" }}>
+      <div style={{ display: "flex", height, borderRadius: height / 2, overflow: "hidden", background: "var(--bg-sunken)" }}>
         {total > 0 &&
           parts.map((p, i) => <div key={i} style={{ width: `${(p.n / total) * 100}%`, background: p.c }} />)}
       </div>

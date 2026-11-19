@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Layout, Menu } from "antd";
 import AutoRefresh from "@/components/AutoRefresh";
 import InProgressBackupTrigger from "@/components/InProgressBackupTrigger";
 import NextActionNotifier from "@/components/NextActionNotifier";
@@ -11,16 +10,14 @@ import LanToggle from "@/components/LanToggle";
 import DemoControls from "@/components/DemoControls";
 import MantisIcon from "@/components/MantisIcon";
 
-const { Header, Content } = Layout;
-
 /** 머리띠 가운데 메뉴. 경로가 바로 키다. */
 const NAV = [
-  { key: "/", label: <Link href="/">홈</Link> },
-  { key: "/orchestration", label: <Link href="/orchestration">오케스트레이션</Link> },
-  { key: "/data", label: <Link href="/data">데이터 분석</Link> },
-  { key: "/artifacts", label: <Link href="/artifacts">아티팩트</Link> },
-  { key: "/releases", label: <Link href="/releases">릴리즈</Link> },
-  { key: "/team-jobs", label: <Link href="/team-jobs">팀 이슈 현황</Link> },
+  { key: "/", label: "홈" },
+  { key: "/orchestration", label: "오케스트레이션" },
+  { key: "/data", label: "데이터 분석" },
+  { key: "/artifacts", label: "아티팩트" },
+  { key: "/releases", label: "릴리즈" },
+  { key: "/team-jobs", label: "팀 이슈 현황" },
 ];
 
 /**
@@ -39,72 +36,49 @@ function currentNavKey(pathname: string): string[] {
 
 export default function AppShell({ children, demo = false }: { children: React.ReactNode; demo?: boolean }) {
   const pathname = usePathname();
+  const current = currentNavKey(pathname);
   return (
     <CanActProvider>
     {/* 데모 모드에서는 메타가 fixture라 백업을 두드리지 않는다(서버도 409로 막는다). */}
     {!demo && <InProgressBackupTrigger />}
     <NextActionNotifier />
-    <Layout style={{ minHeight: "100vh" }}>
-      <Header
-        style={{
-          background: "#001529",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          position: "sticky",
-          top: 0,
-          zIndex: 100,
-          width: "100%",
-        }}
-      >
-        <Link
-          href="/"
-          style={{
-            color: "#fff",
-            fontSize: 20,
-            fontWeight: 600,
-            textDecoration: "none",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-          }}
-        >
-          <MantisIcon size={26} color="#95de64" />
+    <div style={{ minHeight: "100vh" }}>
+      {/* 종이톤 반투명 머리띠. sticky + z-index 100 은 예전 antd Header 와 같다 —
+          긴 화면에서 메뉴가 남고, antd 화면의 떠 있는 요소에 가려지지 않게. 모양은 ui.css .ui-nav */}
+      <header className="ui-nav">
+        <Link href="/" className="ui-nav-brand">
+          {/* SVG 속성에는 var() 가 안 먹는 브라우저가 있어 currentColor 로 포인트색을 넘긴다. */}
+          <span className="ui-card-icon">
+            <MantisIcon size={24} color="currentColor" />
+          </span>
           Mentis Dashboard
         </Link>
         {/*
           좌우(제목·도구)의 폭이 달라 space-between 으로는 가운데에 오지 않는다.
-          머리띠가 position:sticky 라 좌표 기준이 되므로 절대 배치로 화면 가운데에 둔다.
+          머리띠가 position:sticky 라 좌표 기준이 되므로 절대 배치로 화면 가운데에 둔다(.ui-nav-menu).
         */}
-        <Menu
-          theme="dark"
-          mode="horizontal"
-          selectedKeys={currentNavKey(pathname)}
-          items={NAV}
-          // 셋뿐이라 접을 이유가 없다. 절대 배치라 폭이 0 으로 재어져
-          // 마지막 칸이 "..." 로 접히는 것을 막는다.
-          disabledOverflow
-          style={{
-            position: "absolute",
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: "transparent",
-            borderBottom: "none",
-            minWidth: 0,
-          }}
-        />
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 20 }}>
+        <nav className="ui-nav-menu" aria-label="주 메뉴">
+          {NAV.map((n) => (
+            <Link
+              key={n.key}
+              href={n.key}
+              className={current.includes(n.key) ? "is-active" : undefined}
+              aria-current={current.includes(n.key) ? "page" : undefined}
+            >
+              {n.label}
+            </Link>
+          ))}
+        </nav>
+        <span className="ui-nav-tools">
           <LanToggle />
           <AutoRefresh intervalMs={5000} />
         </span>
-      </Header>
+      </header>
       {demo && <DemoControls />}
-      <Content
-        style={{ padding: 24, maxWidth: 1440, margin: "0 auto", width: "100%" }}
-      >
+      <main style={{ padding: 24, maxWidth: 1440, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
         {children}
-      </Content>
-    </Layout>
+      </main>
+    </div>
     </CanActProvider>
   );
 }

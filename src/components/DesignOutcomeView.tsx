@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Empty, Segmented } from "antd";
 import OrderHeader from "@/components/OrderHeader";
 import StyledDoc from "@/components/doc/StyledDoc";
+import Empty from "@/components/ui/Empty";
+import { Seg } from "@/components/ui/Tabs";
 
 type Doc = "design" | "outcome";
 
@@ -46,7 +47,7 @@ export default function DesignOutcomeView({
         hasDesign
         orderKind={orderKind}
       />
-      <Segmented<Doc>
+      <Seg<Doc>
         style={{ marginTop: 16 }}
         value={doc}
         onChange={setDoc}

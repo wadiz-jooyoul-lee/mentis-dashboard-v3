@@ -1,44 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { Card, Col, Row, Tag, Typography, Space } from "antd";
-import {
-  ExperimentOutlined,
-  RocketOutlined,
-  CheckSquareOutlined,
-  DeploymentUnitOutlined,
-  ClusterOutlined,
-  ShareAltOutlined,
-  BarChartOutlined,
-  ChromeOutlined,
-} from "@ant-design/icons";
+import Card from "@/components/ui/Card";
+import Chip from "@/components/ui/Chip";
+import { ICONS } from "@/components/ui/icons";
 import type { Section } from "@/lib/sections";
 import { AREA_LABELS, AREA_ORDER } from "@/lib/sections";
 import type { Metric, CardStats } from "@/lib/lifecycle";
 
-const { Title, Paragraph, Text } = Typography;
-
-const ICONS = {
-  ExperimentOutlined: ExperimentOutlined,
-  RocketOutlined: RocketOutlined,
-  CheckSquareOutlined: CheckSquareOutlined,
-  DeploymentUnitOutlined: DeploymentUnitOutlined,
-  ClusterOutlined: ClusterOutlined,
-  ShareAltOutlined: ShareAltOutlined,
-  BarChartOutlined: BarChartOutlined,
-  ChromeOutlined: ChromeOutlined,
-};
-
+/** 지표 색 이름 → 토큰 의미색. */
 const METRIC_COLOR: Record<string, string> = {
-  blue: "#1677ff",
-  green: "#52c41a",
-  red: "#ff4d4f",
-  orange: "#fa8c16",
+  blue: "var(--info-fg)",
+  green: "var(--ok-fg)",
+  red: "var(--danger-fg)",
+  orange: "var(--warn-fg)",
 };
 
 function MetricRow({ metrics, size = 22 }: { metrics: Metric[]; size?: number }) {
   return (
-    <Space size={18} wrap align="start">
+    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: "4px 18px" }}>
       {metrics.map((m) => (
         <div key={m.label} style={{ lineHeight: 1.2 }}>
           <span
@@ -50,12 +30,10 @@ function MetricRow({ metrics, size = 22 }: { metrics: Metric[]; size?: number })
           >
             {m.value}
           </span>{" "}
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            {m.label}
-          </Text>
+          <span className="ui-sm">{m.label}</span>
         </div>
       ))}
-    </Space>
+    </div>
   );
 }
 
@@ -69,15 +47,12 @@ function Metrics({ stats }: { stats: CardStats }) {
           style={{
             marginTop: 12,
             paddingTop: 10,
-            borderTop: "1px solid rgba(0,0,0,0.06)",
+            borderTop: "1px solid var(--line)",
           }}
         >
-          <Text
-            type="secondary"
-            style={{ fontSize: 11, display: "block", marginBottom: 4 }}
-          >
+          <span className="ui-sm" style={{ fontSize: 11, display: "block", marginBottom: 4 }}>
             오늘
-          </Text>
+          </span>
           <MetricRow metrics={stats.today} size={18} />
         </div>
       )}
@@ -95,31 +70,28 @@ function SectionCard({
   const Icon = ICONS[section.icon];
   const body = (
     <Card
-      hoverable={section.enabled}
-      style={{ height: "100%", opacity: section.enabled ? 1 : 0.55 }}
+      hover={section.enabled}
+      style={{ height: "100%", boxSizing: "border-box", opacity: section.enabled ? 1 : 0.55 }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <Icon style={{ fontSize: 28, color: "#1677ff" }} />
-        <div>
-          <Title level={4} style={{ margin: 0 }}>
-            {section.title}{" "}
-            {!section.enabled && <Tag color="default">준비 중</Tag>}
-          </Title>
-        </div>
+        <span className="ui-card-icon">
+          <Icon size={26} />
+        </span>
+        <h3 className="ui-h3">
+          {section.title}
+          {!section.enabled && <Chip tone="neutral">준비 중</Chip>}
+        </h3>
       </div>
-      <Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
+      <p className="ui-sub" style={{ marginTop: 12, marginBottom: 0 }}>
         {section.description}
-      </Paragraph>
+      </p>
       {stats && stats.overall.length > 0 ? (
         <Metrics stats={stats} />
       ) : (
         section.enabled && (
-          <Text
-            type="secondary"
-            style={{ fontSize: 12, marginTop: 14, display: "block" }}
-          >
+          <span className="ui-sm" style={{ marginTop: 14, display: "block" }}>
             아직 기록 없음
-          </Text>
+          </span>
         )
       )}
     </Card>
@@ -128,7 +100,7 @@ function SectionCard({
   if (!section.enabled) return body;
 
   return (
-    <Link href={section.path} style={{ display: "block", height: "100%" }}>
+    <Link href={section.path} style={{ display: "block", height: "100%", color: "inherit", textDecoration: "none" }}>
       {body}
     </Link>
   );
@@ -148,20 +120,12 @@ export default function SectionGrid({
         if (items.length === 0) return null;
         return (
           <div key={area} style={{ marginTop: 24 }}>
-            <Title
-              level={5}
-              type="secondary"
-              style={{ marginTop: 0, marginBottom: 12, fontWeight: 600 }}
-            >
-              {AREA_LABELS[area]}
-            </Title>
-            <Row gutter={[16, 16]}>
+            <h2 className="ui-label">{AREA_LABELS[area]}</h2>
+            <div className="ui-grid">
               {items.map((s) => (
-                <Col key={s.key} xs={24} sm={12} md={6}>
-                  <SectionCard section={s} stats={stats[s.key]} />
-                </Col>
+                <SectionCard key={s.key} section={s} stats={stats[s.key]} />
               ))}
-            </Row>
+            </div>
           </div>
         );
       })}

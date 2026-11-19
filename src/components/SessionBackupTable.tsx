@@ -1,8 +1,10 @@
 "use client";
 
-import { Typography, Table, Tag } from "antd";
+import DataTable from "@/components/ui/DataTable";
+import Tag from "@/components/ui/Tag";
+import { Text } from "@/components/ui/Typo";
 
-const { Text } = Typography;
+
 
 export type SessionArchive = { name: string; kind: string; at: string; sizeBytes: number; files: number | null };
 
@@ -52,7 +54,7 @@ export default function SessionBackupTable({ archives }: { archives: SessionArch
     },
   ];
   return (
-    <Table<SessionArchive>
+    <DataTable<SessionArchive>
       size="small"
       rowKey="name"
       columns={columns}

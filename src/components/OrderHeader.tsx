@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Breadcrumb, Typography, Space, Tag, Tabs, Tooltip } from "antd";
 import DobbyIcon from "@/components/DobbyIcon";
 import PrLinkButton from "@/components/PrLinkButton";
 import JiraButton from "@/components/JiraButton";
@@ -15,8 +14,13 @@ import { useOrderRoles } from "@/components/OrderRoles";
 import { hasProducer, isProductOrder } from "@/lib/parseOrderStatus";
 import { dobbyColor } from "@/lib/dobby";
 import { isJiraIssueKey } from "@/lib/keys";
+import Crumbs from "@/components/ui/Crumbs";
+import Stack from "@/components/ui/Stack";
+import Tabs from "@/components/ui/Tabs";
+import Tag from "@/components/ui/Tag";
+import Tip from "@/components/ui/Tip";
+import { Text, Title } from "@/components/ui/Typo";
 
-const { Title, Text } = Typography;
 
 // 오더 상세의 공통 탭. 어느 상세 페이지에서든 이 바로 서로 이동한다.
 const TABS = [
@@ -159,15 +163,15 @@ export default function OrderHeader({
       data-order-header
       style={{
         position: "sticky",
-        top: 64,
+        top: 60, // AppShell 머리띠(.ui-nav) 높이 바로 아래
         zIndex: 90,
-        background: "#fff",
+        background: "var(--bg)",
         // 배경·보더는 뷰포트 전체 너비(풀블리드)로, 상단 콘텐츠 패딩(24)은 상쇄
         marginLeft: "calc(-50vw + 50%)",
         marginRight: "calc(-50vw + 50%)",
         marginTop: -24,
         padding: "12px 0 0",
-        borderBottom: "1px solid #f0f0f0",
+        borderBottom: "1px solid var(--line)",
       }}
     >
       {/* 안쪽 내용은 본문(Content maxWidth 1080)과 같은 가운데 정렬로 맞춰 좌측 쏠림 방지 */}
@@ -180,14 +184,14 @@ export default function OrderHeader({
           marginBottom: 8,
         }}
       >
-        <Breadcrumb
+        <Crumbs
           items={[
-            { title: <Link href="/">홈</Link> },
-            { title: <Link href="/orchestration">오케스트레이션</Link> },
-            { title: epicKey },
+            { href: "/", label: "홈" },
+            { href: "/orchestration", label: "오케스트레이션" },
+            { label: epicKey },
           ]}
         />
-        <Space align="center" size={8}>
+        <Stack align="center" size={8}>
           {/* 테스트하려면 다시 배포해야 하는 번들. 판정에 git 이 필요해 따로 불러온다. */}
           <BundleTags epicKey={epicKey} />
           <Link
@@ -204,7 +208,7 @@ export default function OrderHeader({
             에이전트 소개
           </Link>
           {extra}
-        </Space>
+        </Stack>
       </div>
       <div
         style={{
@@ -216,7 +220,7 @@ export default function OrderHeader({
           marginBottom: 4,
         }}
       >
-        <Space align="baseline" size={10} wrap style={{ minWidth: 0 }}>
+        <Stack align="baseline" size={10} wrap style={{ minWidth: 0 }}>
           <Title level={2} style={{ margin: 0 }}>
             {epicKey}
           </Title>
@@ -227,25 +231,25 @@ export default function OrderHeader({
           )}
           {mode && <Tag>{mode}</Tag>}
           {worktreeRemoved && (
-            <Tag color="default" style={{ color: "#8c8c8c" }}>
+            <Tag color="default" style={{ color: "var(--fg-soft)" }}>
               워크트리 삭제됨
             </Tag>
           )}
           {logOnlyAgents.length > 0 && (
-            <Tooltip
+            <Tip
               title={`상태표(orchestration.md)에 없는데 agent-logs.json에만 있는 슬러그입니다: ${logOnlyAgents.join(", ")} — 스폰 시 등록이 누락됐다는 뜻이라 보드에 표시하지 않습니다. 같은 슬러그의 round-N 하위 키로 병합하거나 상태표에 행을 추가하세요.`}
             >
               <Tag color="warning">⚠ 메타 불일치 {logOnlyAgents.length}건</Tag>
-            </Tooltip>
+            </Tip>
           )}
-        </Space>
-        <Space align="center" size={4} wrap>
+        </Stack>
+        <Stack align="center" size={4} wrap>
           {hasJiraIssue && <JiraButton epicKey={epicKey} />}
           {hasJiraIssue && <PrLinkButton epicKey={epicKey} />}
           <ResumeV2Button epicKey={epicKey} />
           <V2RunButton epicKey={epicKey} />
           <ResolveButton epicKey={epicKey} resolved={resolved} />
-        </Space>
+        </Stack>
       </div>
       <Tabs
         type="card"

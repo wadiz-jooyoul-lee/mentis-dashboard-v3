@@ -2,16 +2,21 @@
 
 import { useCanAct } from "@/components/CanAct";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Typography, Empty, Button, Collapse, Badge, Space, Alert } from "antd";
-import { ReloadOutlined } from "@ant-design/icons";
 import FeedView from "@/components/FeedView";
 import MarkdownDoc from "@/components/MarkdownDoc";
 import OrderHeader from "@/components/OrderHeader";
 import RetroReport from "@/components/RetroReport";
 import type { RetroData } from "@/lib/retro";
 import type { FeedItem, JobState } from "@/lib/jobs";
+import Button from "@/components/ui/Button";
+import Collapse from "@/components/ui/Disclosure";
+import Empty from "@/components/ui/Empty";
+import Note from "@/components/ui/Note";
+import Stack from "@/components/ui/Stack";
+import { StatusDot } from "@/components/ui/Tag";
+import { Paragraph, Text } from "@/components/ui/Typo";
+import { RotateCw } from "lucide-react";
 
-const { Paragraph, Text } = Typography;
 
 type RetroJob = { state: JobState; feed: FeedItem[] };
 
@@ -34,7 +39,7 @@ function JobRecord({ job }: { job: RetroJob }) {
           label: (
             <span>
               회고 생성 기록{" "}
-              <Badge status={badge.status} text={badge.text} style={{ marginLeft: 8 }} />
+              <StatusDot status={badge.status} text={badge.text} style={{ marginLeft: 8 }} />
             </span>
           ),
           children: <FeedView feed={job.feed} height={360} alwaysBottom />,
@@ -139,19 +144,19 @@ function RetroRunner({
     if (!canAct) return null; // 읽기 전용 화면에는 생성 버튼을 그리지 않는다
     const why = block ?? error;
     return (
-      <Space orientation="vertical" size={6}>
+      <Stack orientation="vertical" size={6}>
         <Button
-          type={small ? "default" : "primary"}
-          size={small ? "small" : "middle"}
-          icon={small ? <ReloadOutlined /> : undefined}
-          loading={busy}
+          variant={small ? "ghost" : "solid"}
+          size={small ? "sm" : "md"}
+          icon={small ? <RotateCw size="1em" /> : undefined}
+          busy={busy}
           disabled={!!block}
           onClick={gen}
         >
           {label}
         </Button>
-        {why && <Alert type="warning" showIcon title={why} style={{ fontSize: 12 }} />}
-      </Space>
+        {why && <Note type="warning" showIcon title={why} style={{ fontSize: 12 }} />}
+      </Stack>
     );
   }
   return (
@@ -249,9 +254,9 @@ export default function RetroView({
         </Empty>
       ) : (
         <>
-          <Space style={{ margin: "12px 0" }}>
+          <Stack style={{ margin: "12px 0" }}>
             <RetroRunner epicKey={epicKey} label="다시 생성" regen small block={block} />
-          </Space>
+          </Stack>
           {data ? <RetroReport data={data} /> : <MarkdownDoc md={md ?? ""} />}
           {job && <JobRecord job={job} />}
         </>

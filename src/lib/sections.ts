@@ -14,7 +14,7 @@ export type Section = {
   description: string;
   /** 이동 경로 */
   path: string;
-  /** 아이콘 이름(@ant-design/icons 컴포넌트명) */
+  /** 아이콘 이름(옛 antd 아이콘 컴포넌트명 — src/components/ui/icons.tsx 가 키로 매핑한다) */
   icon:
     | "ExperimentOutlined"
     | "RocketOutlined"

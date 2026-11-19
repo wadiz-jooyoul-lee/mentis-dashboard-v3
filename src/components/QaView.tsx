@@ -1,15 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { Typography, Space, Tag, Card, Table, Empty, Badge, Tooltip } from "antd";
-import type { TableProps } from "antd";
 import OrderHeader from "@/components/OrderHeader";
-import { ShipProgress } from "@/components/ShipProgress";
+import { ShipProgress } from "@/components/mdview/ShipProgress";
 import { jiraUrl } from "@/lib/jira";
 import type { QaInfo, QaTriageRow } from "@/lib/parseQa";
 import type { ShipRow } from "@/lib/parseOrderStatus";
+import Card from "@/components/ui/Card";
+import DataTable, { type Column } from "@/components/ui/DataTable";
+import Empty from "@/components/ui/Empty";
+import Stack from "@/components/ui/Stack";
+import Tag from "@/components/ui/Tag";
+import Tip from "@/components/ui/Tip";
+import { StatusDot } from "@/components/ui/Tag";
+import { Paragraph, Text, Title } from "@/components/ui/Typo";
 
-const { Title, Text, Paragraph } = Typography;
 
 /** 트리아지 판정 → 뱃지 색. 끌어온 것과 아닌 것을 한눈에 가른다. */
 const VERDICT_COLOR: Record<string, string> = {
@@ -112,27 +117,27 @@ export default function QaView({
   const done = taken.filter((r) => /해결/.test(r.state ?? r.verdict)).length;
   const shipped = taken.filter((r) => /배포완료/.test(r.state ?? r.verdict)).length;
 
-  const columns: TableProps<Row>["columns"] = [
+  const columns: Column<Row>[] = [
     {
       title: "버그",
       dataIndex: "bugKey",
       render: (k: string, r) => (
-        <Space orientation="vertical" size={0}>
+        <Stack orientation="vertical" size={0}>
           <Link href={jiraUrl(k)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
             <Text strong>{k}</Text>
           </Link>
           {r.title && <Text type="secondary" style={{ fontSize: 12 }}>{r.title}</Text>}
-        </Space>
+        </Stack>
       ),
     },
     {
       title: "판정",
       dataIndex: "verdict",
       render: (v: string, r) => (
-        <Space size={4}>
-          <Badge status={(VERDICT_COLOR[v] ?? "default") as "success"} text={v || "-"} />
+        <Stack size={4}>
+          <StatusDot status={(VERDICT_COLOR[v] ?? "default") as "success"} text={v || "-"} />
           {r.basis && <Tag style={{ margin: 0 }}>{r.basis}</Tag>}
-        </Space>
+        </Stack>
       ),
     },
     {
@@ -140,10 +145,10 @@ export default function QaView({
       dataIndex: "state",
       render: (s: string | null, r) =>
         s ? (
-          <Space size={4}>
+          <Stack size={4}>
             <Tag color={STATE_COLOR[s] ?? "default"} style={{ margin: 0 }}>{s}</Tag>
             {r.round && <Text type="secondary" style={{ fontSize: 12 }}>라운드 {r.round}</Text>}
-          </Space>
+          </Stack>
         ) : (
           <Text type="secondary">-</Text>
         ),
@@ -170,40 +175,40 @@ export default function QaView({
 
       <Title level={4} style={{ marginTop: 16 }}>QA 감시</Title>
       <Card size="small" style={{ marginBottom: 16 }}>
-        <Space size={[20, 8]} wrap>
-          <Space size={6}>
+        <Stack size={[20, 8]} wrap>
+          <Stack size={6}>
             <Text type="secondary">폴링</Text>
             <Text strong>{qa.interval ?? "-"}</Text>
-          </Space>
-          <Space size={6}>
+          </Stack>
+          <Stack size={6}>
             <Text type="secondary">마지막 확인</Text>
             <Text strong>{qa.lastPollAt ?? "-"}</Text>
-          </Space>
-          <Space size={6}>
+          </Stack>
+          <Stack size={6}>
             <Text type="secondary">되돌려 보낼 환경</Text>
             {qa.env ? <Tag color="blue" style={{ margin: 0 }}>{qa.env}</Tag> : <Text type="secondary">미정</Text>}
-          </Space>
+          </Stack>
           {qa.parent && (
-            <Space size={6}>
-              <Tooltip title="이 이슈의 하위 버그는 묻지 않고 끌어옵니다(기준 ①)">
+            <Stack size={6}>
+              <Tip title="이 이슈의 하위 버그는 묻지 않고 끌어옵니다(기준 ①)">
                 <Text type="secondary">부모 QA</Text>
-              </Tooltip>
+              </Tip>
               <Link href={jiraUrl(qa.parent)} target="_blank" rel="noreferrer">{qa.parent}</Link>
-            </Space>
+            </Stack>
           )}
-          <Space size={6}>
+          <Stack size={6}>
             <Text type="secondary">처리 대상</Text>
             <Text strong>{taken.length}건</Text>
             <Text type="secondary">· 해결 {done} · 배포만 {shipped}</Text>
-          </Space>
-        </Space>
+          </Stack>
+        </Stack>
       </Card>
 
       <Title level={4}>QA 이슈</Title>
       {rows.length === 0 ? (
         <Empty description="아직 트리아지된 버그가 없습니다." />
       ) : (
-        <Table<Row>
+        <DataTable<Row>
           rowKey="bugKey"
           size="small"
           columns={columns}

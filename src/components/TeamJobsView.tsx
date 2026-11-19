@@ -3,13 +3,24 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Breadcrumb, Button, Card, Empty, Popconfirm, Segmented, Space, Table, Tabs, Tag, Typography, message } from "antd";
 import { useCanAct } from "@/components/CanAct";
 import type { JobsData, JobsIssue, JobsOverlap, JobsStatus } from "@/lib/dobbyJobs";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import Confirm from "@/components/ui/Confirm";
+import Crumbs from "@/components/ui/Crumbs";
+import DataTable from "@/components/ui/DataTable";
+import Empty from "@/components/ui/Empty";
+import Note from "@/components/ui/Note";
+import Stack from "@/components/ui/Stack";
+import Tabs from "@/components/ui/Tabs";
+import Tag from "@/components/ui/Tag";
+import { Seg } from "@/components/ui/Tabs";
+import { toast } from "@/components/ui/Toaster";
+import { Text, Title } from "@/components/ui/Typo";
 
-const { Title, Text } = Typography;
 const STAGES = ["착수 전", "개발 중", "리뷰 중", "검증 환경 반영", "배포 대기", "라이브 반영"];
-const STAGE_COLOR = ["#d9d9d9", "#91caff", "#4096ff", "#1677ff", "#faad14", "#52c41a"];
+const STAGE_COLOR = ["var(--line)", "var(--accent)", "#4096ff", "var(--accent)", "var(--warn-fg)", "var(--ok-fg)"];
 const KINDS = ["새로 생김", "진행 시작", "해결됨", "종료"] as const;
 const jira = (k: string) => `https://wadiz.atlassian.net/browse/${k}`;
 const days = (iso: string) => Math.floor((Date.now() - new Date(iso).getTime()) / 864e5);
@@ -118,31 +129,31 @@ function RunBar({ initial, installed }: { initial: JobsStatus | null; installed:
   }, [st?.running, load, router]);
   const run = async () => {
     const r = await fetch("/api/dobby-jobs", { method: "POST" }).then((x) => x.json()).catch(() => null);
-    message.info(r?.result ?? "실행 요청에 실패했습니다");
+    toast.info(r?.result ?? "실행 요청에 실패했습니다");
     await load();
   };
   const today = new Date().toISOString().slice(0, 10);
   const doneToday = st?.lastSuccess?.slice(0, 10) === today;
   return (
     <Card size="small" style={{ marginTop: 12 }}>
-      <Space wrap size={[24, 8]} style={{ width: "100%", justifyContent: "space-between" }}>
-        <Space wrap size={[24, 4]}>
+      <Stack wrap size={[24, 8]} style={{ width: "100%", justifyContent: "space-between" }}>
+        <Stack wrap size={[24, 4]}>
           <Text>마지막 조사 <b>{st?.lastSuccess ? hm(st.lastSuccess) : "없음"}</b></Text>
           <Text>다음 자동 조사 <b>{st?.nextAuto ? hm(st.nextAuto) : "-"}</b></Text>
           {st?.lastError && <Text type="danger">{st.lastError}</Text>}
-        </Space>
+        </Stack>
         {!installed ? (
           <Text type="secondary">설치된 go-dobby 에 dobby-jobs 가 없습니다</Text>
         ) : st?.running ? (
-          <Button loading>조사 중… ({st.running.by ?? ""} {st.running.startedAt?.slice(11, 16) ?? ""} 시작)</Button>
+          <Button busy>조사 중… ({st.running.by ?? ""} {st.running.startedAt?.slice(11, 16) ?? ""} 시작)</Button>
         ) : doneToday ? (
-          <Popconfirm title="오늘 이미 조사했습니다. 다시 조사할까요?" okText="다시 조사" cancelText="취소" onConfirm={run} disabled={!canAct}>
+          <Confirm title="오늘 이미 조사했습니다. 다시 조사할까요?" okText="다시 조사" cancelText="취소" onConfirm={run} disabled={!canAct}>
             <Button disabled={!canAct}>다시 조사</Button>
-          </Popconfirm>
+          </Confirm>
         ) : (
-          <Button type="primary" onClick={run} disabled={!canAct}>지금 조사</Button>
+          <Button variant="solid" onClick={run} disabled={!canAct}>지금 조사</Button>
         )}
-      </Space>
+      </Stack>
     </Card>
   );
 }
@@ -160,8 +171,8 @@ function DailyTab({ d, byKey }: { d: JobsData; byKey: Record<string, JobsIssue> 
     return { name, ...Object.fromEntries(KINDS.map((k) => [k, t.filter((i) => kindOf(i) === k).length])), crit: hot.filter((o) => o.level === "충돌 주의" && byKey[o.issue].project === p).length };
   });
   return (
-    <Space orientation="vertical" size={20} style={{ width: "100%" }}>
-      <Table size="small" pagination={false} rowKey="name" dataSource={summary}
+    <Stack orientation="vertical" size={20} style={{ width: "100%" }}>
+      <DataTable size="sm" pagination={false} rowKey="name" dataSource={summary}
         columns={[{ title: "팀", dataIndex: "name" }, ...KINDS.map((k) => ({ title: k, dataIndex: k, align: "right" as const })),
           { title: "내 오더와 충돌 주의", dataIndex: "crit", align: "right" as const, render: (n: number) => (n ? <Tag color="red">{n}</Tag> : 0) }]} />
       <div>
@@ -171,11 +182,11 @@ function DailyTab({ d, byKey }: { d: JobsData; byKey: Record<string, JobsIssue> 
       </div>
       <div>
         <Title level={5}>바뀐 이슈 {picked.length}건</Title>
-        <Space orientation="vertical" size={6}>
-          <Segmented value={team} onChange={(v) => setTeam(String(v))} options={["전체", ...Object.values(d.teams)]} />
-          <Segmented value={kind} onChange={(v) => setKind(String(v))} options={["전체", ...KINDS]} />
-        </Space>
-        <Table style={{ marginTop: 8 }} size="small" rowKey="key" dataSource={list} pagination={{ pageSize: 30, hideOnSinglePage: true }} scroll={{ x: true }}
+        <Stack orientation="vertical" size={6}>
+          <Seg value={team} onChange={(v) => setTeam(String(v))} options={["전체", ...Object.values(d.teams)]} />
+          <Seg value={kind} onChange={(v) => setKind(String(v))} options={["전체", ...KINDS]} />
+        </Stack>
+        <DataTable style={{ marginTop: 8 }} size="sm" rowKey="key" dataSource={list} pagination={{ pageSize: 30, hideOnSinglePage: true }} scroll={{ x: true }}
           columns={[
             { title: "이슈", key: "i", render: (_: unknown, i: JobsIssue) => <IssueCell i={i} /> },
             { title: "팀", key: "t", render: (_: unknown, i: JobsIssue) => d.teams[i.project] },
@@ -187,14 +198,14 @@ function DailyTab({ d, byKey }: { d: JobsData; byKey: Record<string, JobsIssue> 
             { title: "브랜치와 PR", key: "b", render: (_: unknown, i: JobsIssue) => <BranchCell i={i} /> },
           ]} />
       </div>
-    </Space>
+    </Stack>
   );
 }
 
 function OverlapTable({ rows, byKey, showOrder }: { rows: JobsOverlap[]; byKey: Record<string, JobsIssue>; showOrder?: boolean }) {
-  if (!rows.length) return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="겹치는 작업이 없습니다" />;
+  if (!rows.length) return <Empty compact description="겹치는 작업이 없습니다" />;
   return (
-    <div style={{ overflowX: "auto", marginTop: 8 }}><Table size="small" pagination={false} rowKey={(o) => o.order + o.issue}
+    <div style={{ overflowX: "auto", marginTop: 8 }}><DataTable size="sm" pagination={false} rowKey={(o) => o.order + o.issue}
       dataSource={[...rows].sort((a, b) => Number(a.level !== "충돌 주의") - Number(b.level !== "충돌 주의"))}
       columns={[
         { title: "겹침", key: "l", render: (_: unknown, o: JobsOverlap) => <LevelTag l={o.level} /> },
@@ -211,7 +222,7 @@ function PeopleTab({ d }: { d: JobsData }) {
   const act = d.issues.filter((i) => i.status === "진행 중");
   const ovN = (k: string) => d.overlaps.filter((o) => o.issue === k).length;
   return (
-    <Space orientation="vertical" size={28} style={{ width: "100%" }}>
+    <Stack orientation="vertical" size={28} style={{ width: "100%" }}>
       {Object.entries(d.teams).map(([p, name]) => {
         const t = act.filter((i) => i.project === p);
         const people: Record<string, JobsIssue[]> = {};
@@ -222,13 +233,13 @@ function PeopleTab({ d }: { d: JobsData }) {
             <Title level={4} style={{ marginBottom: 8 }}>
               {name} <Text type="secondary" style={{ fontSize: 14, fontWeight: 400 }}>진행 중 {t.length}건 · 담당자 {Object.keys(people).length}명{gap ? ` · 코드 흔적 없음 ${gap}건` : ""}</Text>
             </Title>
-            <Space orientation="vertical" size={12} style={{ width: "100%" }}>
+            <Stack orientation="vertical" size={12} style={{ width: "100%" }}>
               {Object.entries(people).sort((a, b) => b[1].length - a[1].length).map(([who, list]) => {
                 list.sort((a, b) => STAGES.indexOf(b.stage) - STAGES.indexOf(a.stage));
                 const stale = list.filter((i) => i.lastCommit && days(i.lastCommit) >= 7).length;
                 return (
-                  <Card key={who} size="small" title={<Space><b>{who}</b>{who === d.me && <Tag color="blue">나</Tag>}<Text type="secondary" style={{ fontWeight: 400 }}>진행 중 {list.length}건{stale ? ` · 7일 넘게 커밋 없음 ${stale}건` : ""}</Text></Space>}>
-                    <div style={{ overflowX: "auto" }}><Table size="small" pagination={false} rowKey="key" dataSource={list}
+                  <Card key={who} size="small" title={<Stack><b>{who}</b>{who === d.me && <Tag color="blue">나</Tag>}<Text type="secondary" style={{ fontWeight: 400 }}>진행 중 {list.length}건{stale ? ` · 7일 넘게 커밋 없음 ${stale}건` : ""}</Text></Stack>}>
+                    <div style={{ overflowX: "auto" }}><DataTable size="sm" pagination={false} rowKey="key" dataSource={list}
                       columns={[
                         { title: "이슈", key: "i", render: (_: unknown, i: JobsIssue) => <IssueCell i={i} extra={<>
                           {i.stage === "착수 전" && <div><Text type="warning" style={{ fontSize: 12 }}>Jira는 진행 중인데 브랜치가 없습니다</Text></div>}
@@ -236,16 +247,16 @@ function PeopleTab({ d }: { d: JobsData }) {
                         { title: "진행도", key: "g", render: (_: unknown, i: JobsIssue) => <Stage i={i} /> },
                         { title: "브랜치와 PR", key: "b", render: (_: unknown, i: JobsIssue) => <BranchCell i={i} /> },
                         { title: "마지막 커밋", key: "c", render: (_: unknown, i: JobsIssue) => i.lastCommit ? <Text type={days(i.lastCommit) >= 7 ? "warning" : "secondary"} style={{ whiteSpace: "nowrap" }}>{hm(i.lastCommit)}<br />{days(i.lastCommit)}일 전</Text> : <Text type="secondary">없음</Text> },
-                        { title: "문서", key: "d", render: (_: unknown, i: JobsIssue) => i.docs.length ? <Space orientation="vertical" size={0}>{i.docs.map((u) => <a key={u} href={u} target="_blank" rel="noreferrer">{u.includes("figma") ? "피그마" : u.includes("google") ? "구글 문서" : "컨플루언스"}</a>)}</Space> : <Text type="secondary">없음</Text> },
+                        { title: "문서", key: "d", render: (_: unknown, i: JobsIssue) => i.docs.length ? <Stack orientation="vertical" size={0}>{i.docs.map((u) => <a key={u} href={u} target="_blank" rel="noreferrer">{u.includes("figma") ? "피그마" : u.includes("google") ? "구글 문서" : "컨플루언스"}</a>)}</Stack> : <Text type="secondary">없음</Text> },
                       ]} /></div>
                   </Card>
                 );
               })}
-            </Space>
+            </Stack>
           </div>
         );
       })}
-    </Space>
+    </Stack>
   );
 }
 
@@ -253,7 +264,7 @@ function OverlapTab({ d, byKey }: { d: JobsData; byKey: Record<string, JobsIssue
   const withO = d.orders.filter((o) => d.overlaps.some((x) => x.order === o.key));
   const without = d.orders.filter((o) => !withO.includes(o));
   return (
-    <Space orientation="vertical" size={16} style={{ width: "100%" }}>
+    <Stack orientation="vertical" size={16} style={{ width: "100%" }}>
       <Text type="secondary">끝나지 않은 내 오더 {d.orders.length}개와, 진행 중이거나 이번에 바뀐 팀 이슈를 비교했습니다.</Text>
       {withO.map((o) => (
         <Card key={o.key} size="small" title={<div><Text type="secondary" style={{ fontSize: 12, fontWeight: 400 }}><Link href={`/orchestration/${o.key}`}>{o.key}</Link> · 오더 단계 {o.stage} · 내 커밋이 고친 파일 {o.fileCount}개</Text><div>{o.title}</div></div>}>
@@ -268,7 +279,7 @@ function OverlapTab({ d, byKey }: { d: JobsData; byKey: Record<string, JobsIssue
           ))}
         </div>
       )}
-    </Space>
+    </Stack>
   );
 }
 
@@ -280,11 +291,11 @@ function BaselineTab({ d }: { d: JobsData }) {
     return { name, prog, todo: t.length - prog - done, done };
   });
   return (
-    <Space orientation="vertical" size={12} style={{ width: "100%" }}>
+    <Stack orientation="vertical" size={12} style={{ width: "100%" }}>
       <Text type="secondary">처음 조사라 기준 정리를 했습니다. 끝나지 않은 이슈 전부와 지난주 월요일 이후 끝난 이슈입니다. 다음 조사부터는 바뀐 이슈만 보입니다.</Text>
-      <Table size="small" pagination={false} rowKey="name" dataSource={rows}
+      <DataTable size="sm" pagination={false} rowKey="name" dataSource={rows}
         columns={[{ title: "팀", dataIndex: "name" }, { title: "진행 중", dataIndex: "prog", align: "right" }, { title: "해야 할 일", dataIndex: "todo", align: "right" }, { title: "지난주 이후 끝남", dataIndex: "done", align: "right" }]} />
-    </Space>
+    </Stack>
   );
 }
 
@@ -295,7 +306,7 @@ export default function TeamJobsView({ data, initialStatus, installed }: { data:
   const d = data;
   return (
     <div>
-      <Breadcrumb items={[{ title: <Link href="/">홈</Link> }, { title: "팀 이슈 현황" }]} style={{ marginBottom: 12 }} />
+      <Crumbs items={[{ href: "/", label: "홈" }, { label: "팀 이슈 현황" }]} />
       <Title level={3} style={{ marginTop: 0, marginBottom: 4 }}>팀 이슈 현황</Title>
       <Text type="secondary">{d ? `${Object.values(d.teams).join(" · ")}의 Jira 이슈를 브랜치, PR과 맞춰 봤습니다.` : "FE개발1팀 · FE개발2팀 · 클라이언트개발팀의 Jira 이슈를 브랜치, PR과 맞춰 봅니다."}</Text>
       <RunBar initial={initialStatus} installed={installed} />
@@ -304,7 +315,7 @@ export default function TeamJobsView({ data, initialStatus, installed }: { data:
       ) : (
         <>
           {d.headline?.length ? (
-            <Alert style={{ marginTop: 12 }} type="info" showIcon message="요약" description={<ul style={{ margin: 0, paddingLeft: 18 }}>{d.headline.map((h) => <li key={h}>{h}</li>)}</ul>} />
+            <Note style={{ marginTop: 12 }} type="info" showIcon message="요약" description={<ul style={{ margin: 0, paddingLeft: 18 }}>{d.headline.map((h) => <li key={h}>{h}</li>)}</ul>} />
           ) : null}
           {d.fetchFailed.length > 0 && (
             <Text type="secondary" style={{ display: "block", marginTop: 8, fontSize: 12 }}>

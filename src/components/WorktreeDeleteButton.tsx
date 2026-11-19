@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Popconfirm, Tooltip, message } from "antd";
-import { CloseOutlined } from "@ant-design/icons";
 import { useCanAct } from "@/components/CanAct";
+import Button from "@/components/ui/Button";
+import Confirm from "@/components/ui/Confirm";
+import Tip from "@/components/ui/Tip";
+import { toast } from "@/components/ui/Toaster";
+import { X } from "lucide-react";
 
 /**
  * 워크트리 삭제 버튼(목록의 "해결" 옆 작은 빨간 ✕).
@@ -44,17 +47,17 @@ export default function WorktreeDeleteButton({
         const failed = snap.filter((x) => x.state === "failed").map((x) => x.repo);
         const saved = snap.filter((x) => x.state === "saved").length;
         if (failed.length > 0) {
-          message.warning(
+          toast.warning(
             `워크트리를 삭제했습니다. 다만 ${failed.join(", ")}의 변경 기록을 남기지 못했습니다(브랜치는 보존되어 복원 가능).`
           );
         } else if (saved > 0) {
-          message.success("워크트리를 삭제했습니다 (변경 내용은 기록으로 남고 브랜치도 보존)");
+          toast.success("워크트리를 삭제했습니다 (변경 내용은 기록으로 남고 브랜치도 보존)");
         } else {
-          message.success("워크트리를 삭제했습니다 (남길 변경이 없었습니다 · 브랜치는 보존)");
+          toast.success("워크트리를 삭제했습니다 (남길 변경이 없었습니다 · 브랜치는 보존)");
         }
         router.refresh();
       } else {
-        message.error(d?.error ?? "삭제 실패");
+        toast.error(d?.error ?? "삭제 실패");
       }
     } finally {
       setBusy(false);
@@ -68,11 +71,11 @@ export default function WorktreeDeleteButton({
 
   const btn = (
     <Button
-      type="text"
-      size="small"
+      variant="text"
+      size="sm"
       danger
-      icon={<CloseOutlined />}
-      loading={busy}
+      icon={<X size="1em" />}
+      busy={busy}
       disabled={disabled}
       // 비활성 버튼은 마우스 이벤트를 삼켜 래퍼 span까지 닿지 않아 툴팁이 안 뜬다.
       // pointer-events를 꺼서 히트 테스트가 span으로 넘어가게 한다(antd 표준 우회).
@@ -82,12 +85,12 @@ export default function WorktreeDeleteButton({
   );
 
   return (
-    <Tooltip title={tip}>
+    <Tip title={tip}>
       <span style={{ display: "inline-flex", cursor: disabled ? "not-allowed" : undefined }}>
         {disabled ? (
           btn
         ) : (
-          <Popconfirm
+          <Confirm
             title="워크트리를 삭제할까요?"
             description="코드 변경은 기록으로 남고 브랜치는 보존됩니다."
             okText="삭제"
@@ -96,9 +99,9 @@ export default function WorktreeDeleteButton({
             onConfirm={del}
           >
             {btn}
-          </Popconfirm>
+          </Confirm>
         )}
       </span>
-    </Tooltip>
+    </Tip>
   );
 }

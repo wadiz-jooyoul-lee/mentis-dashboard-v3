@@ -3,9 +3,10 @@
 import { useCanAct } from "@/components/CanAct";
 import { NextActionControls, refreshNextActions, useNextActions } from "@/components/NextAction";
 import { useState } from "react";
-import { Button, Tooltip } from "antd";
-import { PlayCircleOutlined, QuestionCircleOutlined } from "@ant-design/icons";
 import { ORDER_QUESTION_ID } from "@/components/OrderQuestion";
+import Button from "@/components/ui/Button";
+import Tip from "@/components/ui/Tip";
+import { CircleHelp, CirclePlay } from "lucide-react";
 
 /** 마우스를 올렸을 때 마지막 판정이 이보다 오래됐으면 다시 판정한다. */
 const STALE_MS = 5_000;
@@ -32,16 +33,16 @@ export default function V2RunButton({ epicKey }: { epicKey: string }) {
   // 질문은 버튼 줄에 다 들어가지 않는다. 오더 화면 본문 맨 위의 질문 카드가 그리고, 여기서는 그 카드로 내려가는 버튼만 둔다.
   if (item?.action === "ask" && item.ask) {
     return (
-      <Tooltip title={item.text}>
+      <Tip title={item.text}>
         <Button
-          type="link"
-          icon={<QuestionCircleOutlined />}
+          variant="link"
+          icon={<CircleHelp size="1em" />}
           style={{ color: "#fa541c" }}
           onClick={() => document.getElementById(ORDER_QUESTION_ID)?.scrollIntoView({ behavior: "smooth", block: "start" })}
         >
           답을 기다리는 중
         </Button>
-      </Tooltip>
+      </Tip>
     );
   }
   const actionable = !!item && !!(item.action || item.cmd || item.link);
@@ -50,11 +51,11 @@ export default function V2RunButton({ epicKey }: { epicKey: string }) {
       {actionable && !checking ? (
         <NextActionControls item={item} />
       ) : (
-        <Tooltip title={item?.text ?? "자동으로 진행할 일이 없습니다"}>
-          <Button type="link" icon={<PlayCircleOutlined />} disabled loading={checking}>
+        <Tip title={item?.text ?? "자동으로 진행할 일이 없습니다"}>
+          <Button variant="link" icon={<CirclePlay size="1em" />} disabled busy={checking}>
             {item?.group === "auto" ? "자동 실행 중" : "자동 실행"}
           </Button>
-        </Tooltip>
+        </Tip>
       )}
     </span>
   );

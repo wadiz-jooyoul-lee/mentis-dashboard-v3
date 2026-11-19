@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Collapse, Table, Empty, Pagination, Typography } from "antd";
-import type { TableProps } from "antd";
+import { type Key, useEffect, useMemo, useState } from "react";
+import Collapse from "@/components/ui/Disclosure";
+import DataTable, { type Column } from "@/components/ui/DataTable";
+import { Pager } from "@/components/ui/Misc";
+import Empty from "@/components/ui/Empty";
+import { Text } from "@/components/ui/Typo";
 
-const { Text } = Typography;
 
 /** 한 페이지에 보여줄 날짜 그룹 수 기본값. */
 const DEFAULT_PAGE_SIZE = 10;
@@ -53,9 +55,9 @@ export default function DateFoldedTable<T extends object>({
 }: {
   items: T[];
   dateOf: (r: T) => string | null | undefined;
-  columns: TableProps<T>["columns"];
-  rowKey: TableProps<T>["rowKey"];
-  rowClassName?: TableProps<T>["rowClassName"];
+  columns: Column<T>[];
+  rowKey: (keyof T & string) | ((r: T) => Key);
+  rowClassName?: (r: T, i: number) => string;
   emptyText?: string;
   groupLabel?: string;
   /** 한 페이지에 보여줄 날짜 그룹 수(기본 10). 단일 그룹 모드에서는 무시된다. */
@@ -149,7 +151,7 @@ export default function DateFoldedTable<T extends object>({
       </span>
     ),
     children: (
-      <Table<T>
+      <DataTable<T>
         rowKey={rowKey}
         columns={columns}
         dataSource={groups.get(k)}
@@ -173,15 +175,12 @@ export default function DateFoldedTable<T extends object>({
       />
       {showPager && (
         <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
-          <Pagination
-            size="small"
+          <Pager
             current={page}
             pageSize={pageSize}
             total={keys.length}
-            // 크기 변경도 onChange로 함께 들어온다(antd가 onShowSizeChange 뒤에 onChange를 부르며
-            // 페이지를 다시 세팅해, 따로 처리하면 "1페이지로 되돌리기"가 덮어써진다).
+            // 크기 변경도 onChange로 함께 들어온다 — 크기가 바뀌면 changeSize 가 1페이지로 되돌린다.
             onChange={(p, size) => (size !== pageSize ? changeSize(size) : setPage(p))}
-            showSizeChanger
             pageSizeOptions={PAGE_SIZE_OPTIONS}
             showTotal={(t, [a, b]) => `날짜 ${a}–${b} / 전체 ${t}일`}
           />

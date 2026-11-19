@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { Breadcrumb, Typography } from "antd";
 import MarkdownDoc from "@/components/MarkdownDoc";
+import Crumbs from "@/components/ui/Crumbs";
+import { Paragraph, Title } from "@/components/ui/Typo";
 
-const { Title, Paragraph } = Typography;
 
 const DOC = `# 대시보드 구성도 — 오더 하나가 거치는 흐름
 
@@ -64,9 +63,8 @@ flowchart LR
 export default function DataMapView() {
   return (
     <div>
-      <Breadcrumb
-        style={{ marginBottom: 12 }}
-        items={[{ title: <Link href="/">홈</Link> }, { title: "구성도" }]}
+      <Crumbs
+        items={[{ href: "/", label: "홈" }, { label: "구성도" }]}
       />
       <Title level={2} style={{ marginTop: 0 }}>
         대시보드 구성도

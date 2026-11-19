@@ -1,11 +1,13 @@
 "use client";
 
-import { Space, Tag, Tooltip, Typography } from "antd";
-import { LinkOutlined } from "@ant-design/icons";
 import type { ReleaseNoteRow } from "@/lib/parseOrderStatus";
-import { REPO_OWNER } from "@/components/ShipProgress";
+import { REPO_OWNER } from "@/components/mdview/ShipProgress";
+import Stack from "@/components/ui/Stack";
+import Tag from "@/components/ui/Tag";
+import Tip from "@/components/ui/Tip";
+import { Text } from "@/components/ui/Typo";
+import { Link2 } from "lucide-react";
 
-const { Text } = Typography;
 
 const WEEKDAY = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -50,11 +52,11 @@ export function ReleaseNoteTags({ rows }: { rows: ReleaseNoteRow[] }) {
   return (
     <span style={{ display: "inline-flex", flexWrap: "wrap", gap: 4 }}>
       {byDate(rows).map(([date, rs]) => (
-        <Tooltip key={date} title={rs.map(rowText).join(" / ")}>
+        <Tip key={date} title={rs.map(rowText).join(" / ")}>
           <Tag color={groupColor(rs)} style={{ margin: 0 }}>
             {dayLabel(date)} {rs.every((r) => r.merge === "머지됨") ? "✓" : "⚠"}
           </Tag>
-        </Tooltip>
+        </Tip>
       ))}
     </span>
   );
@@ -70,12 +72,12 @@ export function ReleaseNoteList({ rows, epicKey }: { rows: ReleaseNoteRow[]; epi
     );
   }
   return (
-    <Space orientation="vertical" size={4}>
+    <Stack orientation="vertical" size={4}>
       {byDate(rows).flatMap(([date, rs]) =>
         rs.map((r) => {
           const pr = prUrl(r);
           return (
-            <Space key={`${date}:${r.repo}`} size={8} wrap style={{ fontSize: 13 }}>
+            <Stack key={`${date}:${r.repo}`} size={8} wrap style={{ fontSize: 13 }}>
               <Tag color={groupColor([r])} style={{ margin: 0 }}>
                 {dayLabel(date)} 배포
               </Tag>
@@ -94,13 +96,13 @@ export function ReleaseNoteList({ rows, epicKey }: { rows: ReleaseNoteRow[]; epi
               </Text>
               {r.page && (
                 <a href={r.page} target="_blank" rel="noreferrer">
-                  <LinkOutlined /> 릴리즈 노트
+                  <Link2 size="1em" /> 릴리즈 노트
                 </a>
               )}
-            </Space>
+            </Stack>
           );
         }),
       )}
-    </Space>
+    </Stack>
   );
 }

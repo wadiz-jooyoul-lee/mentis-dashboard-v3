@@ -2,13 +2,16 @@
 
 import { useCanAct } from "@/components/CanAct";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Typography, Empty, Button, Collapse, Badge } from "antd";
 import FeedView from "@/components/FeedView";
 import StyledDoc from "@/components/doc/StyledDoc";
 import OrderHeader from "@/components/OrderHeader";
 import type { FeedItem, JobState } from "@/lib/jobs";
+import Button from "@/components/ui/Button";
+import Collapse from "@/components/ui/Disclosure";
+import Empty from "@/components/ui/Empty";
+import { StatusDot } from "@/components/ui/Tag";
+import { Paragraph } from "@/components/ui/Typo";
 
-const { Title, Paragraph } = Typography;
 
 type ExplainJob = { state: JobState; feed: FeedItem[] };
 
@@ -31,7 +34,7 @@ function JobRecord({ job, label = "구현 내용" }: { job: ExplainJob; label?: 
           label: (
             <span>
               {label} 생성 기록{" "}
-              <Badge status={badge.status} text={badge.text} style={{ marginLeft: 8 }} />
+              <StatusDot status={badge.status} text={badge.text} style={{ marginLeft: 8 }} />
             </span>
           ),
           children: <FeedView feed={job.feed} height={360} alwaysBottom />,
@@ -119,7 +122,7 @@ function GenerateExplainer({ epicKey, docLabel = "구현 내용" }: { epicKey: s
     return (
       <Empty description={`아직 ${docLabel} 문서가 없습니다.${canAct ? " 산출물로 생성할 수 있습니다." : ""}`}>
         {canAct && (
-          <Button type="primary" loading={busy} onClick={gen}>
+          <Button variant="solid" busy={busy} onClick={gen}>
             {docLabel} 생성
           </Button>
         )}

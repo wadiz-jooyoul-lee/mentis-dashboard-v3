@@ -1,12 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Typography, Space, Button, Card, Tag, Alert, Collapse, message } from "antd";
-import { CopyOutlined, ExportOutlined } from "@ant-design/icons";
 import OrderHeader from "@/components/OrderHeader";
 import type { ArtifactShare } from "@/lib/orchestration";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import Collapse from "@/components/ui/Disclosure";
+import Note from "@/components/ui/Note";
+import Stack from "@/components/ui/Stack";
+import Tag from "@/components/ui/Tag";
+import { toast } from "@/components/ui/Toaster";
+import { Paragraph, Text } from "@/components/ui/Typo";
+import { Copy, ExternalLink } from "lucide-react";
 
-const { Title, Text, Paragraph } = Typography;
 
 /** http://IP(비보안 컨텍스트)에선 navigator.clipboard가 없으므로 execCommand로 폴백. */
 async function copyText(text: string) {
@@ -23,32 +29,32 @@ async function copyText(text: string) {
       document.execCommand("copy");
       document.body.removeChild(ta);
     }
-    message.success("링크를 복사했습니다.");
+    toast.success("링크를 복사했습니다.");
   } catch {
-    message.error("복사에 실패했습니다.");
+    toast.error("복사에 실패했습니다.");
   }
 }
 
 /** 링크 한 줄 + 복사/열기 버튼. */
 function LinkRow({ url, copyLabel = "복사" }: { url: string; copyLabel?: string }) {
   return (
-    <Space.Compact style={{ width: "100%" }}>
+    <span className="ui-compact">
       <Button style={{ flex: 1, textAlign: "left", cursor: "text", overflow: "hidden" }} title={url}>
         <Text ellipsis style={{ maxWidth: "100%" }}>
           {url}
         </Text>
       </Button>
-      <Button icon={<CopyOutlined />} onClick={() => copyText(url)}>
+      <Button icon={<Copy size="1em" />} onClick={() => copyText(url)}>
         {copyLabel}
       </Button>
       <Button
-        type="primary"
-        icon={<ExportOutlined />}
+        variant="solid"
+        icon={<ExternalLink size="1em" />}
         onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
       >
         열기
       </Button>
-    </Space.Compact>
+    </span>
   );
 }
 
@@ -111,13 +117,13 @@ export default function ArtifactTabView({
 
       <div style={{ padding: "16px 0", display: "flex", flexDirection: "column", gap: 20 }}>
         {/* ① 로컬 HTML — 구현 내용(explainer)을 크롬 없는 HTML로 */}
-        <Card size="small" title={<Space><span>구현 내용 HTML</span><Tag color="blue">로컬</Tag></Space>}>
+        <Card size="small" title={<Stack><span>구현 내용 HTML</span><Tag color="blue">로컬</Tag></Stack>}>
           {hasExplainer ? (
-            <Space orientation="vertical" size={12} style={{ width: "100%" }}>
+            <Stack orientation="vertical" size={12} style={{ width: "100%" }}>
               <Text type="secondary" style={{ fontSize: 13 }}>
                 &lsquo;구현 내용&rsquo; 탭 내용을 그대로 담은 단독 HTML 페이지입니다(이 대시보드가 서빙).
               </Text>
-              <Alert
+              <Note
                 type={exposure === "lan" ? "warning" : "info"}
                 showIcon
                 style={{ padding: "6px 12px" }}
@@ -142,7 +148,7 @@ export default function ArtifactTabView({
               {localUrl && <LinkRow url={localUrl} copyLabel="내부용 복사" />}
               {localUrl && (
                 <Collapse
-                  size="small"
+                  size="sm"
                   style={{ width: "100%" }}
                   items={[
                     {
@@ -159,9 +165,9 @@ export default function ArtifactTabView({
                   ]}
                 />
               )}
-            </Space>
+            </Stack>
           ) : (
-            <Alert
+            <Note
               type="info"
               showIcon
               title="아직 구현 내용(explainer)이 없습니다."
@@ -173,10 +179,10 @@ export default function ArtifactTabView({
         {/* ② claude.ai 공개 아티팩트 — dobby-share가 생성한 링크(있으면) */}
         <Card
           size="small"
-          title={<Space><span>공개 아티팩트</span><Tag color="purple">claude.ai</Tag></Space>}
+          title={<Stack><span>공개 아티팩트</span><Tag color="purple">claude.ai</Tag></Stack>}
         >
           {shares.length > 0 ? (
-            <Space orientation="vertical" size={12} style={{ width: "100%" }}>
+            <Stack orientation="vertical" size={12} style={{ width: "100%" }}>
               <Text type="secondary" style={{ fontSize: 13 }}>
                 <code>/dobby-share {epicKey}</code> 로 게시된 공개 아티팩트
                 {shares.length > 1 ? ` ${shares.length}개` : ""}입니다.
@@ -189,26 +195,26 @@ export default function ArtifactTabView({
                   size="small"
                   type="inner"
                   title={
-                    <Space size={8} wrap>
+                    <Stack size={8} wrap>
                       <Text strong>{s.title}</Text>
                       {s.slug !== "legacy" && <Tag style={{ margin: 0 }}>{s.slug}</Tag>}
                       {s.updatedAt && <Tag color="blue" style={{ margin: 0 }}>갱신 {s.updatedAt}</Tag>}
-                    </Space>
+                    </Stack>
                   }
                 >
-                  <Space orientation="vertical" size={6} style={{ width: "100%" }}>
+                  <Stack orientation="vertical" size={6} style={{ width: "100%" }}>
                     <LinkRow url={s.url} copyLabel="공유용 복사" />
                     {s.createdAt && (
                       <Text type="secondary" style={{ fontSize: 12 }}>
                         생성 {s.createdAt}
                       </Text>
                     )}
-                  </Space>
+                  </Stack>
                 </Card>
               ))}
-            </Space>
+            </Stack>
           ) : (
-            <Alert
+            <Note
               type="info"
               showIcon
               title="공개 아티팩트 링크가 아직 없습니다."

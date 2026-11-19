@@ -1,13 +1,14 @@
 "use client";
 
-import { Collapse, Tag, Typography } from "antd";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { PlanField, PlanScenario, TestPlan } from "@/lib/testPlan";
 import "./markdown.css";
 import "./testPlan.css";
+import Collapse from "@/components/ui/Disclosure";
+import Tag from "@/components/ui/Tag";
+import { Text } from "@/components/ui/Typo";
 
-const { Text } = Typography;
 
 const PASS_LABELS = new Set(["통과 기준", "기대", "기대 결과", "판정 기준"]);
 const FAIL_LABELS = new Set(["실패로 보는 것"]);
@@ -77,7 +78,7 @@ function ScenarioBody({ s }: { s: PlanScenario }) {
 export default function TestPlanView({ plan, defaultOpen }: { plan: TestPlan; defaultOpen: boolean }) {
   const prep = plan.sections.length > 0 && (
     <Collapse
-      size="small"
+      size="sm"
       items={
         plan.scenarios.length > 0
           ? [
@@ -104,7 +105,7 @@ export default function TestPlanView({ plan, defaultOpen }: { plan: TestPlan; de
 
   const scenarios = plan.scenarios.length > 0 && (
     <Collapse
-      size="small"
+      size="sm"
       items={plan.scenarios.map((s, i) => ({
         key: String(i),
         label: (

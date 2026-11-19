@@ -1,9 +1,15 @@
 "use client";
 
-import { Alert, Card, Col, Collapse, Row, Space, Table, Tag, Typography } from "antd";
 import { retroStages, type RetroData, type RetroFix, type RetroSegment } from "@/lib/retro";
+import Card from "@/components/ui/Card";
+import { Col, Row } from "@/components/ui/Grid";
+import Collapse from "@/components/ui/Disclosure";
+import DataTable from "@/components/ui/DataTable";
+import Note from "@/components/ui/Note";
+import Stack from "@/components/ui/Stack";
+import Tag from "@/components/ui/Tag";
+import { Paragraph, Text, Title } from "@/components/ui/Typo";
 
-const { Text, Paragraph, Title } = Typography;
 
 const man = (n: number | null | undefined) => (n == null ? "-" : `${Math.round(n / 10000).toLocaleString()}만`);
 const mins = (s: number | null | undefined) => (s == null ? "-" : s < 90 ? `${s}초` : `${Math.round(s / 60)}분`);
@@ -50,11 +56,11 @@ function StageBand({ could, found }: { could?: string; found: string }) {
         <div style={{ position: "absolute", left: `${x(0)}%`, right: `${100 - x(n - 1)}%`, top: 10, height: 2, background: "#e5e5e5" }} />
         {ci >= 0 && ci < fi && (
           <div
-            style={{ position: "absolute", left: `${x(ci)}%`, width: `${x(fi) - x(ci)}%`, top: 8, height: 6, background: "#ffccc7", borderRadius: 3 }}
+            style={{ position: "absolute", left: `${x(ci)}%`, width: `${x(fi) - x(ci)}%`, top: 8, height: 6, background: "color-mix(in srgb, var(--danger-fg) 30%, var(--line))", borderRadius: 3 }}
           />
         )}
         {stages.map((s, i) => {
-          const color = i === fi ? "#cf1322" : i === ci ? "#d48806" : "#d9d9d9";
+          const color = i === fi ? "var(--danger-fg)" : i === ci ? "var(--warn-fg)" : "var(--line)";
           const size = i === fi || i === ci ? 14 : 8;
           return (
             <div
@@ -80,7 +86,7 @@ function StageBand({ could, found }: { could?: string; found: string }) {
               flex: 1,
               textAlign: "center",
               fontSize: 12,
-              color: i === fi ? "#cf1322" : i === ci ? "#d48806" : "#8c8c8c",
+              color: i === fi ? "var(--danger-fg)" : i === ci ? "var(--warn-fg)" : "var(--fg-soft)",
               fontWeight: i === fi || i === ci ? 600 : 400,
             }}
           >
@@ -88,14 +94,14 @@ function StageBand({ could, found }: { could?: string; found: string }) {
           </div>
         ))}
       </div>
-      <Space size={12} style={{ fontSize: 12, marginTop: 4 }} wrap>
+      <Stack size={12} style={{ fontSize: 12, marginTop: 4 }} wrap>
         {ci >= 0 && (
-          <Text style={{ fontSize: 12, color: "#d48806" }}>● 여기서 잡을 수 있었음</Text>
+          <Text style={{ fontSize: 12, color: "var(--warn-fg)" }}>● 여기서 잡을 수 있었음</Text>
         )}
-        <Text style={{ fontSize: 12, color: "#cf1322" }}>● 실제로 잡힌 곳</Text>
+        <Text style={{ fontSize: 12, color: "var(--danger-fg)" }}>● 실제로 잡힌 곳</Text>
         {ci >= 0 && ci < fi && <Text type="secondary" style={{ fontSize: 12 }}>{fi - ci}단계 늦게 잡혔습니다</Text>}
         {!could || could === "미확인" ? <Text type="secondary" style={{ fontSize: 12 }}>더 일찍 잡을 수 있었는지는 확인하지 못했습니다</Text> : null}
-      </Space>
+      </Stack>
     </div>
   );
 }
@@ -164,9 +170,9 @@ function TokenBars({ data }: { data: RetroData }) {
                 )}
               </span>
             </div>
-            <div style={{ height: 12, background: "#f5f5f5", borderRadius: 6, marginTop: 3 }}>
+            <div style={{ height: 12, background: "var(--bg-sunken)", borderRadius: 6, marginTop: 3 }}>
               <div
-                style={{ width: `${(r.v.cost / max) * 100}%`, height: 12, borderRadius: 6, background: i === 0 ? "#1677ff" : "#91caff" }}
+                style={{ width: `${(r.v.cost / max) * 100}%`, height: 12, borderRadius: 6, background: i === 0 ? "var(--accent)" : "var(--accent)" }}
               />
             </div>
           </div>
@@ -206,7 +212,7 @@ export default function RetroReport({ data }: { data: RetroData }) {
       </Text>
 
       {data.summary && (
-        <Alert
+        <Note
           type="info"
           showIcon
           style={{ margin: "12px 0" }}
@@ -226,10 +232,10 @@ export default function RetroReport({ data }: { data: RetroData }) {
         <Card key={d.title} size="small" style={{ marginBottom: 12 }} title={`${i + 1}. ${d.title}`}>
           <StageBand could={d.couldAt} found={d.foundAt} />
           {!retroStages(d.foundAt, d.couldAt).includes(d.foundAt) && (
-            <Space size={6} wrap>
+            <Stack size={6} wrap>
               <Tag>실제로 잡힌 곳: {d.foundAt}</Tag>
               {d.couldAt && <Tag color="gold">잡을 수 있었던 곳: {d.couldAt}</Tag>}
-            </Space>
+            </Stack>
           )}
           {d.what ? (
             <>
@@ -270,13 +276,13 @@ export default function RetroReport({ data }: { data: RetroData }) {
             </Line>
           )}
           {!!d.causes?.length && (
-            <Space size={4} wrap style={{ marginTop: 8 }}>
+            <Stack size={4} wrap style={{ marginTop: 8 }}>
               {d.causes.map((c) => (
                 <Tag key={c} color="volcano">
                   {CAUSE_TEXT[c] ?? c}
                 </Tag>
               ))}
-            </Space>
+            </Stack>
           )}
           <Evidence list={d.evidence} />
         </Card>
@@ -297,7 +303,7 @@ export default function RetroReport({ data }: { data: RetroData }) {
                       {WHERE_META[w].help}
                     </Paragraph>
                     {groups[w].map((g, k) => (
-                      <div key={k} style={{ padding: "8px 0", borderTop: k ? "1px solid #f0f0f0" : undefined }}>
+                      <div key={k} style={{ padding: "8px 0", borderTop: k ? "1px solid var(--line)" : undefined }}>
                         <Text strong>{g.title}</Text>
                         {g.target && (
                           <div style={{ fontSize: 12 }}>
@@ -312,7 +318,7 @@ export default function RetroReport({ data }: { data: RetroData }) {
                           </div>
                         )}
                         {g.text && (
-                          <Paragraph copyable style={{ margin: "6px 0 0", whiteSpace: "pre-wrap", background: "#fafafa", padding: 8, fontSize: 13 }}>
+                          <Paragraph copyable style={{ margin: "6px 0 0", whiteSpace: "pre-wrap", background: "var(--bg-sunken)", padding: 8, fontSize: 13 }}>
                             {g.text}
                           </Paragraph>
                         )}
@@ -393,8 +399,8 @@ export default function RetroReport({ data }: { data: RetroData }) {
                             </span>
                             <span>{man(s.cost)}</span>
                           </div>
-                          <div style={{ height: 6, background: "#f0f0f0", borderRadius: 3 }}>
-                            <div style={{ width: `${(s.cost / maxStage) * 100}%`, height: 6, background: "#1677ff", borderRadius: 3 }} />
+                          <div style={{ height: 6, background: "var(--line)", borderRadius: 3 }}>
+                            <div style={{ width: `${(s.cost / maxStage) * 100}%`, height: 6, background: "var(--accent)", borderRadius: 3 }} />
                           </div>
                         </div>
                       ))}
@@ -402,22 +408,22 @@ export default function RetroReport({ data }: { data: RetroData }) {
                   </Col>
                   <Col xs={24} md={14}>
                     <Card size="small" title="전환 판정">
-                      <Space size={[6, 6]} wrap style={{ marginBottom: 8 }}>
+                      <Stack size={[6, 6]} wrap style={{ marginBottom: 8 }}>
                         {judges.map(([j, n]) => (
                           <Tag key={j} color={JUDGE_COLOR[j] ?? "default"}>
                             {j} {n}
                           </Tag>
                         ))}
-                      </Space>
+                      </Stack>
                       <Paragraph type="secondary" style={{ fontSize: 12, margin: 0 }}>
                         틀림은 반대로 골랐으면 {m.fastPct}% 이상 쌌던 전환입니다. 속도 손해는 비용은 비슷한데 반대로 골랐으면 더 빨랐던 전환입니다.
                       </Paragraph>
                     </Card>
                   </Col>
                 </Row>
-                <Table<RetroSegment>
+                <DataTable<RetroSegment>
                   style={{ marginTop: 12 }}
-                  size="small"
+                  size="sm"
                   rowKey={(s) => `${s.when}-${s.stage}`}
                   dataSource={m.segments}
                   pagination={{ pageSize: 20, hideOnSinglePage: true }}

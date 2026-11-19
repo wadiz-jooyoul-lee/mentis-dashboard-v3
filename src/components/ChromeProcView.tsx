@@ -3,11 +3,18 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Breadcrumb, Button, Empty, Popconfirm, Space, Table, Tag, Typography, message } from "antd";
 import { useCanAct } from "@/components/CanAct";
 import type { ChromeProc, ChromeState, KillResult } from "@/lib/chromeProcs";
+import Button from "@/components/ui/Button";
+import Confirm from "@/components/ui/Confirm";
+import Crumbs from "@/components/ui/Crumbs";
+import DataTable from "@/components/ui/DataTable";
+import Empty from "@/components/ui/Empty";
+import Stack from "@/components/ui/Stack";
+import Tag from "@/components/ui/Tag";
+import { toast } from "@/components/ui/Toaster";
+import { Text, Title } from "@/components/ui/Typo";
 
-const { Title, Text } = Typography;
 
 const STATE: Record<ChromeState, { label: string; color: string; hint: string }> = {
   auto: { label: "자동 실행", color: "purple", hint: "대시보드가 맡긴 자동 실행이 쓰는 중이라 끌 수 없습니다" },
@@ -42,13 +49,13 @@ export default function ChromeProcView({ list }: { list: ChromeProc[] }) {
       });
       const d = await r.json();
       if (!r.ok) {
-        message.error(d?.error ?? "끄기 요청에 실패했습니다");
+        toast.error(d?.error ?? "끄기 요청에 실패했습니다");
         return;
       }
       const res = d.results as KillResult[];
       const done = res.filter((x) => x.result === "종료됨").length;
       const rest = res.filter((x) => x.result !== "종료됨").map((x) => `${x.pid} ${x.result}`);
-      (rest.length ? message.warning : message.success)(
+      (rest.length ? toast.warning : toast.success)(
         `${done}개 종료됨${rest.length ? ` · ${rest.join(", ")}` : ""}`,
       );
       setSelected([]);
@@ -60,7 +67,7 @@ export default function ChromeProcView({ list }: { list: ChromeProc[] }) {
 
   return (
     <div>
-      <Breadcrumb items={[{ title: <Link href="/">홈</Link> }, { title: "테스트 브라우저" }]} style={{ marginBottom: 12 }} />
+      <Crumbs items={[{ href: "/", label: "홈" }, { label: "테스트 브라우저" }]} />
       <Title level={3} style={{ marginTop: 0, marginBottom: 4 }}>
         테스트 브라우저
       </Title>
@@ -69,26 +76,26 @@ export default function ChromeProcView({ list }: { list: ChromeProc[] }) {
       </Text>
 
       {canAct && (
-        <Space style={{ display: "flex", justifyContent: "flex-end", margin: "16px 0 12px" }}>
-          <Popconfirm
+        <Stack style={{ display: "flex", justifyContent: "flex-end", margin: "16px 0 12px" }}>
+          <Confirm
             title={`쉬는 크롬 ${killable.length}개를 끌까요?`}
             description="띄운 세션은 닫히지 않고 크롬만 꺼집니다."
             onConfirm={() => kill(killable)}
             disabled={killable.length === 0}
           >
-            <Button disabled={killable.length === 0} loading={busy}>
+            <Button disabled={killable.length === 0} busy={busy}>
               쉬는 것 모두 끄기 ({killable.length})
             </Button>
-          </Popconfirm>
-          <Popconfirm title={`선택한 크롬 ${picked.length}개를 끌까요?`} onConfirm={() => kill(picked)} disabled={picked.length === 0}>
-            <Button type="primary" danger disabled={picked.length === 0} loading={busy}>
+          </Confirm>
+          <Confirm title={`선택한 크롬 ${picked.length}개를 끌까요?`} onConfirm={() => kill(picked)} disabled={picked.length === 0}>
+            <Button variant="solid" danger disabled={picked.length === 0} busy={busy}>
               선택한 것 끄기 ({picked.length})
             </Button>
-          </Popconfirm>
-        </Space>
+          </Confirm>
+        </Stack>
       )}
 
-      <Table<ChromeProc>
+      <DataTable<ChromeProc>
         rowKey="pid"
         size="middle"
         pagination={false}
@@ -146,11 +153,11 @@ export default function ChromeProcView({ list }: { list: ChromeProc[] }) {
                   width: 90,
                   render: (_: unknown, c: ChromeProc) =>
                     c.killable ? (
-                      <Popconfirm title={`크롬 ${c.pid}를 끌까요?`} onConfirm={() => kill([c.pid])}>
-                        <Button size="small" danger loading={busy}>
+                      <Confirm title={`크롬 ${c.pid}를 끌까요?`} onConfirm={() => kill([c.pid])}>
+                        <Button size="sm" danger busy={busy}>
                           끄기
                         </Button>
-                      </Popconfirm>
+                      </Confirm>
                     ) : (
                       <Text type="secondary" style={{ fontSize: 12 }} title={STATE[c.state].hint}>
                         끄기 막힘

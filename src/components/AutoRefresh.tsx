@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { SyncOutlined } from "@ant-design/icons";
-import { Tooltip } from "antd";
+import Tip from "@/components/ui/Tip";
+import { RefreshCw } from "lucide-react";
 
 /**
  * 일정 주기로 현재 라우트의 서버 데이터를 다시 읽어온다.
@@ -47,14 +47,15 @@ export default function AutoRefresh({
   }, [refresh, intervalMs]);
 
   return (
-    <span style={{ color: "rgba(255,255,255,0.65)", fontSize: 13 }}>
-      <Tooltip title="지금 갱신">
-        <SyncOutlined
-          spin={spinning}
+    <span style={{ color: "var(--fg-soft)", fontSize: 13, display: "inline-flex", alignItems: "center" }}>
+      <Tip title="지금 갱신">
+        <RefreshCw
+          size="1em"
+          className={spinning ? "ui-spin-icon" : undefined}
           onClick={refresh}
           style={{ marginRight: 6, cursor: "pointer" }}
         />
-      </Tooltip>
+      </Tip>
       {Math.round(intervalMs / 1000)}초마다 자동 갱신
       {last ? ` · 최근 ${last}` : ""}
     </span>

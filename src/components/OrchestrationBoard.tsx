@@ -5,34 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import {
-  Typography,
-  Space,
-  Badge,
-  Tag,
-  Card,
-  Row,
-  Col,
-  Timeline,
-  Collapse,
-  Empty,
-  Alert,
-  Tooltip,
-  Button,
-} from "antd";
-import {
-  WarningOutlined,
-  FileTextOutlined,
-  MessageOutlined,
-  MutedOutlined,
-  CodeOutlined,
-} from "@ant-design/icons";
 import GroupAvatar from "@/components/GroupAvatar";
 import QuipsControl from "@/components/QuipsControl";
 import OrderHeader from "@/components/OrderHeader";
 import MarkdownCards from "@/components/MarkdownCards";
-import ReviewCards from "@/components/ReviewCards";
-import { ShipProgress } from "@/components/ShipProgress";
+import { ShipProgress } from "@/components/mdview/ShipProgress";
 import { ReleaseNoteList } from "@/components/ReleaseNoteTags";
 import { quipList, type QuipsFile, type Quip } from "@/lib/quipTypes";
 import { type AssignedAvatar, ORCHESTRATOR_SLUG } from "@/lib/avatarAssign";
@@ -55,8 +32,22 @@ import { parseReport } from "@/lib/parseReport";
 import type { DevProgress } from "@/lib/devProgress";
 import { isJiraIssueKey } from "@/lib/keys";
 import "./markdown.css";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import { Col, Row } from "@/components/ui/Grid";
+import Chip from "@/components/ui/Chip";
+import Collapse from "@/components/ui/Disclosure";
+import Empty from "@/components/ui/Empty";
+import Note from "@/components/ui/Note";
+import Stack from "@/components/ui/Stack";
+import Tag from "@/components/ui/Tag";
+import Tip from "@/components/ui/Tip";
+import { StatusDot } from "@/components/ui/Tag";
+import { Text, Title } from "@/components/ui/Typo";
+import { Code, FileText, MessageSquare, MessageSquareOff, TriangleAlert } from "lucide-react";
+import EventTimeline from "@/components/mdview/EventTimeline";
+import { ReviewRounds } from "@/components/mdview/ReviewFindings";
 
-const { Title, Text } = Typography;
 
 /** 시각 문자열에 시:분이 있나(날짜만이면 false). 날짜만이면 경과를 못 재므로 정체 판정에서 제외. */
 function hasTimeOfDay(v: string | null | undefined): boolean {
@@ -95,7 +86,7 @@ function elapsed(a: AgentRow): string | null {
 
 /** 세션 점: 초록 살아 있는 세션 · 빨강 작업중인데 세션 없음(끊김) · 회색 세션 없음. */
 type Dot = "live" | "lost" | "none";
-const DOT_COLOR: Record<Dot, string> = { live: "#52c41a", lost: "#ff4d4f", none: "#d9d9d9" };
+const DOT_COLOR: Record<Dot, string> = { live: "var(--ok-fg)", lost: "var(--danger-fg)", none: "var(--line)" };
 const DOT_TITLE: Record<Dot, string> = {
   live: "이 담당자로 일하는 세션이 살아 있습니다",
   lost: "작업중인데 살아 있는 세션이 없습니다(세션 끊김)",
@@ -170,20 +161,6 @@ function groupReviewsByAgent(
   return groups;
 }
 
-/** 이벤트 하나를 타임라인 항목으로. */
-function eventItem(e: EventRow) {
-  return {
-    content: (
-      <Space orientation="vertical" size={0}>
-        <Text>{e.text}</Text>
-        <Text type="secondary" style={{ fontSize: 12 }}>
-          {e.time}
-        </Text>
-      </Space>
-    ),
-  };
-}
-
 type BarPart = { n: number; color: string };
 
 /** 카드 아바타 아래 진행 막대. 칸 비율은 전체 대비, 남은 칸은 비워 둔다. */
@@ -191,7 +168,7 @@ function ProgressBar({ parts, total, label }: { parts: BarPart[]; total: number;
   return (
     <div style={{ width: "100%" }}>
       {total > 0 && (
-        <div style={{ display: "flex", height: 6, borderRadius: 3, overflow: "hidden", background: "#f0f0f0" }}>
+        <div style={{ display: "flex", height: 6, borderRadius: 3, overflow: "hidden", background: "var(--line)" }}>
           {parts.map((p, i) => (
             <div key={i} style={{ width: `${(p.n / total) * 100}%`, background: p.color }} />
           ))}
@@ -244,8 +221,8 @@ function PhaseBand({
               padding: "4px 0",
               borderRadius: 4,
               fontSize: 12,
-              background: active ? "#1677ff" : i < cur ? "#e6f4ff" : "#f5f5f5",
-              color: active ? "#fff" : i < cur ? "#1677ff" : "rgba(0,0,0,0.45)",
+              background: active ? "var(--accent)" : i < cur ? "var(--accent-bg)" : "var(--bg-sunken)",
+              color: active ? "#fff" : i < cur ? "var(--accent)" : "rgba(0,0,0,0.45)",
               fontWeight: active ? 600 : 400,
             }}
           >
@@ -321,26 +298,26 @@ function AgentCard({
   return (
     <Card
       size="small"
-      hoverable={clickable}
+      hover={clickable}
       onClick={goToChanges}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
         position: "relative", // 오른쪽 위 뮤트 버튼의 기준
         marginBottom: 8,
-        borderColor: stale || lost ? "#ffccc7" : undefined,
+        borderColor: stale || lost ? "color-mix(in srgb, var(--danger-fg) 30%, var(--line))" : undefined,
         cursor: clickable ? "pointer" : undefined,
         opacity: empty ? 0.5 : undefined,
-        background: empty ? "#f5f5f5" : undefined,
+        background: empty ? "var(--bg-sunken)" : undefined,
       }}
     >
       {(quips?.length ?? 0) >= 2 && (
-        <Tooltip title={muted ? "소감 켜기" : "소감 끄기"}>
+        <Tip title={muted ? "소감 켜기" : "소감 끄기"}>
           <Button
-            type="text"
-            size="small"
+            variant="text"
+            size="sm"
             aria-label={muted ? "소감 켜기" : "소감 끄기"}
-            icon={muted ? <MutedOutlined /> : <MessageOutlined />}
+            icon={muted ? <MessageSquareOff size={14} /> : <MessageSquare size={14} />}
             onClick={(e) => {
               e.stopPropagation(); // 카드 클릭(코드 변경 페이지 이동)과 겹치지 않게
               setMuted((v) => !v);
@@ -349,13 +326,13 @@ function AgentCard({
               position: "absolute",
               top: 2,
               right: 2,
-              color: muted ? "rgba(0,0,0,0.45)" : "rgba(0,0,0,0.25)",
+              color: muted ? "var(--fg-soft)" : "color-mix(in srgb, var(--fg-soft) 55%, transparent)",
             }}
           />
-        </Tooltip>
+        </Tip>
       )}
-      <Space orientation="vertical" size={4} style={{ width: "100%" }}>
-        <Space size={6} wrap align="center">
+      <Stack orientation="vertical" size={4} style={{ width: "100%" }}>
+        <Stack size={6} wrap align="center">
           <GroupAvatar
             slug={a.agent}
             name={a.name || a.agent}
@@ -368,24 +345,24 @@ function AgentCard({
             placement="top"
           />
           {a.agent && (
-            <Tooltip title={a.desc || undefined}>
+            <Tip title={a.desc || undefined}>
               <Tag
                 color={roleColor(a.agent)}
                 style={{ margin: 0, fontWeight: 600, fontSize: 13 }}
               >
                 {a.name || a.agent}
               </Tag>
-            </Tooltip>
+            </Tip>
           )}
           {dot && (
-            <Tooltip title={DOT_TITLE[dot]}>
+            <Tip title={DOT_TITLE[dot]}>
               <span
                 aria-label={DOT_TITLE[dot]}
                 style={{ display: "inline-block", width: 8, height: 8, borderRadius: 4, background: DOT_COLOR[dot] }}
               />
-            </Tooltip>
+            </Tip>
           )}
-        </Space>
+        </Stack>
         {empty ? (
           <Text type="secondary" style={{ fontSize: 12 }}>
             상태표에 행이 없습니다
@@ -409,12 +386,12 @@ function AgentCard({
             <Text strong>{a.issue}</Text>
           </Link>
         )}
-        <Space size={8} wrap align="center">
+        <Stack size={8} wrap align="center">
           {a.round && (
-            <Badge
+            <Chip
               count={Number(a.round) || a.round}
               color={agentStateBadge(a.state).color}
-              overflowCount={999}
+              
               // 라운드 칸: 리뷰어는 리뷰 차수, 테스터는 회차, 개발자는 수정 횟수(dobby_fix_count)다.
               title={
                 /리뷰/.test(a.name ?? "")
@@ -426,21 +403,21 @@ function AgentCard({
             />
           )}
           {a.updatedAt && (
-            <Tooltip title={`갱신 ${a.updatedAt}`}>
+            <Tip title={`갱신 ${a.updatedAt}`}>
               <Text type="secondary" style={{ fontSize: 12 }}>
                 {time ? `${time} 전` : a.updatedAt}
               </Text>
-            </Tooltip>
+            </Tip>
           )}
-        </Space>
+        </Stack>
         {stale && (
-          <Tag color="error" icon={<WarningOutlined />}>
+          <Tag color="error" icon={<TriangleAlert size="1em" />}>
             정체 의심 (마지막 변경 후 {minutesSince(staleBase(a))}분 경과)
           </Tag>
         )}
         {clickable && (
           <Tag
-            icon={<FileTextOutlined />}
+            icon={<FileText size="1em" />}
             color="geekblue"
             style={{ margin: 0, width: "fit-content" }}
           >
@@ -453,19 +430,19 @@ function AgentCard({
             onClick={(e) => e.stopPropagation()}
           >
             <Tag
-              icon={con.live ? undefined : <CodeOutlined />}
+              icon={con.live ? undefined : <Code size="1em" />}
               color={con.live ? "processing" : "default"}
               style={{ margin: 0, width: "fit-content" }}
             >
               {con.live ? (
-                <Badge status="processing" text={<b>콘솔 진행 중 →</b>} />
+                <StatusDot status="processing" text={<b>콘솔 진행 중 →</b>} />
               ) : (
                 "콘솔 보기 →"
               )}
             </Tag>
           </Link>
         )}
-      </Space>
+      </Stack>
     </Card>
   );
 }
@@ -568,14 +545,14 @@ export default function OrchestrationBoard({
       extra={
         <>
           {epic?.runMode?.startsWith("light") && (
-            <Tooltip title={epic.runMode.includes("중단") ? `light 로 시작했다가 일반 실행으로 넘김 — ${epic.runMode}` : epic.runMode === "light auto" ? "한 세션 실행 · 리뷰 없음 · 사람 확인 없이 스스로 판단" : "한 세션 실행 · 리뷰 없음 · 사람 확인 한 번"}>
+            <Tip title={epic.runMode.includes("중단") ? `light 로 시작했다가 일반 실행으로 넘김 — ${epic.runMode}` : epic.runMode === "light auto" ? "한 세션 실행 · 리뷰 없음 · 사람 확인 없이 스스로 판단" : "한 세션 실행 · 리뷰 없음 · 사람 확인 한 번"}>
               <Tag color="gold">{epic.runMode.includes("중단") ? "light 중단" : epic.runMode === "light auto" ? "light auto" : "light"}</Tag>
-            </Tooltip>
+            </Tip>
           )}
           {epic?.intake && (
-            <Tooltip title="사람이 접수 때 고른 종류">
+            <Tip title="사람이 접수 때 고른 종류">
               <Tag>접수: {epic.intake}</Tag>
-            </Tooltip>
+            </Tip>
           )}
           <QuipsControl epicKey={epicKey} />
         </>
@@ -679,7 +656,7 @@ export default function OrchestrationBoard({
       if (pp?.mode === "make")
         return (
           <ProgressBar
-            parts={[{ n: pp.done, color: "#1677ff" }]}
+            parts={[{ n: pp.done, color: "var(--accent)" }]}
             total={pp.total}
             label={
               pp.total > 0
@@ -694,7 +671,7 @@ export default function OrchestrationBoard({
     if (qp && (qp.stage === "QA 리뷰" ? a.name === "리뷰어" : isDevRole(a.name)))
       return (
         <ProgressBar
-          parts={[{ n: qp.done, color: qp.stage === "QA 리뷰" ? "#ff4d4f" : "#1677ff" }]}
+          parts={[{ n: qp.done, color: qp.stage === "QA 리뷰" ? "var(--danger-fg)" : "var(--accent)" }]}
           total={qp.total}
           label={`${qp.stage} ${qp.done} / ${qp.total} 버그 (${Math.round((qp.done / qp.total) * 100)}%)`}
         />
@@ -707,9 +684,9 @@ export default function OrchestrationBoard({
       return (
         <ProgressBar
           parts={[
-            { n: pass + warn, color: "#52c41a" },
-            { n: fail, color: "#ff4d4f" },
-            { n: skip, color: "#bfbfbf" },
+            { n: pass + warn, color: "var(--ok-fg)" },
+            { n: fail, color: "var(--danger-fg)" },
+            { n: skip, color: "var(--line)" },
           ]}
           total={t}
           label={t > 0 ? `${run} · ${done} / ${t} (${Math.round((done / t) * 100)}%)` : `${run} · 진행 ${done}건`}
@@ -720,7 +697,7 @@ export default function OrchestrationBoard({
     if (dp?.mode === "impl") {
       return (
         <ProgressBar
-          parts={[{ n: dp.done, color: "#1677ff" }]}
+          parts={[{ n: dp.done, color: "var(--accent)" }]}
           total={dp.total}
           label={`구현 ${dp.done} / ${dp.total} 파일 (${Math.round((dp.done / dp.total) * 100)}%)`}
         />
@@ -758,7 +735,7 @@ export default function OrchestrationBoard({
               상태 분포
             </Text>
             <div style={{ marginTop: 6, minHeight: 24, display: "flex", alignItems: "center" }}>
-              <Space size={[6, 6]} wrap>
+              <Stack size={[6, 6]} wrap>
                 {cols
                   .filter((s) => (counts[s] ?? 0) > 0)
                   .map((s) => {
@@ -770,7 +747,7 @@ export default function OrchestrationBoard({
                     </Tag>
                   );
                 })}
-              </Space>
+              </Stack>
             </div>
           </Col>
           {ship.length > 0 && (
@@ -799,7 +776,7 @@ export default function OrchestrationBoard({
 
       {isV2 && (
         <Card style={{ marginBottom: 16 }}>
-          <Space orientation="vertical" size={10} style={{ width: "100%" }}>
+          <Stack orientation="vertical" size={10} style={{ width: "100%" }}>
             <PhaseBand
               phase={epic?.phase ?? "unknown"}
               raw={phaseRaw}
@@ -809,11 +786,11 @@ export default function OrchestrationBoard({
               docs={epic?.docsLine ?? null}
             />
             {mover && (
-              <Alert
+              <Note
                 type={MOVER_TONE[mover.tone]}
                 showIcon
                 title={
-                  <Space size={8} wrap>
+                  <Stack size={8} wrap>
                     <Text strong>지금 움직이는 쪽</Text>
                     <Text>{mover.text}</Text>
                     {mover.cmd && (
@@ -821,7 +798,7 @@ export default function OrchestrationBoard({
                         {mover.cmd}
                       </Text>
                     )}
-                  </Space>
+                  </Stack>
                 }
               />
             )}
@@ -830,7 +807,7 @@ export default function OrchestrationBoard({
                 자동 실행: {epic.autoRun.lost ? "끊김 — 프로세스가 없습니다" : epic.autoRun.text}
               </Text>
             )}
-          </Space>
+          </Stack>
         </Card>
       )}
 
@@ -838,14 +815,14 @@ export default function OrchestrationBoard({
       {isV2 && ((epic?.autoDecisions.length ?? 0) > 0 || (epic?.prRedesigns ?? 0) > 0) && (
         <div id="auto-decisions" style={{ marginBottom: 16, scrollMarginTop: 220 }}>
           <Collapse
-            size="small"
+            size="sm"
             activeKey={decisionsOpen ? ["auto-decisions"] : []}
             onChange={(keys) => setDecisionsOpen(keys.length > 0)}
             items={[
               {
                 key: "auto-decisions",
                 label: (
-                  <Space size={8} wrap>
+                  <Stack size={8} wrap>
                     <Text strong>스스로 정한 결정</Text>
                     <Tag color="purple" style={{ margin: 0 }}>
                       {epic!.autoDecisions.length}건
@@ -855,7 +832,7 @@ export default function OrchestrationBoard({
                         확인해 보세요 {epic!.autoDecisions.filter((d) => d.check).length}건
                       </Tag>
                     )}
-                  </Space>
+                  </Stack>
                 ),
                 // 링크를 눌러도 접기·펼치기가 함께 바뀌지 않게 클릭 전달을 막는다.
                 extra: epic?.hasDesignDoc ? (
@@ -864,7 +841,7 @@ export default function OrchestrationBoard({
                   </span>
                 ) : undefined,
                 children: (
-                  <Space orientation="vertical" size={10} style={{ width: "100%" }}>
+                  <Stack orientation="vertical" size={10} style={{ width: "100%" }}>
                     <Text type="secondary" style={{ fontSize: 12 }}>
                       사람에게 묻지 않고 진행하면서 정한 것입니다. 생각과 다르면 설계를 고쳐 달라고 요청해 주세요.
                     </Text>
@@ -880,14 +857,14 @@ export default function OrchestrationBoard({
                         data-auto-decision
                         style={{ borderLeft: `3px solid ${d.check ? "#fa8c16" : "#b37feb"}`, paddingLeft: 10 }}
                       >
-                        <Space size={[6, 4]} wrap>
+                        <Stack size={[6, 4]} wrap>
                           <Text strong>{stripMd(d.what)}</Text>
                           {d.check && (
                             <Tag color="orange" style={{ margin: 0 }}>
                               확인해 보세요
                             </Tag>
                           )}
-                        </Space>
+                        </Stack>
                         <div className="markdown-body" style={{ fontSize: 13 }}>
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>
                             {[
@@ -901,7 +878,7 @@ export default function OrchestrationBoard({
                         </div>
                       </div>
                     ))}
-                  </Space>
+                  </Stack>
                 ),
               },
             ]}
@@ -910,7 +887,7 @@ export default function OrchestrationBoard({
       )}
 
       {contradictions.length > 0 && (
-        <Alert
+        <Note
           type="error"
           showIcon
           style={{ marginBottom: 16 }}
@@ -926,7 +903,7 @@ export default function OrchestrationBoard({
       )}
 
       {staleAgents.length > 0 && (
-        <Alert
+        <Note
           type="warning"
           showIcon
           icon={orchestratorAvatar(24)}
@@ -947,29 +924,25 @@ export default function OrchestrationBoard({
 
       {/* 칸반 보드 */}
       <Title level={4}>에이전트 상태</Title>
-      <Row gutter={[12, 12]}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
         {cols.map((col) => {
           const b = agentStateBadge(col);
           const items = o.agents.filter((a) => boardColumn(a.state) === col);
           const ghosts = col === "대기" ? missing : [];
           // 5개 고정 열 → 폭을 균등하게 나눠 전체 너비를 채운다(좁은 화면에선 줄바꿈).
           return (
-            <Col
-              key={col}
-              flex="1 1 0"
-              style={{ minWidth: 150 }}
-            >
+            <div key={col} style={{ flex: "1 1 0", minWidth: 150 }}>
               <div
                 style={{
-                  background: "#fafafa",
-                  borderRadius: 8,
+                  background: "var(--bg-sunken)",
+                  borderRadius: "var(--r-md)",
                   padding: 10,
                   minHeight: 80,
                   height: "100%",
                 }}
               >
                 <div style={{ marginBottom: 8, whiteSpace: "nowrap" }}>
-                  <Badge color={b.color} text={`${col} (${items.length})`} />
+                  <StatusDot color={b.color} text={`${col} (${items.length})`} />
                 </div>
                 {items.map((a, i) => (
                   <AgentCard
@@ -988,10 +961,10 @@ export default function OrchestrationBoard({
                   <AgentCard key={`ghost-${a.name}`} a={a} epicKey={epicKey} empty />
                 ))}
               </div>
-            </Col>
+            </div>
           );
         })}
-      </Row>
+      </div>
 
       {/* 상세 (상단 요약·범위 배분·공유 계약·충돌 등) — 폴딩(기본 접힘) */}
       {o.restMarkdown && (
@@ -1022,22 +995,22 @@ export default function OrchestrationBoard({
             {
               key: "event-log",
               label: (
-                <Space size={8}>
+                <Stack size={8}>
                   {orchestratorAvatar(22)}
                   오케스트레이터 브리핑
-                </Space>
+                </Stack>
               ),
               children: (
                 <>
-                  <Timeline items={o.events.slice(0, 5).map(eventItem)} />
+                  <EventTimeline events={o.events.slice(0, 5)} />
                   {o.events.length > 5 && (
                     <Collapse
                       ghost
-                      size="small"
+                      size="sm"
                       items={groupByHour(o.events.slice(5)).map((g) => ({
                         key: g.hour,
                         label: `${g.hour} · ${g.events.length}건`,
-                        children: <Timeline items={g.events.map(eventItem)} />,
+                        children: <EventTimeline events={g.events} />,
                       }))}
                     />
                   )}
@@ -1076,7 +1049,7 @@ export default function OrchestrationBoard({
             items={groupReviewsByAgent(epic!.reviews).map((g) => ({
               key: g.agent,
               label: (
-                <Space size={8} align="center">
+                <Stack size={8} align="center">
                   <GroupAvatar
                     slug={g.agent}
                     name={nameBySlug.get(g.agent) ?? g.agent}
@@ -1087,20 +1060,10 @@ export default function OrchestrationBoard({
                   />
                   <Text strong>{nameBySlug.get(g.agent) ?? g.agent}</Text>
                   <Tag>{g.reviews.length}개 라운드</Tag>
-                </Space>
+                </Stack>
               ),
-              children: (
-                <Collapse
-                  ghost
-                  size="small"
-                  items={g.reviews.map((rv) => ({
-                    key: `${rv.slug}-${rv.round}`,
-                    label: `round-${rv.round}`,
-                    // 지적 카드 형식이면 카드로, 아니면 원래 마크다운 그대로 그린다.
-                    children: <ReviewCards md={rv.content} />,
-                  }))}
-                />
-              ),
+              // 차수마다 탭 하나 — 지적 카드 형식이면 심각도 칩 카드로, 아니면 원래 문서 렌더로 그린다.
+              children: <ReviewRounds rounds={g.reviews.map((rv) => ({ round: rv.round, content: rv.content }))} />,
             }))}
           />
         </div>
@@ -1148,7 +1111,7 @@ export default function OrchestrationBoard({
           {(epic!.produceDocs.length > 0 || epic!.deliverables.length > 0) && (
             <div style={{ marginTop: 20 }}>
               <Link href={`/orchestration/${epicKey}/deliverables`}>
-                <Tag icon={<FileTextOutlined />} color="blue" style={{ margin: 0, cursor: "pointer" }}>
+                <Tag icon={<FileText size="1em" />} color="blue" style={{ margin: 0, cursor: "pointer" }}>
                   산출 기록과 산출물은 산출물 탭에 있습니다 →
                 </Tag>
               </Link>
@@ -1175,26 +1138,26 @@ export default function OrchestrationBoard({
           (본문까지 보드에 실으면 문서가 많은 오더의 응답이 통째로 커진다 — 실측 1.16MB → 1.94MB). */}
       {epic!.otherDocs.length > 0 && (
         <div style={{ marginTop: 20 }}>
-          <Space align="baseline" size={8}>
+          <Stack align="baseline" size={8}>
             <Title level={4} style={{ margin: 0 }}>
               기타 문서
             </Title>
             <Link href={`/orchestration/${epicKey}/docs`}>전체 보기 →</Link>
-          </Space>
+          </Stack>
           <div>
             <Text type="secondary" style={{ fontSize: 13 }}>
               전용 탭이 없는 문서입니다. 에이전트가 조사 결과를 자기 이름으로 남긴 것이 대부분입니다.
             </Text>
           </div>
-          <Space size={[8, 8]} wrap style={{ marginTop: 12 }}>
+          <Stack size={[8, 8]} wrap style={{ marginTop: 12 }}>
             {epic!.otherDocs.map((d) => (
               <Link key={d.name} href={`/orchestration/${epicKey}/docs#${encodeURIComponent(d.name)}`}>
-                <Tag icon={<FileTextOutlined />} color="blue" style={{ margin: 0, cursor: "pointer" }}>
+                <Tag icon={<FileText size="1em" />} color="blue" style={{ margin: 0, cursor: "pointer" }}>
                   {d.name} · {Math.max(1, Math.round(d.bytes / 1024))} KB
                 </Tag>
               </Link>
             ))}
-          </Space>
+          </Stack>
         </div>
       )}
 
@@ -1202,7 +1165,7 @@ export default function OrchestrationBoard({
       {!producer && epic!.deliverables.length > 0 && (
         <div style={{ marginTop: 20 }}>
           <Title level={4}>산출물</Title>
-          <Space orientation="vertical" size={12} style={{ width: "100%" }}>
+          <Stack orientation="vertical" size={12} style={{ width: "100%" }}>
             {epic!.deliverables.map((d) => (
               <Card
                 key={d.name}
@@ -1228,14 +1191,14 @@ export default function OrchestrationBoard({
                     title={d.name}
                     srcDoc={d.content}
                     sandbox=""
-                    style={{ width: "100%", height: 520, border: "1px solid #f0f0f0", borderRadius: 6 }}
+                    style={{ width: "100%", height: 520, border: "1px solid var(--line)", borderRadius: 6 }}
                   />
                 ) : (
                   <Text type="secondary">미리보기를 지원하지 않는 파일입니다.</Text>
                 )}
               </Card>
             ))}
-          </Space>
+          </Stack>
         </div>
       )}
 

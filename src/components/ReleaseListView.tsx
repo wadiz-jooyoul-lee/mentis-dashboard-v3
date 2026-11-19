@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Breadcrumb, Empty, Table, Tag, Typography } from "antd";
-import ReleaseProgress, { RELEASE_TONE } from "@/components/ReleaseProgress";
+import ReleaseProgress, { RELEASE_TONE } from "@/components/mdview/ReleaseProgress";
 import type { ReleaseSummary } from "@/lib/releases";
+import Crumbs from "@/components/ui/Crumbs";
+import DataTable from "@/components/ui/DataTable";
+import Empty from "@/components/ui/Empty";
+import Tag from "@/components/ui/Tag";
+import { Text, Title } from "@/components/ui/Typo";
 
-const { Title, Text } = Typography;
 
 const STATUS_COLOR: Record<string, string> = { "진행 중": "processing", 완료: "success" };
 
@@ -16,7 +19,7 @@ export default function ReleaseListView({ items }: { items: ReleaseSummary[] }) 
   const n = (v: number, color?: string) => <Text style={{ color: v > 0 ? color : undefined }}>{v}</Text>;
   return (
     <div>
-      <Breadcrumb items={[{ title: <Link href="/">홈</Link> }, { title: "릴리즈" }]} style={{ marginBottom: 12 }} />
+      <Crumbs items={[{ href: "/", label: "홈" }, { label: "릴리즈" }]} />
       <Title level={3} style={{ marginTop: 0 }}>
         릴리즈 — 배포일 stage 검증
       </Title>
@@ -27,10 +30,10 @@ export default function ReleaseListView({ items }: { items: ReleaseSummary[] }) 
       {items.length === 0 ? (
         <Empty style={{ marginTop: 40 }} description="아직 stage 검증 기록이 없습니다" />
       ) : (
-        <Table
+        <DataTable
           style={{ marginTop: 16 }}
           rowKey="date"
-          size="middle"
+          
           pagination={false}
           dataSource={items}
           onRow={(r) => ({ onClick: () => router.push(`/releases/${r.date}`), style: { cursor: "pointer" } })}

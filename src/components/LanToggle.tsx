@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Switch, Tooltip } from "antd";
-import { GlobalOutlined, LockOutlined } from "@ant-design/icons";
+import Tip from "@/components/ui/Tip";
+import { Switch } from "@/components/ui/Form";
+import { Globe, Lock } from "lucide-react";
 
 type State = { on: boolean; canToggle: boolean; host: string | null };
 
@@ -48,31 +49,27 @@ export default function LanToggle() {
       : "이 맥에서만 열립니다. 켜면 같은 네트워크의 다른 기기에서도 열립니다.";
 
   return (
-    <Tooltip title={tip}>
+    <Tip title={tip}>
       <span
         style={{
-          color: s.on ? "#ffc53d" : "rgba(255,255,255,0.85)",
+          // 밝은 머리띠 위 글자색 — 켜짐은 경고 성격이라 경고색, 꺼짐은 보조 글색(토큰).
+          color: s.on ? "var(--warn-fg)" : "var(--fg-soft)",
           fontSize: 13,
           display: "inline-flex",
           alignItems: "center",
           gap: 8,
         }}
       >
-        {s.on ? <GlobalOutlined /> : <LockOutlined />}
+        {s.on ? <Globe size="1em" /> : <Lock size="1em" />}
         외부 공개
         <Switch
           checked={s.on}
-          loading={busy}
-          disabled={!s.canToggle}
+          disabled={!s.canToggle || busy}
           onChange={toggle}
-          // antd 기본 꺼짐 색(rgba(0,0,0,0.25))은 검은 헤더 위에서 묻혀 버튼이 안 보인다.
-          // 헤더 배경(#001529)과 대비되는 밝은 회색으로 직접 지정하고, 켜짐은 경고 성격이라 주황으로.
-          style={{
-            background: s.on ? "#fa8c16" : "rgba(255,255,255,0.45)",
-            boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.5)",
-          }}
+          size="sm"
+          aria-label="외부 공개"
         />
       </span>
-    </Tooltip>
+    </Tip>
   );
 }

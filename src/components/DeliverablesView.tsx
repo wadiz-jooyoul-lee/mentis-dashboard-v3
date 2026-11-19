@@ -2,13 +2,17 @@
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Card, Collapse, Empty, Space, Tag, Typography } from "antd";
-import { ExportOutlined, FileTextOutlined, FolderOutlined } from "@ant-design/icons";
 import OrderHeader from "@/components/OrderHeader";
 import type { Deliverable, ProduceDoc, ProduceUpload } from "@/lib/orchestration";
 import "./markdown.css";
+import Card from "@/components/ui/Card";
+import Collapse from "@/components/ui/Disclosure";
+import Empty from "@/components/ui/Empty";
+import Stack from "@/components/ui/Stack";
+import Tag from "@/components/ui/Tag";
+import { Text, Title } from "@/components/ui/Typo";
+import { ExternalLink, FileText, Folder } from "lucide-react";
 
-const { Title, Text } = Typography;
 
 function Md({ md }: { md: string }) {
   return (
@@ -101,23 +105,23 @@ export default function DeliverablesView({
 
         {uploads.length > 0 && (
           <Card size="small" style={{ marginBottom: 16 }} title="올린 곳" data-uploads>
-            <Space orientation="vertical" size={6} style={{ width: "100%" }}>
+            <Stack orientation="vertical" size={6} style={{ width: "100%" }}>
               {uploads.map((u, i) => (
-                <Space key={i} size={8} wrap>
+                <Stack key={i} size={8} wrap>
                   <Tag color="green" style={{ margin: 0 }}>
                     {u.kind}
                   </Tag>
                   <a href={u.url} target="_blank" rel="noopener noreferrer" style={{ wordBreak: "break-all" }}>
-                    {u.url} <ExportOutlined />
+                    {u.url} <ExternalLink size="1em" />
                   </a>
                   {many && (
                     <Text type="secondary" style={{ fontSize: 12 }}>
                       {u.from.replace(/^produce-/, "").replace(/\.md$/i, "")}
                     </Text>
                   )}
-                </Space>
+                </Stack>
               ))}
-            </Space>
+            </Stack>
           </Card>
         )}
 
@@ -127,13 +131,13 @@ export default function DeliverablesView({
             <Text type="secondary" style={{ fontSize: 13 }}>
               무엇을 만들었고 어디에 두었는지, 근거와 확인하지 못한 것을 적은 기록입니다.
             </Text>
-            <Space orientation="vertical" size={12} style={{ width: "100%", marginTop: 10 }}>
+            <Stack orientation="vertical" size={12} style={{ width: "100%", marginTop: 10 }}>
               {produceDocs.map((d) => (
                 <Card key={d.name} size="small" title={recordTitle(d, many)} data-produce-doc>
                   <Md md={d.content.replace(/^#\s+.+$/m, "")} />
                 </Card>
               ))}
-            </Space>
+            </Stack>
           </div>
         )}
 
@@ -143,12 +147,12 @@ export default function DeliverablesView({
             <Text type="secondary" style={{ fontSize: 13 }}>
               저장소에 들어가지 않는 보고와 조사 파일입니다. 저장소 안에 만든 문서는 코드 변경 탭에서 봅니다.
             </Text>
-            <Space orientation="vertical" size={16} style={{ width: "100%", marginTop: 10 }}>
+            <Stack orientation="vertical" size={16} style={{ width: "100%", marginTop: 10 }}>
               {groups.map((g) => (
                 <div key={g.folder || "."} data-deliverable-folder={g.folder || "."}>
                   {g.folder && (
                     <div style={{ marginBottom: 6 }}>
-                      <Tag icon={<FolderOutlined />} style={{ margin: 0 }}>
+                      <Tag icon={<Folder size="1em" />} style={{ margin: 0 }}>
                         {g.folder}
                       </Tag>
                     </div>
@@ -158,10 +162,10 @@ export default function DeliverablesView({
                     items={g.files.map((d) => ({
                       key: d.name,
                       label: (
-                        <Space size={6}>
-                          <FileTextOutlined />
+                        <Stack size={6}>
+                          <FileText size="1em" />
                           {d.name.slice(g.folder ? g.folder.length + 1 : 0)}
-                        </Space>
+                        </Stack>
                       ),
                       extra: d.content ? (
                         <a
@@ -180,7 +184,7 @@ export default function DeliverablesView({
                             title={d.name}
                             srcDoc={d.content}
                             sandbox=""
-                            style={{ width: "100%", height: 520, border: "1px solid #f0f0f0", borderRadius: 6 }}
+                            style={{ width: "100%", height: 520, border: "1px solid var(--line)", borderRadius: 6 }}
                           />
                         ) : (
                           <Text type="secondary">미리보기를 지원하지 않는 파일입니다.</Text>
@@ -189,7 +193,7 @@ export default function DeliverablesView({
                   />
                 </div>
               ))}
-            </Space>
+            </Stack>
           </div>
         )}
       </div>

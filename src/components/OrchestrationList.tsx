@@ -3,8 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Breadcrumb, Tag, Typography, Space, Badge, Popover, Tabs, Input, Select, message } from "antd";
-import { LinkOutlined, PushpinFilled, PushpinOutlined, SearchOutlined } from "@ant-design/icons";
 import { useCanAct } from "@/components/CanAct";
 import type { EpicSummary } from "@/lib/orchestration";
 import type { JobWithKey } from "@/lib/jobs";
@@ -16,16 +14,24 @@ import "./markdown.css";
 import WorktreeDeleteButton from "@/components/WorktreeDeleteButton";
 import GroupAvatar from "@/components/GroupAvatar";
 import ResolveButton from "@/components/ResolveButton";
-import { ShipTags } from "@/components/ShipProgress";
+import { ShipTags } from "@/components/mdview/ShipProgress";
 import { ReleaseNoteTags } from "@/components/ReleaseNoteTags";
 import { dobbyColor } from "@/lib/dobby";
 import { NextActionTag, useNextActions } from "@/components/NextAction";
+import Pop from "@/components/ui/Pop";
+import Stack from "@/components/ui/Stack";
+import Tabs, { Seg } from "@/components/ui/Tabs";
+import Chip from "@/components/ui/Chip";
+import Crumbs from "@/components/ui/Crumbs";
+import { Field, SelectBox } from "@/components/ui/Form";
+import { toast } from "@/components/ui/Toaster";
+import { Text, Title } from "@/components/ui/Typo";
+import { Link2, Pin, Search } from "lucide-react";
 
-const { Title, Text } = Typography;
 
 // 칸반 상태별 색(에이전트 카운트 배지용). STATE_ORDER와 동일 순서.
 const STATE_BADGES: Array<{ key: string; color: string }> = [
-  { key: "대기", color: "#bfbfbf" },
+  { key: "대기", color: "var(--line)" },
   { key: "작업중", color: "blue" },
   { key: "기다림", color: "cyan" },
   { key: "사람 차례", color: "orange" },
@@ -38,13 +44,13 @@ function agentBadges(r: EpicSummary) {
   const shown = STATE_BADGES.filter(({ key }) => (r.counts[key] ?? 0) > 0);
   if (shown.length === 0) return <Text type="secondary">-</Text>;
   return (
-    <Space size={8}>
+    <Stack size={8}>
       {shown.map(({ key, color }) => (
-        <Popover key={key} content={`${key} ${r.counts[key]}명`}>
-          <Badge count={r.counts[key]} color={color} overflowCount={999} />
-        </Popover>
+        <Pop key={key} trigger="hover" content={`${key} ${r.counts[key]}명`}>
+          <Chip count={r.counts[key]} color={color} />
+        </Pop>
       ))}
-    </Space>
+    </Stack>
   );
 }
 
@@ -126,7 +132,7 @@ export default function OrchestrationList({
       .then((r) => r.json())
       .catch(() => null);
     if (res?.ok) setPins(res.pins);
-    else message.error("핀 고정을 바꾸지 못했습니다.");
+    else toast.error("핀 고정을 바꾸지 못했습니다.");
   };
 
   // 정렬 기준은 브라우저에 기억한다. 저장값은 클라이언트에서만 읽어 첫 화면 불일치를 피한다.
@@ -194,7 +200,7 @@ export default function OrchestrationList({
       width: 36,
       render: (_: unknown, r: EpicSummary) => {
         const on = pinned.has(r.epicKey);
-        const icon = on ? <PushpinFilled style={{ color: "#1677ff" }} /> : <PushpinOutlined style={{ color: "#bfbfbf" }} />;
+        const icon = on ? <Pin size="1em" fill="currentColor" style={{ color: "var(--accent)" }} /> : <Pin size="1em" style={{ color: "var(--line)" }} />;
         if (!canAct) return on ? icon : null;
         return (
           <span
@@ -219,7 +225,7 @@ export default function OrchestrationList({
       // 작업 상태는 칸 대신 키 뒤 크레파스 자국 색으로 보인다(작업중 파랑·완성 청록·해결됨 초록·종료 회색).
       onCell: (r: EpicSummary) => ({ ...openCell(r), title: workStatus(r).text }),
       render: (key: string, r: EpicSummary) => (
-        <Space size={8}>
+        <Stack size={8}>
           <GroupAvatar slug={key} avatar={r.avatar ?? undefined} size={28} showGroup />
           {/*
             키를 Link로 두면 마우스를 올릴 때 Next.js가 상세 화면을 미리 받아둔다(prefetch).
@@ -247,9 +253,9 @@ export default function OrchestrationList({
             onClick={(e) => e.stopPropagation()}
             title="Jira에서 열기"
           >
-            <LinkOutlined />
+            <Link2 size="1em" />
           </a>
-        </Space>
+        </Stack>
       ),
     },
     {
@@ -271,17 +277,17 @@ export default function OrchestrationList({
               WebkitBoxOrient: "vertical",
               overflow: "hidden",
               wordBreak: "break-word",
-              ...(b ? { color: "#cf1322" } : {}),
+              ...(b ? { color: "var(--danger-fg)" } : {}),
             }}
           >
             {t}
           </span>
         ) : (
-          <Text type="secondary" style={b ? { color: "#cf1322" } : undefined}>
+          <Text type="secondary" style={b ? { color: "var(--danger-fg)" } : undefined}>
             -
           </Text>
         );
-        const title = b ? <Popover content="자율(B) 모드 · Workflow로 자동·병렬 실행">{body}</Popover> : body;
+        const title = b ? <Pop trigger="hover" content="자율(B) 모드 · Workflow로 자동·병렬 실행">{body}</Pop> : body;
         // 배포 진행은 칸 대신 제목 아랫줄 태그로 보인다.
         return r.ship.length ? (
           <>
@@ -350,9 +356,7 @@ export default function OrchestrationList({
           marginBottom: 12,
         }}
       >
-        <Breadcrumb
-          items={[{ title: <Link href="/">홈</Link> }, { title: "오케스트레이션" }]}
-        />
+        <Crumbs items={[{ href: "/", label: "홈" }, { label: "오케스트레이션" }]} />
         <Link
           href="/agents"
           style={{
@@ -373,7 +377,6 @@ export default function OrchestrationList({
 
       <Tabs
         defaultActiveKey="list"
-        tabBarStyle={{ paddingLeft: 12 }}
         items={[
           {
             key: "list",
@@ -391,16 +394,16 @@ export default function OrchestrationList({
                     flexWrap: "wrap",
                   }}
                 >
-                  <Space wrap>
-                    <Input
+                  <Stack wrap>
+                    <Field
                       allowClear
-                      prefix={<SearchOutlined />}
+                      prefix={<Search size="1em" />}
                       placeholder="에픽 키 · 제목 검색"
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
                       style={{ width: 260 }}
                     />
-                    <Select<StatusFilter>
+                    <SelectBox<StatusFilter>
                       value={status}
                       onChange={(v) => setStatus(v)}
                       style={{ width: 200 }}
@@ -412,7 +415,7 @@ export default function OrchestrationList({
                         { value: "종료", label: "종료" },
                       ]}
                     />
-                    <Select<SortBy>
+                    <SelectBox<SortBy>
                       value={sortBy}
                       onChange={changeSort}
                       style={{ width: 140 }}
@@ -423,18 +426,8 @@ export default function OrchestrationList({
                       ]}
                     />
                     {hasFilter && <Text type="secondary">{filtered.length}건</Text>}
-                  </Space>
-                  <Space size={4}>
-                    {KIND_TAGS.map(({ value, label }) => (
-                      <Tag.CheckableTag
-                        key={value}
-                        checked={kind === value}
-                        onChange={() => setKind(value)}
-                      >
-                        {label}
-                      </Tag.CheckableTag>
-                    ))}
-                  </Space>
+                  </Stack>
+                  <Seg size="sm" options={KIND_TAGS} value={kind} onChange={setKind} />
                 </div>
 
                 {/* 상단: 검색·필터 결과만 반영(처음에는 작업중). 하단 전체 목록은 건드리지 않는다. */}

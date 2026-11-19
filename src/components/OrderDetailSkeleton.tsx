@@ -45,7 +45,7 @@ export default function OrderDetailSkeleton() {
         @media (max-width: 992px) { .order-skeleton-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
         @media (max-width: 576px) { .order-skeleton-cols { grid-template-columns: 1fr; } }
         .order-skeleton-card {
-          border: 1px solid #f0f0f0;
+          border: 1px solid var(--line);
           border-radius: 8px;
           padding: 12px;
           background: #fff;

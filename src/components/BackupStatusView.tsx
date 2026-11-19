@@ -1,18 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCanAct } from "@/components/CanAct";
-import {
-  Alert, Breadcrumb, Button, Card, Collapse, Space, Statistic, Table, Tabs, Tag, Typography, message,
-} from "antd";
-import { ReloadOutlined, SaveOutlined } from "@ant-design/icons";
 import SessionBackupTable, { fmtBytes, fmtDate, type SessionArchive } from "@/components/SessionBackupTable";
 import OrchestrationBackupTable, { type OrchArchive } from "@/components/OrchestrationBackupTable";
 import InProgressBackupTable, { type InProgressArchive } from "@/components/InProgressBackupTable";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import Collapse from "@/components/ui/Disclosure";
+import Crumbs from "@/components/ui/Crumbs";
+import DataTable from "@/components/ui/DataTable";
+import Note from "@/components/ui/Note";
+import { Stat } from "@/components/ui/Misc";
+import Stack from "@/components/ui/Stack";
+import Tabs from "@/components/ui/Tabs";
+import Tag from "@/components/ui/Tag";
+import { toast } from "@/components/ui/Toaster";
+import { Paragraph, Text, Title } from "@/components/ui/Typo";
+import { RotateCw, Save } from "lucide-react";
 
-const { Title, Text, Paragraph } = Typography;
 
 type Session = {
   archives: SessionArchive[];
@@ -109,12 +116,12 @@ export default function BackupStatusView({
     try {
       const r = await fetch(url, { method: "POST" });
       if (r.ok) {
-        message.success(okMsg);
+        toast.success(okMsg);
         setRunning(true);
         setTimeout(() => router.refresh(), 1500);
       } else {
         const d = await r.json().catch(() => null);
-        message.error(d?.error || "실행 실패");
+        toast.error(d?.error || "실행 실패");
       }
     } finally {
       setBusy(null);
@@ -174,33 +181,33 @@ export default function BackupStatusView({
     action?: { label: string; url: string; key: string; msg: string },
   ) => (
     <Card size="small" style={{ flex: "1 1 260px", minWidth: 260 }}>
-      <Space direction="vertical" size={8} style={{ width: "100%" }}>
-        <Space size={8} align="center">
+      <Stack direction="vertical" size={8} style={{ width: "100%" }}>
+        <Stack size={8} align="center">
           <Text strong>{title}</Text>
           <Tag color={HEALTH[health].color}>{HEALTH[health].label}</Tag>
-        </Space>
+        </Stack>
         <Text type="secondary" style={{ fontSize: 12 }}>{desc}</Text>
-        <Space size={20} wrap>
+        <Stack size={20} wrap>
           {stats.map((s) => (
-            <Statistic
+            <Stat
               key={s.label}
               title={s.label}
               value={s.value as string | number}
-              valueStyle={{ fontSize: 15, color: s.warn ? "#d48806" : undefined }}
+              valueStyle={{ fontSize: 15, color: s.warn ? "var(--warn-fg)" : undefined }}
             />
           ))}
-        </Space>
+        </Stack>
         {canAct && action ? (
           <Button
-            size="small"
-            icon={<SaveOutlined />}
-            loading={busy === action.key}
+            size="sm"
+            icon={<Save size="1em" />}
+            busy={busy === action.key}
             onClick={() => post(action.url, action.key, action.msg)}
           >
             {action.label}
           </Button>
         ) : null}
-      </Space>
+      </Stack>
     </Card>
   );
 
@@ -241,7 +248,7 @@ export default function BackupStatusView({
       <Text strong>{title}</Text>
       <Paragraph type="secondary" style={{ fontSize: 12, margin: "4px 0 6px" }}>{note}</Paragraph>
       <Paragraph copyable={{ text: cmd }} style={{ margin: 0 }}>
-        <pre style={{ margin: 0, fontSize: 12, background: "#fafafa", padding: 10, borderRadius: 6, overflowX: "auto" }}>
+        <pre style={{ margin: 0, fontSize: 12, background: "var(--bg-sunken)", padding: 10, borderRadius: 6, overflowX: "auto" }}>
           {cmd}
         </pre>
       </Paragraph>
@@ -260,44 +267,44 @@ export default function BackupStatusView({
 
   return (
     <div>
-      <Breadcrumb style={{ marginBottom: 12 }} items={[{ title: <Link href="/">홈</Link> }, { title: "백업" }]} />
+      <Crumbs items={[{ href: "/", label: "홈" }, { label: "백업" }]} />
       <Title level={2} style={{ marginTop: 0, marginBottom: 4 }}>백업</Title>
       <Paragraph type="secondary" style={{ marginTop: 0 }}>
         세 가지를 각각 지킵니다 — <Text strong>세션 전사</Text>(대화 기록),
         <Text strong> 메타 폴더별</Text>(해결된 작업의 문서·코드 변경 기록),
         <Text strong> 메타 진행중</Text>(아직 작업중인 폴더의 임시 스냅샷).
-        {running ? <Tag color="processing" icon={<ReloadOutlined spin />} style={{ marginLeft: 8 }}>백업 중…</Tag> : null}
+        {running ? <Tag color="processing" icon={<RotateCw size="1em" className="ui-spin-icon" />} style={{ marginLeft: 8 }}>백업 중…</Tag> : null}
       </Paragraph>
 
       {issues.length > 0 ? (
-        <Alert
+        <Note
           type="warning"
           showIcon
           style={{ marginBottom: 16 }}
           message="손봐야 할 것"
           description={
-            <Space direction="vertical" size={4} style={{ width: "100%" }}>
+            <Stack direction="vertical" size={4} style={{ width: "100%" }}>
               {issues.map((it, i) => (
-                <Space key={i} size={8} wrap>
+                <Stack key={i} size={8} wrap>
                   <Text>· {it.text}</Text>
                   {canAct && it.action ? (
                     <Button
-                      size="small"
-                      type="link"
-                      loading={busy === it.action.key}
+                      size="sm"
+                      variant="link"
+                      busy={busy === it.action.key}
                       onClick={() => post(it.action!.url, it.action!.key, it.action!.msg)}
                       style={{ padding: 0 }}
                     >
                       {it.action.label}
                     </Button>
                   ) : null}
-                </Space>
+                </Stack>
               ))}
-            </Space>
+            </Stack>
           }
         />
       ) : (
-        <Alert type="success" showIcon style={{ marginBottom: 16 }} message="세 가지 백업 모두 최신입니다." />
+        <Note type="success" showIcon style={{ marginBottom: 16 }} message="세 가지 백업 모두 최신입니다." />
       )}
 
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
@@ -387,8 +394,8 @@ export default function BackupStatusView({
                   아래 파일·폴더를 구글 드라이브 같은 외부 저장소에 올려 두면, 이 맥이 없어져도 되살릴 수 있습니다.
                   경로 오른쪽 아이콘을 누르면 복사됩니다.
                 </Paragraph>
-                <Table
-                  size="small"
+                <DataTable
+                  size="sm"
                   rowKey="key"
                   pagination={false}
                   dataSource={exportRows}
@@ -399,10 +406,10 @@ export default function BackupStatusView({
                       key: "what",
                       width: 130,
                       render: (v: string, r: (typeof exportRows)[number]) => (
-                        <Space direction="vertical" size={0}>
+                        <Stack direction="vertical" size={0}>
                           <Text strong style={{ fontSize: 13 }}>{v}</Text>
                           {r.missing ? <Tag color="warning">아직 없음</Tag> : null}
-                        </Space>
+                        </Stack>
                       ),
                     },
                     {
@@ -410,12 +417,12 @@ export default function BackupStatusView({
                       dataIndex: "path",
                       key: "path",
                       render: (v: string, r: (typeof exportRows)[number]) => (
-                        <Space direction="vertical" size={2} style={{ width: "100%" }}>
+                        <Stack direction="vertical" size={2} style={{ width: "100%" }}>
                           <Text code copyable={{ text: v }} style={{ fontSize: 12, wordBreak: "break-all" }}>
                             {v}
                           </Text>
                           <Text type="secondary" style={{ fontSize: 11 }}>{r.desc}</Text>
-                        </Space>
+                        </Stack>
                       ),
                     },
                     {
@@ -447,7 +454,7 @@ export default function BackupStatusView({
                     `tar -cf ~/Desktop/claude-backup-$(date +%Y%m%d).tar --exclude=tmp -C ${session.dest} .`,
                   )}
                 </div>
-                <Alert
+                <Note
                   type="info"
                   showIcon
                   message="파일 이름이 매번 바뀝니다"
@@ -461,7 +468,7 @@ export default function BackupStatusView({
             label: "복원",
             children: (
               <div style={{ maxWidth: 760 }}>
-                <Alert
+                <Note
                   type="info"
                   showIcon
                   style={{ marginBottom: 16 }}
@@ -488,7 +495,7 @@ export default function BackupStatusView({
                   "아카이브 하나에 전부 들어 있어 이것만 풀면 됩니다.",
                   `tar -xf {아카이브} -C ~/.claude/projects`,
                 )}
-                <Alert
+                <Note
                   type="warning"
                   showIcon
                   message="진행중 백업은 그 시점 스냅샷입니다"

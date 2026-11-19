@@ -1,13 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { Breadcrumb, Button, Card, Space, Table, Tag, Tooltip, Typography } from "antd";
-import { ExportOutlined } from "@ant-design/icons";
-import ReleaseProgress, { RELEASE_TONE } from "@/components/ReleaseProgress";
+import ReleaseProgress, { RELEASE_TONE } from "@/components/mdview/ReleaseProgress";
 import type { Release, ReleaseIssue, ReleaseTc } from "@/lib/releases";
 import { isHold, type Verdict } from "@/lib/parseReport";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import DataTable from "@/components/ui/DataTable";
+import Crumbs from "@/components/ui/Crumbs";
+import Stack from "@/components/ui/Stack";
+import Tag from "@/components/ui/Tag";
+import Tip from "@/components/ui/Tip";
+import { Text, Title } from "@/components/ui/Typo";
+import { ExternalLink } from "lucide-react";
 
-const { Title, Text } = Typography;
 
 const VERDICT: Record<Verdict, { label: string; color?: string }> = {
   pass: { label: "통과", color: RELEASE_TONE.pass },
@@ -24,14 +30,14 @@ function IssueCard({ issue }: { issue: ReleaseIssue }) {
     <Card
       size="small"
       title={
-        <Space size={8} wrap>
+        <Stack size={8} wrap>
           {issue.row && <Text type="secondary">{issue.row}행</Text>}
           {issue.hasOrder ? <Link href={`/orchestration/${issue.key}`}>{issue.key}</Link> : <Text>{issue.key}</Text>}
           {issue.title && <Text style={{ fontWeight: 400 }}>{issue.title}</Text>}
-        </Space>
+        </Stack>
       }
       extra={
-        <Space size={6} wrap>
+        <Stack size={6} wrap>
           {issue.repos.map((r) => (
             <Tag key={r} style={{ margin: 0 }}>
               {r}
@@ -43,13 +49,13 @@ function IssueCard({ issue }: { issue: ReleaseIssue }) {
             </Tag>
           )}
           {issue.stageCheck && <Tag style={{ margin: 0 }}>stage 칸 {issue.stageCheck}</Tag>}
-        </Space>
+        </Stack>
       }
     >
       {untested ? (
         <Text type="secondary">stage 에 반영되지 않아 시험하지 않았습니다.{issue.note ? ` (${issue.note})` : ""}</Text>
       ) : (
-        <Space orientation="vertical" size={12} style={{ width: "100%" }}>
+        <Stack orientation="vertical" size={12} style={{ width: "100%" }}>
           <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
             <div style={{ flex: 1, minWidth: 200 }}>
               <ReleaseProgress counts={issue.counts} />
@@ -66,9 +72,9 @@ function IssueCard({ issue }: { issue: ReleaseIssue }) {
             )}
           </div>
           {issue.note && <Text type="secondary">비고: {issue.note}</Text>}
-          <Table
+          <DataTable
             rowKey={(t: ReleaseTc) => t.num || t.check}
-            size="small"
+            size="sm"
             pagination={false}
             dataSource={issue.tcs}
             scroll={{ x: 900 }}
@@ -83,11 +89,11 @@ function IssueCard({ issue }: { issue: ReleaseIssue }) {
                 key: "verdict",
                 width: 64,
                 render: (_: unknown, t: ReleaseTc) => (
-                  <Tooltip title={t.verdictRaw || undefined}>
+                  <Tip title={t.verdictRaw || undefined}>
                     <Text strong style={{ color: verdictOf(t).color }} type={t.verdict === "unknown" ? "secondary" : undefined}>
                       {verdictOf(t).label}
                     </Text>
-                  </Tooltip>
+                  </Tip>
                 ),
               },
               { title: "근거", dataIndex: "evidence", width: 220, render: (v: string) => <Text style={{ fontSize: 12 }}>{v}</Text> },
@@ -107,7 +113,7 @@ function IssueCard({ issue }: { issue: ReleaseIssue }) {
               </ul>
             </div>
           )}
-        </Space>
+        </Stack>
       )}
     </Card>
   );
@@ -117,7 +123,7 @@ function IssueCard({ issue }: { issue: ReleaseIssue }) {
 export default function ReleaseView({ release }: { release: Release }) {
   const { counts } = release;
   const stat = (n: number, label: string, color?: string) => (
-    <div style={{ flex: 1, minWidth: 80, padding: "10px 12px", background: "#fafafa", borderRadius: 8, textAlign: "center" }}>
+    <div style={{ flex: 1, minWidth: 80, padding: "10px 12px", background: "var(--bg-sunken)", borderRadius: 8, textAlign: "center" }}>
       <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.2, color: n > 0 ? color : undefined }}>{n}</div>
       <Text type="secondary" style={{ fontSize: 12 }}>
         {label}
@@ -126,9 +132,8 @@ export default function ReleaseView({ release }: { release: Release }) {
   );
   return (
     <div>
-      <Breadcrumb
-        items={[{ title: <Link href="/">홈</Link> }, { title: <Link href="/releases">릴리즈</Link> }, { title: release.date }]}
-        style={{ marginBottom: 12 }}
+      <Crumbs
+        items={[{ href: "/", label: "홈" }, { href: "/releases", label: "릴리즈" }, { label: release.date }]}
       />
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <Title level={3} style={{ margin: 0 }}>
@@ -139,7 +144,7 @@ export default function ReleaseView({ release }: { release: Release }) {
         </Tag>
         {!release.kind && <Tag>배포일 아님</Tag>}
         {release.page && (
-          <Button size="small" icon={<ExportOutlined />} href={release.page} target="_blank">
+          <Button size="sm" icon={<ExternalLink size="1em" />} href={release.page} target="_blank">
             릴리즈 노트 열기
           </Button>
         )}
@@ -150,7 +155,7 @@ export default function ReleaseView({ release }: { release: Release }) {
         </Text>
       )}
 
-      <Card style={{ marginTop: 16 }} styles={{ body: { padding: "16px 20px" } }}>
+      <Card style={{ marginTop: 16 }} bodyStyle={{ padding: "16px 20px" }}>
         <Text strong>전체 진행도</Text>
         <div style={{ marginTop: 8 }}>
           <ReleaseProgress counts={counts} height={10} />
@@ -166,11 +171,11 @@ export default function ReleaseView({ release }: { release: Release }) {
         </div>
       </Card>
 
-      <Space orientation="vertical" size={16} style={{ width: "100%", marginTop: 16 }}>
+      <Stack orientation="vertical" size={16} style={{ width: "100%", marginTop: 16 }}>
         {release.issues.map((i) => (
           <IssueCard key={i.key} issue={i} />
         ))}
-      </Space>
+      </Stack>
     </div>
   );
 }

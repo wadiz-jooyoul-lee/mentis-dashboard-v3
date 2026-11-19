@@ -1,17 +1,20 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Typography, Space, Card, Empty, Tag, Anchor } from "antd";
-import { FileTextOutlined } from "@ant-design/icons";
 import OrderHeader from "@/components/OrderHeader";
 import MarkdownDoc from "@/components/MarkdownDoc";
 import type { OrderDoc } from "@/lib/orchestration";
 import "./markdown.css";
+import Card from "@/components/ui/Card";
+import Empty from "@/components/ui/Empty";
+import Stack from "@/components/ui/Stack";
+import Tag from "@/components/ui/Tag";
+import { Text, Title } from "@/components/ui/Typo";
+import { FileText } from "lucide-react";
 
-const { Title, Text } = Typography;
 
-/** 화면 맨 위 상단 바 높이(AppShell의 Header가 position:sticky·top 0으로 고정). */
-const APP_HEADER_H = 64;
+/** 화면 맨 위 상단 바 높이(AppShell 머리띠 .ui-nav 가 position:sticky·top 0, 높이 60px). */
+const APP_HEADER_H = 60;
 
 /** 고정된 목차와 그 아래 문서 사이에 두는 여백. 테두리까지 감안해 조금 넉넉히 둔다. */
 const GAP = 16;
@@ -20,7 +23,7 @@ const GAP = 16;
  * 목차를 붙일 높이 = 상단 바 + 오더 머리띠.
  *
  * 머리띠가 둘이다 — 맨 위 상단 바(64px 고정)와 그 아래 오더 머리띠(`[data-order-header]`,
- * sticky top:64). 목차를 그냥 고정하면 antd 기본값이 `offsetTop: 0`이라 **두 머리띠 뒤로
+ * sticky top:60). 목차를 top 0 으로 고정하면 **두 머리띠 뒤로
  * 숨는다.** 오더 머리띠는 제목이 길면 줄이 늘어 높이가 달라지므로 상수로 박지 않고 실측한다.
  */
 function useHeaderBottom(): number {
@@ -129,36 +132,45 @@ export default function OtherDocsView({
           매번 맨 위까지 되올라가야 했다. 머리띠 둘 아래에 고정하고, 누른 문서의 제목이
           그 목차에 가리지 않도록 목차 높이만큼 더 내려 세운다. */}
       {docs.length > 1 && (
-        // ⛔ 여백은 **바깥 div** 에 준다. Anchor 에 marginTop 을 주면 고정될 때 그 여백까지
-        //    고정 영역 안으로 따라 들어가 목차가 그만큼 내려앉고, 누른 문서의 머리가 가린다.
-        <div ref={anchorRef} style={{ marginTop: 12 }}>
-          <Anchor
-            affix
-            offsetTop={headerBottom}
-            targetOffset={headerBottom + anchorH + GAP}
-            style={{ background: "#fff" }}
-            direction="horizontal"
-            items={docs.map((d) => ({
-              key: d.name,
-              href: `#${encodeURIComponent(d.name)}`,
-              title: d.name,
-            }))}
-          />
+        // 목차 칸이 스크롤해도 머리띠 둘 바로 아래에 붙어 있도록 sticky 로 세운다.
+        // (예전 antd Anchor 의 affix 자리. 지금 보는 문서 표시(스크롤 스파이)는 단순화로 뺐다)
+        <div
+          ref={anchorRef}
+          className="ui-anchor"
+          style={{ marginTop: 12, position: "sticky", top: headerBottom, zIndex: 5 }}
+        >
+          {docs.map((d) => (
+            <a
+              key={d.name}
+              href={`#${encodeURIComponent(d.name)}`}
+              onClick={(e) => {
+                // 누른 문서의 제목이 머리띠·목차 밑으로 숨지 않게 그 높이만큼 덜 내려간다.
+                const el = document.getElementById(encodeURIComponent(d.name));
+                if (!el) return;
+                e.preventDefault();
+                const y = el.getBoundingClientRect().top + window.scrollY - (headerBottom + anchorH + GAP);
+                window.scrollTo({ top: y, behavior: "smooth" });
+                history.replaceState(null, "", `#${encodeURIComponent(d.name)}`);
+              }}
+            >
+              {d.name}
+            </a>
+          ))}
         </div>
       )}
 
-      <Space orientation="vertical" size={16} style={{ width: "100%", marginTop: 16 }}>
+      <Stack orientation="vertical" size={16} style={{ width: "100%", marginTop: 16 }}>
         {docs.map((d) => (
           <Card
             key={d.name}
             id={encodeURIComponent(d.name)}
             size="small"
             title={
-              <Space size={8}>
-                <FileTextOutlined />
+              <Stack size={8}>
+                <FileText size="1em" />
                 <Text code>{d.name}</Text>
                 <Tag style={{ margin: 0 }}>{Math.max(1, Math.round(d.bytes / 1024))} KB</Tag>
-              </Space>
+              </Stack>
             }
             extra={
               <a
@@ -172,7 +184,7 @@ export default function OtherDocsView({
             <MarkdownDoc md={d.content} />
           </Card>
         ))}
-      </Space>
+      </Stack>
     </div>
   );
 }
