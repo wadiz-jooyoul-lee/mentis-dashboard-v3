@@ -9,25 +9,26 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { getMetaDir } from "@/lib/issues";
+import { getMetaDir, resolveConfig } from "@/lib/issues";
 import { goDobbyLib } from "@/lib/jobs";
 import { isDemoMode } from "@/lib/demo";
 
-const DEST =
-  process.env.ORCHESTRATION_BACKUP_DIR ||
-  path.join(os.homedir(), "claude-projects-backup", "orchestration");
+// 설정 창에서 바꿀 수 있어 매번 읽는다(환경 변수 → config.env → 기본값)
+const BACKUP_DEFAULT = path.join(os.homedir(), "claude-projects-backup", "orchestration");
+// 설정 파일에 빈 값이 적혀 있어도 기본 위치를 쓴다
+const dest = () => resolveConfig("ORCHESTRATION_BACKUP_DIR", BACKUP_DEFAULT) || BACKUP_DEFAULT;
 
 const ARCHIVE_RE = /^(.+)--(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})\.tar\.(zst|gz)$/;
 /** 백업에서 빠지는 확장자(스크립트의 exclude.txt와 같은 목록) — 변경 감지에서도 제외한다. */
 const SKIP_EXT = new Set([".png", ".jpeg", ".jpg", ".gif", ".webp", ".bin"]);
 
 export function orchestrationBackupDir(): string {
-  return DEST;
+  return dest();
 }
 
 /** 스크립트 실행 원본 출력(backup-run.log). 최근 것만 본다 — 계속 덧붙는 파일이다. */
 export function readRunLog(maxBytes = 20000): string {
-  const p = path.join(DEST, "backup-run.log");
+  const p = path.join(dest(), "backup-run.log");
   try {
     const size = fs.statSync(p).size;
     const start = Math.max(0, size - maxBytes);
@@ -90,7 +91,7 @@ function readLog(): { log: string; meta: Record<string, { raw: number | null; fi
   let log = "";
   const meta: Record<string, { raw: number | null; files: number | null; ratio: number | null }> = {};
   try {
-    log = fs.readFileSync(path.join(DEST, "backup-log.txt"), "utf8");
+    log = fs.readFileSync(path.join(dest(), "backup-log.txt"), "utf8");
   } catch {
     return { log: "", meta };
   }
@@ -165,7 +166,7 @@ function hasChangeSince(dir: string, ms: number): boolean {
 export function isOrchestrationBackupRunning(): boolean {
   let names: string[];
   try {
-    names = fs.readdirSync(DEST);
+    names = fs.readdirSync(dest());
   } catch {
     return false;
   }
@@ -173,7 +174,7 @@ export function isOrchestrationBackupRunning(): boolean {
   for (const n of names) {
     if (!n.startsWith(".lock-")) continue;
     try {
-      if (now - fs.statSync(path.join(DEST, n)).mtimeMs < 10 * 60 * 1000) return true;
+      if (now - fs.statSync(path.join(dest(), n)).mtimeMs < 10 * 60 * 1000) return true;
     } catch {
       /* skip */
     }
@@ -189,7 +190,7 @@ export function getOrchestrationBackupStatus(): OrchBackupStatus {
   const latest = new Map<string, OrchArchive>();
   let names: string[] = [];
   try {
-    names = fs.readdirSync(DEST);
+    names = fs.readdirSync(dest());
   } catch {
     /* 폴더 없음 = 아직 백업 안 함 */
   }
@@ -200,7 +201,7 @@ export function getOrchestrationBackupStatus(): OrchBackupStatus {
     const at = new Date(+y, +mo - 1, +d, +h, +mi, +s);
     let sizeBytes = 0;
     try {
-      sizeBytes = fs.statSync(path.join(DEST, name)).size;
+      sizeBytes = fs.statSync(path.join(dest(), name)).size;
     } catch {
       /* skip */
     }
@@ -234,7 +235,7 @@ export function getOrchestrationBackupStatus(): OrchBackupStatus {
 
   const archives = [...latest.values()].sort((a, b) => b.at.localeCompare(a.at));
   return {
-    dest: DEST,
+    dest: dest(),
     metaDir,
     archives,
     totalBytes: archives.reduce((n, a) => n + a.sizeBytes, 0),
@@ -250,10 +251,10 @@ export function getOrchestrationBackupStatus(): OrchBackupStatus {
 // 해결 전에는 폴더별 아카이브가 갱신되지 않으므로(해결 시점에만 만든다) 그 사이 변경이
 // 무방비다. 작업중인 폴더들을 하루 두 번 한 덩이로 모아 임시 보관한다.
 
-const INP_DIR = path.join(DEST, "inprogress");
+const inpDir = () => path.join(dest(), "inprogress");
 const INP_RE = /^inprogress-(\d{4})(\d{2})(\d{2})-(am|pm)\.tar\.(zst|gz)$/;
 /** 보관 기간(일). 스크립트의 ORCHESTRATION_BACKUP_KEEP_DAYS 기본값과 같아야 한다. */
-export const INP_KEEP_DAYS = Number(process.env.ORCHESTRATION_BACKUP_KEEP_DAYS || 14);
+export const inpKeepDays = () => Number(resolveConfig("ORCHESTRATION_BACKUP_KEEP_DAYS", "14")) || 14;
 
 export type InProgressSlot = "am" | "pm";
 
@@ -312,7 +313,7 @@ function readInProgressLog(): {
   let log = "";
   const meta: Record<string, { orders: number | null; files: number | null; raw: number | null; ratio: number | null }> = {};
   try {
-    log = fs.readFileSync(path.join(INP_DIR, "inprogress-log.txt"), "utf8");
+    log = fs.readFileSync(path.join(inpDir(), "inprogress-log.txt"), "utf8");
   } catch {
     return { log: "", meta };
   }
@@ -337,7 +338,7 @@ export function getInProgressStatus(now = new Date()): InProgressStatus {
   const archives: InProgressArchive[] = [];
   let names: string[] = [];
   try {
-    names = fs.readdirSync(INP_DIR);
+    names = fs.readdirSync(inpDir());
   } catch {
     /* 아직 없음 */
   }
@@ -348,7 +349,7 @@ export function getInProgressStatus(now = new Date()): InProgressStatus {
     let sizeBytes = 0;
     let at = new Date(+y, +mo - 1, +d).toISOString();
     try {
-      const st = fs.statSync(path.join(INP_DIR, name));
+      const st = fs.statSync(path.join(inpDir(), name));
       sizeBytes = st.size;
       at = new Date(st.mtimeMs).toISOString();
     } catch {
@@ -376,10 +377,10 @@ export function getInProgressStatus(now = new Date()): InProgressStatus {
   };
   const dueSlot = currentSlot(now);
   return {
-    dir: INP_DIR,
+    dir: inpDir(),
     archives,
     totalBytes: archives.reduce((n, a) => n + a.sizeBytes, 0),
-    keepDays: INP_KEEP_DAYS,
+    keepDays: inpKeepDays(),
     today,
     has,
     dueSlot,
@@ -420,12 +421,12 @@ export function maybeRunInProgressBackup(
   const script = path.join(path.dirname(lib), "dobby-meta-backup.sh");
   if (!fs.existsSync(script)) return { ok: false, ran: false, slot, reason: "no_script" };
   try {
-    fs.mkdirSync(INP_DIR, { recursive: true });
-    const out = fs.openSync(path.join(DEST, "backup-run.log"), "a");
+    fs.mkdirSync(inpDir(), { recursive: true });
+    const out = fs.openSync(path.join(dest(), "backup-run.log"), "a");
     const child = spawn("bash", [script, "--inprogress", slot], {
       detached: true,
       stdio: ["ignore", out, out],
-      env: { ...process.env, ORCHESTRATION_BACKUP_DIR: DEST },
+      env: { ...process.env, ORCHESTRATION_BACKUP_DIR: dest() },
     });
     child.unref();
     return { ok: true, ran: true, slot };
@@ -444,12 +445,12 @@ export function runOrchestrationBackupAll(): { ok: boolean; reason?: string } {
   const script = path.join(path.dirname(lib), "dobby-meta-backup.sh");
   if (!fs.existsSync(script)) return { ok: false, reason: "no_script" };
   try {
-    fs.mkdirSync(DEST, { recursive: true });
-    const out = fs.openSync(path.join(DEST, "backup-run.log"), "a");
+    fs.mkdirSync(dest(), { recursive: true });
+    const out = fs.openSync(path.join(dest(), "backup-run.log"), "a");
     const child = spawn("bash", [script, "--all"], {
       detached: true,
       stdio: ["ignore", out, out],
-      env: { ...process.env, ORCHESTRATION_BACKUP_DIR: DEST },
+      env: { ...process.env, ORCHESTRATION_BACKUP_DIR: dest() },
     });
     child.unref();
     return { ok: true };

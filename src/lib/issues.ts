@@ -27,7 +27,7 @@ function readConfigEnv(name: string): string | undefined {
 }
 
 /** 설정 해석: 환경변수 → config.env → 기본값 순. */
-function resolveConfig(envName: string, fallback: string): string {
+export function resolveConfig(envName: string, fallback: string): string {
   const fromEnv = process.env[envName];
   if (fromEnv && fromEnv.trim()) return expandPath(fromEnv);
   return readConfigEnv(envName) ?? fallback;

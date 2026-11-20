@@ -41,6 +41,27 @@ export function liveSessions(key: string): Record<string, string> {
   return out;
 }
 
+/** 살아 있는 /do 세션 전부(오더 키와 담당자). 설정 창이 위험한 설정을 잠글지 정할 때 쓴다. */
+export function allLiveSessions(): { keys: string[]; slug: string }[] {
+  const dir = path.join(getMetaDir(), ".presence");
+  let files: string[];
+  try {
+    files = fs.readdirSync(dir).filter((f) => f.endsWith(".json"));
+  } catch {
+    return [];
+  }
+  const out: { keys: string[]; slug: string }[] = [];
+  for (const f of files) {
+    try {
+      const p: Presence = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
+      if (p.state !== "done" && pidAlive(p.pid)) out.push({ keys: p.keys ?? [], slug: p.slug ?? "세션" });
+    } catch {
+      /* 깨진 표시는 건너뛴다 */
+    }
+  }
+  return out;
+}
+
 /** 상태 문서의 `- **자동 실행**:` 줄. 실행 중이라고 적혀 있어도 프로세스가 없으면 끊긴 것으로 본다. */
 export type AutoRun = { text: string; running: boolean; lost: boolean };
 

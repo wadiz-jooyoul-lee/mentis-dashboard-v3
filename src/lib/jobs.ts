@@ -153,7 +153,7 @@ export function isRunning(key: string): boolean {
  * `isRunning`을 키마다 부르면 그 안에서 `ps`를 매번 띄운다(잡 폴더가 170개 넘음).
  * 여기서는 메타(run.json)에서 PID를 모아 **`ps`를 단 한 번** 호출해 확인한다.
  */
-function runningJobKeys(): string[] {
+export function runningJobKeys(): string[] {
   const metas = allJobKeys()
     .map((k) => readMeta(k))
     .filter((m): m is Meta => !!m && m.pid > 0);

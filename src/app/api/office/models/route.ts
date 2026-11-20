@@ -2,11 +2,17 @@ import { mkdirSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { denyRemote } from "@/lib/localOnly";
 import { getBus } from "@/lib/office/core/bus";
-import { roleModelsFile } from "@/lib/office/core/seed";
-import { MODELS, ROLE_NAME, type Model, type TableRole } from "@/lib/office/core/types";
+import { emptyOffice, roleModelsFile } from "@/lib/office/core/seed";
+import { DOBBY_ALL_ROLES, MODELS, ROLE_NAME, type Model, type TableRole } from "@/lib/office/core/types";
 import { DOBBY_OFFICE } from "@/lib/office/office";
 
 export const dynamic = "force-dynamic";
+
+// 설정 창이 읽는 지금 값. 사무실 화면 없이도 볼 수 있게 저장 파일에서 읽는다
+export async function GET() {
+  const { models } = emptyOffice();
+  return Response.json({ models, roles: DOBBY_ALL_ROLES.map((r) => ({ id: r, name: ROLE_NAME[r] })), choices: MODELS });
+}
 
 // 역할별 모델 창의 저장. 역할마다 모델을 바꾼다. 바꾼 모델은 다음 실행부터 쓴다
 export async function POST(req: Request) {

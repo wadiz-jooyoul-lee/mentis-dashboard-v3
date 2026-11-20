@@ -13,3 +13,20 @@ export function denyRemote(req: Request): NextResponse | null {
     { status: 403 },
   );
 }
+
+/** 설정 저장 API 용. 다른 웹페이지가 브라우저를 시켜 보내는 요청을 막는다. */
+export function denyCrossSite(req: Request): NextResponse | null {
+  const bad = (error: string) => NextResponse.json({ ok: false, error }, { status: 403 });
+  if (!(req.headers.get("content-type") ?? "").includes("application/json")) return bad("JSON 요청만 받습니다.");
+  const site = req.headers.get("sec-fetch-site");
+  if (site && site !== "same-origin" && site !== "none") return bad("다른 사이트에서 온 요청입니다.");
+  const origin = req.headers.get("origin");
+  if (origin) {
+    try {
+      if (new URL(origin).host !== req.headers.get("host")) return bad("다른 사이트에서 온 요청입니다.");
+    } catch {
+      return bad("다른 사이트에서 온 요청입니다.");
+    }
+  }
+  return null;
+}

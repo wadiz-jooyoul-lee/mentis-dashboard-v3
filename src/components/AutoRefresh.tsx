@@ -28,6 +28,7 @@ export default function AutoRefresh({
 
   useEffect(() => {
     setLast(new Date().toLocaleTimeString("ko-KR"));
+    if (intervalMs <= 0) return; // 설정 창에서 자동 갱신을 끈 경우
     // 탭이 백그라운드(다른 탭·최소화)일 때는 갱신하지 않는다.
     // router.refresh()는 서버 컴포넌트를 전부 다시 실행하므로(파일 읽기·파싱) 보지 않는
     // 화면에 그 비용을 쓸 이유가 없다. 다시 화면으로 돌아오는 순간 한 번 갱신해 최신을 맞춘다.
@@ -56,7 +57,7 @@ export default function AutoRefresh({
           style={{ marginRight: 6, cursor: "pointer" }}
         />
       </Tip>
-      {Math.round(intervalMs / 1000)}초마다 자동 갱신
+      {intervalMs > 0 ? `${Math.round(intervalMs / 1000)}초마다 자동 갱신` : "자동 갱신 꺼짐"}
       {last ? ` · 최근 ${last}` : ""}
     </span>
   );
