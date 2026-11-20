@@ -1,4 +1,4 @@
-// 대시보드 mentis-dashboard-v2/src/lib/testPlan.ts (ad8124d) 를 옮겨 온 것. 오피스가 대시보드에 기대지 않으려고 복사했다. 규칙을 고치면 두 곳을 같이 고친다
+// 대시보드 mentis-dashboard-v3/src/lib/testPlan.ts (ad8124d) 를 옮겨 온 것. 오피스가 대시보드에 기대지 않으려고 복사했다. 규칙을 고치면 두 곳을 같이 고친다
 import fs from "node:fs";
 import path from "node:path";
 

@@ -14,7 +14,7 @@
 #   clean  : .demo-meta 삭제
 set -euo pipefail
 
-HERE="$(cd "$(dirname "$0")/../.." && pwd)"           # mentis-dashboard-v2 루트
+HERE="$(cd "$(dirname "$0")/../.." && pwd)"           # mentis-dashboard-v3 루트
 ROOT="${DEMO_META:-$HERE/.demo-meta}"
 STATE="$ROOT/.demo-state.json"
 MARKER="$ROOT/.demo"
