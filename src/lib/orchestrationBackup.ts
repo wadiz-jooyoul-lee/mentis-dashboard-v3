@@ -14,7 +14,9 @@ import { goDobbyLib } from "@/lib/jobs";
 import { isDemoMode } from "@/lib/demo";
 
 // 설정 창에서 바꿀 수 있어 매번 읽는다(환경 변수 → config.env → 기본값)
-const dest = () => resolveConfig("ORCHESTRATION_BACKUP_DIR", path.join(os.homedir(), "claude-projects-backup", "orchestration"));
+const BACKUP_DEFAULT = path.join(os.homedir(), "claude-projects-backup", "orchestration");
+// 설정 파일에 빈 값이 적혀 있어도 기본 위치를 쓴다
+const dest = () => resolveConfig("ORCHESTRATION_BACKUP_DIR", BACKUP_DEFAULT) || BACKUP_DEFAULT;
 
 const ARCHIVE_RE = /^(.+)--(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})\.tar\.(zst|gz)$/;
 /** 백업에서 빠지는 확장자(스크립트의 exclude.txt와 같은 목록) — 변경 감지에서도 제외한다. */

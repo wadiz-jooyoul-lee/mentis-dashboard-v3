@@ -563,7 +563,6 @@ a.ui-btn { text-decoration: none; }
 .set-swatch.is-on { box-shadow: 0 0 0 2px var(--bg-raised), 0 0 0 4px var(--fg); }
 .set-swatch:disabled { cursor: not-allowed; }
 .set-picker .react-colorful { width: 240px; height: 170px; }
-.set-picker.is-off { pointer-events: none; opacity: .5; }
 .set-hex { display: flex; align-items: center; gap: 6px; font-size: 13px; }
 .set-hex input { width: 90px; padding: 4px 8px; border: 1px solid var(--line); border-radius: var(--r-sm); font: inherit; background: var(--bg-raised); color: var(--fg); }
 .set-models { display: flex; flex-direction: column; gap: 6px; }

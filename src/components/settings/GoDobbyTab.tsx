@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import { Checkbox, Field } from "@/components/ui/Form";
 import Note from "@/components/ui/Note";
@@ -24,7 +25,7 @@ type Item = {
   lock: { locked: boolean; reasons: string[] };
 };
 type St = { file: string; exists: boolean; busy: { key: string; what: string }[]; items: Item[] };
-type Check = { errors: string[]; info: string[] };
+type Check = { errors: string[]; info: string[]; value: string };
 
 const TIER: Record<Item["tier"], { label: string; color: string }> = {
   danger: { label: "위험", color: "error" },
@@ -55,6 +56,7 @@ export default function GoDobbyTab({ onSaved }: { onSaved: () => void }) {
   const [confirm, setConfirm] = useState(false);
   const [terminalOk, setTerminalOk] = useState(false);
   const [busy, setBusy] = useState(false);
+  const router = useRouter();
 
   const load = useCallback(async () => {
     const r = await fetch("/api/settings/go-dobby", { cache: "no-store" }).catch(() => null);
@@ -80,7 +82,7 @@ export default function GoDobbyTab({ onSaved }: { onSaved: () => void }) {
         const v = edits[i.key].trim();
         fetch(`/api/settings/go-dobby?check=${i.key}&value=${encodeURIComponent(v)}`, { cache: "no-store" })
           .then((r) => r.json())
-          .then((c: Check) => setChecks((x) => ({ ...x, [i.key]: c })))
+          .then((c: Omit<Check, "value">) => setChecks((x) => ({ ...x, [i.key]: { ...c, value: v } })))
           .catch(() => {});
       }
     }, 400);
@@ -92,7 +94,9 @@ export default function GoDobbyTab({ onSaved }: { onSaved: () => void }) {
   if (!st) return <p className="set-help">스킬 설정을 읽는 중입니다.</p>;
   if (!st.exists) return <Note type="warning" title="스킬 설정 파일이 없습니다." description="먼저 터미널에서 /dobby-init 을 실행해 주세요. 설정 창은 파일을 새로 만들지 않습니다." />;
 
-  const hasErrors = changed.some((i) => checks[i.key]?.errors.length);
+  // 늦게 온 옛 값의 검사 결과는 쓰지 않는다
+  const checkOf = (i: Item) => (checks[i.key]?.value === edits[i.key]?.trim() ? checks[i.key] : undefined);
+  const hasErrors = changed.some((i) => checkOf(i)?.errors.length);
   const hasDanger = changed.some((i) => i.tier === "danger");
 
   const save = async () => {
@@ -112,6 +116,7 @@ export default function GoDobbyTab({ onSaved }: { onSaved: () => void }) {
     setTerminalOk(false);
     setSt(j);
     onSaved();
+    router.refresh();
   };
 
   if (confirm) {
@@ -167,7 +172,7 @@ export default function GoDobbyTab({ onSaved }: { onSaved: () => void }) {
           {st.items
             .filter((i) => i.group === g)
             .map((i) => {
-              const c = checks[i.key];
+              const c = checkOf(i);
               const isChanged = changed.includes(i);
               return (
                 <div key={i.key} className={`set-item${isChanged ? " is-changed" : ""}`}>
@@ -187,6 +192,7 @@ export default function GoDobbyTab({ onSaved }: { onSaved: () => void }) {
                     aria-label={i.label}
                   />
                   {i.expanded && i.expanded !== i.raw && <p className="set-help">실제 경로: {i.expanded}</p>}
+                  {i.secret && i.set && <p className="set-help">비밀번호는 여기서 지울 수 없습니다. 지우려면 설정 파일을 직접 고쳐 주세요.</p>}
                   {isChanged && c?.errors.map((t) => <p key={t} className="set-error">✕ {t}</p>)}
                   {isChanged && c?.info.map((t) => <p key={t} className="set-help">✓ {t}</p>)}
                   {i.lock.locked && (

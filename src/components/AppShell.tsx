@@ -102,7 +102,7 @@ export default function AppShell({
           type="warning"
           style={{ borderRadius: 0 }}
           title="대시보드를 다시 켜야 바뀐 설정이 모두 반영됩니다"
-          description="메타 폴더를 바꿨습니다. 사무실 화면과 진행 소식 수신은 다시 켜기 전까지 옛 폴더를 봅니다. 터미널에서 pnpm serve 로 다시 켜 주세요."
+          description="메타 폴더 위치가 바뀌는 설정을 바꿨습니다. 사무실 화면과 진행 소식 수신은 다시 켜기 전까지 옛 폴더를 봅니다. 터미널에서 pnpm serve 로 다시 켜 주세요."
         />
       )}
       {demo && <DemoControls />}

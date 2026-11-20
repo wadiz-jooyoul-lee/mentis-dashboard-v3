@@ -1,7 +1,9 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { execFileSync } from "node:child_process";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { getReposRoot } from "@/lib/issues";
 
 // 스킬 설정 파일(config.env)을 설정 창에서 고친다. 규칙은 /dobby-init 과 같다:
 // 바뀐 줄만 고치고 다른 줄·주석·순서는 그대로 두며, 확인 없이 줄을 지우지 않고, 쓰기 전에 백업한다.
@@ -259,35 +261,58 @@ export const configFile = () => path.join(os.homedir(), ".config", "go-dobby", "
 
 const LINE = /^(\s*)(export\s+)?([A-Z_][A-Z0-9_]*)=(.*)$/;
 
-type Entry = { index: number; indent: string; exp: string; quote: string; value: string };
+type Entry = { index: number; indent: string; exp: string; value: string; trail: string };
 
-function parse(text: string): { lines: string[]; entries: Map<string, Entry> } {
+/** 값 뒤의 " # 설명" 은 trail 로 떼어 두었다가 쓸 때 다시 붙인다. 같은 키가 여러 줄이면 dups 에 담는다. */
+function parse(text: string): { lines: string[]; entries: Map<string, Entry>; dups: Set<string> } {
   const lines = text.split("\n");
   const entries = new Map<string, Entry>();
+  const dups = new Set<string>();
   lines.forEach((line, index) => {
     const m = line.match(LINE);
     if (!m) return;
-    const raw = m[4].trim();
+    const raw = m[4];
+    let value: string;
+    let trail: string;
     const q = raw[0] === '"' || raw[0] === "'" ? raw[0] : "";
-    const value = q && raw.endsWith(q) && raw.length >= 2 ? raw.slice(1, -1) : raw;
-    entries.set(m[3], { index, indent: m[1], exp: m[2] ?? "", quote: q, value });
+    const end = q ? raw.indexOf(q, 1) : -1;
+    if (end > 0) {
+      value = raw.slice(1, end);
+      trail = raw.slice(end + 1);
+    } else {
+      const c = raw.search(/\s#/);
+      value = (c >= 0 ? raw.slice(0, c) : raw).trim();
+      trail = c >= 0 ? raw.slice(c) : "";
+    }
+    if (entries.has(m[3])) dups.add(m[3]);
+    entries.set(m[3], { index, indent: m[1], exp: m[2] ?? "", value, trail });
   });
-  return { lines, entries };
+  return { lines, entries, dups };
 }
 
-export function readConfig(): { exists: boolean; values: Map<string, string> } {
+export function readConfig(): { exists: boolean; values: Map<string, string>; dups: Set<string> } {
   try {
-    const { entries } = parse(fs.readFileSync(configFile(), "utf8"));
-    return { exists: true, values: new Map([...entries].map(([k, e]) => [k, e.value])) };
+    const { entries, dups } = parse(fs.readFileSync(configFile(), "utf8"));
+    return { exists: true, values: new Map([...entries].map(([k, e]) => [k, e.value])), dups };
   } catch {
-    return { exists: false, values: new Map() };
+    return { exists: false, values: new Map(), dups: new Set() };
   }
 }
 
 export function expandHome(v: string): string {
-  let s = v.trim().replace(/\$\{?HOME\}?/g, os.homedir());
-  if (s.startsWith("~")) s = path.join(os.homedir(), s.slice(1));
+  let s = v.trim().replace(/\$\{HOME\}|\$HOME(?![A-Za-z0-9_])/g, os.homedir());
+  if (s === "~" || s.startsWith("~/")) s = path.join(os.homedir(), s.slice(1));
   return s;
+}
+
+/** 비운 경로 항목이 돌아갈 기본 경로. */
+function defaultPath(key: string, current: Map<string, string>): string | null {
+  const ws = () => expandHome(current.get("ORCHESTRATION_WORKSPACE") || "$HOME/work/dobby-workspace");
+  if (key === "ORCHESTRATION_META_PATH") return path.join(ws(), "meta");
+  if (key === "ORCHESTRATION_WORKSPACE") return expandHome("$HOME/work/dobby-workspace");
+  if (key === "ORCHESTRATION_DOCS_ROOT") return path.join(expandHome(current.get("ORCHESTRATION_REPOS_ROOT") || "$HOME/work/repos"), "docs");
+  const d = specOf(key)?.def;
+  return d ? expandHome(d) : null;
 }
 
 // ── 값 검사 ──
@@ -317,6 +342,23 @@ async function reachable(url: string): Promise<boolean> {
   }
 }
 
+function checkPath(key: string, p: string, errors: string[], info: string[]) {
+  if (!path.isAbsolute(p)) errors.push("절대 경로나 $HOME, ~ 로 시작하는 경로를 적어 주세요.");
+  else if (isDir(p)) {
+    if (key === "ORCHESTRATION_META_PATH") {
+      const n = subdirs(p).filter((d) => fs.existsSync(path.join(p, d.name, "status.md"))).length;
+      info.push(`폴더가 있습니다. 오더 폴더 ${n}개가 들어 있습니다.`);
+    } else if (key === "ORCHESTRATION_REPOS_ROOT") {
+      const n = subdirs(p).filter((d) => fs.existsSync(path.join(p, d.name, ".git"))).length;
+      info.push(`폴더가 있습니다. git 저장소 ${n}개가 들어 있습니다.`);
+      if (n === 0) errors.push("git 저장소가 하나도 없습니다.");
+    } else info.push("폴더가 있습니다.");
+  } else if (key === "ORCHESTRATION_BACKUP_DIR") info.push("폴더가 아직 없습니다. 첫 백업 때 만들어집니다.");
+  else errors.push(`폴더가 없습니다: ${p}`);
+}
+
+const execFileP = promisify(execFile);
+
 /** value 가 빈 문자열이면 그 줄을 지워 기본값으로 돌아간다는 뜻이다. */
 export async function checkValue(key: string, value: string, current: Map<string, string>): Promise<Check> {
   const s = specOf(key);
@@ -324,29 +366,24 @@ export async function checkValue(key: string, value: string, current: Map<string
   const info: string[] = [];
   if (!s) return { errors: ["모르는 항목입니다."], info };
   if (value === "") {
+    if (s.secret) return { errors: ["비밀번호는 여기서 지울 수 없습니다. 지우려면 설정 파일을 직접 고쳐 주세요."], info };
     info.push(s.def ? `비우면 줄을 지우고 기본값(${s.def})을 씁니다.` : "비우면 줄을 지웁니다.");
+    const d = s.kind === "path" ? defaultPath(key, current) : null;
+    if (d) checkPath(key, d, errors, info);
     return { errors, info };
   }
   if (/[\n\r]/.test(value)) errors.push("줄바꿈은 넣을 수 없습니다.");
-  if (s.secret ? value.includes("'") : /["`\\]/.test(value))
-    errors.push(s.secret ? "작은따옴표(')는 넣을 수 없습니다." : '큰따옴표("), 백틱(`), 역슬래시(\\)는 넣을 수 없습니다.');
+  if (s.secret) {
+    if (value.includes("'")) errors.push("작은따옴표(')는 넣을 수 없습니다.");
+  } else {
+    if (/["`\\]/.test(value)) errors.push('큰따옴표("), 백틱(`), 역슬래시(\\)는 넣을 수 없습니다.');
+    // 셸이 파일을 읽을 때 $ 뒤를 풀거나 실행하므로 경로의 $HOME 말고는 막는다
+    const rest = s.kind === "path" ? value.replace(/\$\{HOME\}|\$HOME(?![A-Za-z0-9_])/g, "") : value;
+    if (rest.includes("$")) errors.push(s.kind === "path" ? "$ 는 $HOME 으로만 쓸 수 있습니다." : "$ 는 넣을 수 없습니다.");
+  }
   if (errors.length) return { errors, info };
 
-  if (s.kind === "path") {
-    const p = expandHome(value);
-    if (!path.isAbsolute(p)) errors.push("절대 경로나 $HOME, ~ 로 시작하는 경로를 적어 주세요.");
-    else if (isDir(p)) {
-      if (key === "ORCHESTRATION_META_PATH") {
-        const n = subdirs(p).filter((d) => fs.existsSync(path.join(p, d.name, "status.md"))).length;
-        info.push(`폴더가 있습니다. 오더 폴더 ${n}개가 들어 있습니다.`);
-      } else if (key === "ORCHESTRATION_REPOS_ROOT") {
-        const n = subdirs(p).filter((d) => fs.existsSync(path.join(p, d.name, ".git"))).length;
-        info.push(`폴더가 있습니다. git 저장소 ${n}개가 들어 있습니다.`);
-        if (n === 0) errors.push("git 저장소가 하나도 없습니다.");
-      } else info.push("폴더가 있습니다.");
-    } else if (key === "ORCHESTRATION_BACKUP_DIR") info.push("폴더가 아직 없습니다. 첫 백업 때 만들어집니다.");
-    else errors.push(`폴더가 없습니다: ${p}`);
-  }
+  if (s.kind === "path") checkPath(key, expandHome(value), errors, info);
   if (s.kind === "url") {
     if (!/^https?:\/\/[^\s]+$/.test(value)) errors.push("http:// 또는 https:// 로 시작하는 주소를 적어 주세요.");
     else if (key === "ORCHESTRATION_DASHBOARD_URL") {
@@ -368,16 +405,17 @@ export async function checkValue(key: string, value: string, current: Map<string
   if (s.kind === "branch") {
     if (!/^[A-Za-z0-9._/-]+$/.test(value)) errors.push("브랜치 이름에 쓸 수 없는 글자가 있습니다.");
     else {
-      const root = expandHome(current.get("ORCHESTRATION_REPOS_ROOT") ?? "$HOME/work/repos");
+      const root = getReposRoot();
       const repos = subdirs(root).filter((d) => fs.existsSync(path.join(root, d.name, ".git")));
-      const has = repos.filter((d) => {
-        try {
-          execFileSync("git", ["-C", path.join(root, d.name), "rev-parse", "--verify", "--quiet", `refs/remotes/origin/${value}`], { stdio: "ignore" });
-          return true;
-        } catch {
-          return false;
-        }
-      });
+      const found = await Promise.all(
+        repos.map((d) =>
+          execFileP("git", ["-C", path.join(root, d.name), "rev-parse", "--verify", "--quiet", `refs/remotes/origin/${value}`]).then(
+            () => true,
+            () => false,
+          ),
+        ),
+      );
+      const has = repos.filter((_, i) => found[i]);
       info.push(`원본 저장소 ${repos.length}개 중 ${has.length}개에 origin/${value} 가 있습니다${has.length ? `: ${has.map((d) => d.name).join(", ")}` : ""}.`);
     }
   }
@@ -390,23 +428,45 @@ const stamp = (d = new Date()) => {
   return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
 };
 
+const BACKUP_KEEP = 10;
+
+/** 대시보드가 만든 백업은 이름에 dashboard 를 넣어 구분하고, 최근 10개만 남긴다. */
+function backupFile(file: string): string {
+  const base = `${file}.bak-dashboard-${stamp()}`;
+  let out = base;
+  for (let n = 2; fs.existsSync(out); n++) out = `${base}-${n}`;
+  const dir = path.dirname(file);
+  const prefix = `${path.basename(file)}.bak-dashboard-`;
+  const old = fs
+    .readdirSync(dir)
+    .filter((n) => n.startsWith(prefix))
+    .map((n) => ({ n, t: fs.statSync(path.join(dir, n)).mtimeMs }))
+    .sort((a, b) => b.t - a.t)
+    .slice(BACKUP_KEEP - 1);
+  for (const o of old) fs.rmSync(path.join(dir, o.n), { force: true });
+  return out;
+}
+
 /** changes: 키 → 새 값(빈 문자열이면 그 줄을 지운다). 백업 파일 경로를 돌려준다. */
 export function applyChanges(changes: Record<string, string>): string {
-  const file = configFile();
+  // 바로 가기(심볼릭 링크)면 링크가 가리키는 실제 파일에 쓴다
+  const file = fs.realpathSync(configFile());
   const text = fs.readFileSync(file, "utf8");
   const { lines, entries } = parse(text);
   const drop = new Set<number>();
   const append: string[] = [];
-  for (const [key, value] of Object.entries(changes)) {
+  for (const [key, given] of Object.entries(changes)) {
     const s = specOf(key)!;
+    let value = given;
     const e = entries.get(key);
     if (value === "") {
       if (e) drop.add(e.index);
       continue;
     }
-    // 비밀번호는 $ 가 풀리지 않게 작은따옴표, 나머지는 $HOME 이 풀리게 큰따옴표
-    const q = s.secret ? "'" : e?.quote || '"';
-    if (e) lines[e.index] = `${e.indent}${e.exp}${key}=${q}${value}${q}`;
+    // 비밀번호는 $ 가 풀리지 않게 작은따옴표, 나머지는 $HOME 이 풀리게 큰따옴표. 큰따옴표 안의 ~ 는 셸이 풀지 않는다.
+    const q = s.secret ? "'" : '"';
+    if (s.kind === "path" && (value === "~" || value.startsWith("~/"))) value = `$HOME${value.slice(1)}`;
+    if (e) lines[e.index] = `${e.indent}${e.exp}${key}=${q}${value}${q}${e.trail}`;
     else append.push(`export ${key}=${q}${value}${q}`);
   }
   let out = lines.filter((_, i) => !drop.has(i));
@@ -414,7 +474,7 @@ export function applyChanges(changes: Record<string, string>): string {
     while (out.length && out[out.length - 1] === "") out.pop();
     out = [...out, ...append, ""];
   }
-  const backup = `${file}.bak-${stamp()}`;
+  const backup = backupFile(file);
   const mode = fs.statSync(file).mode & 0o777;
   fs.copyFileSync(file, backup);
   fs.chmodSync(backup, mode);

@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 import { busyWork, lockFor, unfinishedWorktrees } from "@/lib/configGuard";
 import { readSettings, writeSettings } from "@/lib/dashboardSettings";
 import { SPECS, applyChanges, checkValue, configFile, expandHome, readConfig, specOf } from "@/lib/goDobbyConfig";
-import { denyRemote } from "@/lib/localOnly";
+import { denyCrossSite, denyRemote } from "@/lib/localOnly";
 
 export const dynamic = "force-dynamic";
 
 // 스킬 설정 탭. 계정과 비밀번호가 들어 있어 보기와 바꾸기 모두 이 맥에서만 된다.
 
 function state() {
-  const { exists, values } = readConfig();
+  const { exists, values, dups } = readConfig();
   const busy = busyWork();
   const worktrees = unfinishedWorktrees();
   return {
@@ -24,7 +24,7 @@ function state() {
         // 비밀번호는 브라우저로 보내지 않는다
         raw: s.secret ? null : (raw ?? ""),
         expanded: !s.secret && raw && s.kind === "path" ? expandHome(raw) : null,
-        lock: lockFor(s.key, s.tier, busy, worktrees),
+        lock: lockFor(s.key, s.tier, busy, worktrees, dups),
       };
     }),
   };
@@ -42,13 +42,13 @@ export async function GET(req: Request) {
 
 /** { changes: {키: 새 값}, confirmTerminal } — 잠금과 값 검사를 서버에서 한 번 더 한 뒤 쓴다. */
 export async function POST(req: Request) {
-  const denied = denyRemote(req);
+  const denied = denyRemote(req) ?? denyCrossSite(req);
   if (denied) return denied;
   const body = (await req.json().catch(() => null)) as { changes?: Record<string, unknown>; confirmTerminal?: boolean } | null;
   const changes = body?.changes;
   if (!changes || typeof changes !== "object" || !Object.keys(changes).length)
     return NextResponse.json({ error: "바꿀 값이 없습니다." }, { status: 400 });
-  const { exists, values } = readConfig();
+  const { exists, values, dups } = readConfig();
   if (!exists) return NextResponse.json({ error: "설정 파일이 없습니다. 먼저 /dobby-init 을 실행해 주세요." }, { status: 400 });
 
   const busy = busyWork();
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
   for (const [key, v] of Object.entries(changes)) {
     const s = specOf(key);
     if (!s || typeof v !== "string") return NextResponse.json({ error: `바꿀 수 없는 항목입니다: ${key}` }, { status: 400 });
-    const lock = lockFor(key, s.tier, busy, worktrees);
+    const lock = lockFor(key, s.tier, busy, worktrees, dups);
     if (lock.locked) return NextResponse.json({ error: `「${s.label}」 항목은 지금 바꿀 수 없습니다. ${lock.reasons.join(" / ")}` }, { status: 409 });
     if (s.tier === "danger" && !body?.confirmTerminal)
       return NextResponse.json({ error: `「${s.label}」 항목을 바꾸려면 터미널에서 도비 스킬을 쓰는 창이 없는지 확인해 주세요.` }, { status: 400 });
@@ -70,10 +70,9 @@ export async function POST(req: Request) {
   // 바꾼 뒤 할 일을 설정 창 맨 위 목록에 남긴다
   const now = Date.now();
   const cur = readSettings();
-  const todo = [
-    ...cur.todo,
-    ...Object.keys(clean).flatMap((k) => specOf(k)!.after.map((text, i) => ({ id: `${k}-${now}-${i}`, label: specOf(k)!.label, text, done: false }))),
-  ];
+  const fresh = Object.keys(clean).flatMap((k) => specOf(k)!.after.map((text, i) => ({ id: `${k}-${now}-${i}`, label: specOf(k)!.label, text, done: false })));
+  // 끝내지 않은 같은 할 일이 이미 있으면 다시 쌓지 않는다
+  const todo = [...cur.todo, ...fresh.filter((t) => !cur.todo.some((c) => !c.done && c.label === t.label && c.text === t.text))];
   const restart = Object.keys(clean).some((k) => specOf(k)!.restart || (k === "ORCHESTRATION_WORKSPACE" && !values.get("ORCHESTRATION_META_PATH")));
   writeSettings({ todo, ...(restart ? { restartAfter: new Date(now).toISOString() } : {}) });
   return NextResponse.json({ ok: true, backup, ...state() });

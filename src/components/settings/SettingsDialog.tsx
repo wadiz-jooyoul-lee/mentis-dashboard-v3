@@ -18,6 +18,9 @@ export default function SettingsDialog({ open, onClose }: { open: boolean; onClo
   const ref = useRef<HTMLDialogElement>(null);
   const [st, setSt] = useState<Full | null>(null);
   const [denied, setDenied] = useState(false);
+  const [tab, setTab] = useState("dash");
+  // 입력칸에서 끌다가 바깥에서 놓아도 닫히지 않게, 누른 곳도 바깥이었는지 본다
+  const downOnBackdrop = useRef(false);
   const save = useDashSave((s) => setSt(s as Full));
 
   // 다른 기기에서 열면 프록시가 설정 조회를 403 으로 막는다
@@ -48,7 +51,6 @@ export default function SettingsDialog({ open, onClose }: { open: boolean; onClo
 
   const dash = st && (
     <div>
-      {!st.canEdit && <Note type="info" title="이 맥에서만 바꿀 수 있습니다" description="다른 기기에서 보는 중이라 지금 값만 보여 줍니다." />}
       {SECTIONS.map(({ key, group, label, Body }, i) => (
         <section key={key} className="set-sec">
           {SECTIONS[i - 1]?.group !== group && <h4 className="set-group">{group}</h4>}
@@ -65,7 +67,8 @@ export default function SettingsDialog({ open, onClose }: { open: boolean; onClo
       className="ui-dialog"
       aria-label="설정"
       onClose={onClose}
-      onClick={(e) => e.target === ref.current && onClose()}
+      onMouseDown={(e) => (downOnBackdrop.current = e.target === ref.current)}
+      onClick={(e) => downOnBackdrop.current && e.target === ref.current && onClose()}
     >
       <div className="ui-dialog-head">
         <h3 className="ui-h3">설정</h3>
@@ -94,20 +97,21 @@ export default function SettingsDialog({ open, onClose }: { open: boolean; onClo
           <Note type="info" title="설정은 대시보드가 실행 중인 맥에서만 열 수 있습니다" description="다른 기기에서는 이 맥에서 정한 색과 갱신 간격이 그대로 보입니다." />
         )}
         {open && !denied && (
-          <Tabs
-            items={[
-              { key: "dash", label: "대시보드", children: dash ?? <p className="set-help">설정을 읽는 중입니다.</p> },
-              {
-                key: "skill",
-                label: "스킬 설정",
-                children: st?.canEdit === false ? (
-                  <Note type="info" title="이 맥에서만 볼 수 있습니다" description="시험 계정과 비밀번호가 들어 있어 다른 기기에는 보여 주지 않습니다." />
-                ) : (
-                  <GoDobbyTab onSaved={load} />
-                ),
-              },
-            ]}
-          />
+          <>
+            <Tabs
+              items={[
+                { key: "dash", label: "대시보드" },
+                { key: "skill", label: "스킬 설정" },
+              ]}
+              activeKey={tab}
+              onChange={setTab}
+            />
+            {/* 탭을 옮겨도 입력하던 값이 남도록 두 탭을 모두 그려 두고 숨기기만 한다 */}
+            <div className="ui-tabpanel" role="tabpanel" hidden={tab !== "dash"}>{dash ?? <p className="set-help">설정을 읽는 중입니다.</p>}</div>
+            <div className="ui-tabpanel" role="tabpanel" hidden={tab !== "skill"}>
+              <GoDobbyTab onSaved={load} />
+            </div>
+          </>
         )}
       </div>
     </dialog>

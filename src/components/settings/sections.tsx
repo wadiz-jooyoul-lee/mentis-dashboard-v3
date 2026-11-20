@@ -10,7 +10,7 @@ import { Seg } from "@/components/ui/Tabs";
 import { toast } from "@/components/ui/Toaster";
 import { ACCENT_PRESETS, DEFAULT_ACCENT, accentFg, contrast, tooLight } from "@/lib/color";
 
-export type DashState = { accent: string; refreshSec: number; canEdit: boolean };
+export type DashState = { accent: string; refreshSec: number };
 export type SectionProps = { st: DashState; save: (patch: Partial<DashState>) => Promise<boolean> };
 
 /** 저장 전 미리 보기 — 화면 맨 위 요소의 포인트 색 변수만 바꾼다. */
@@ -35,7 +35,6 @@ function AccentSetting({ st, save }: SectionProps) {
     if (c.toLowerCase() === st.accent) return;
     if (!(await save({ accent: c.toLowerCase() }))) preview(st.accent);
   };
-  const off = !st.canEdit;
   return (
     <div className="set-accent">
       <div className="set-swatches">
@@ -47,7 +46,6 @@ function AccentSetting({ st, save }: SectionProps) {
             style={{ background: p.value }}
             title={p.name}
             aria-label={p.name}
-            disabled={off}
             onClick={() => {
               pick(p.value);
               commit(p.value);
@@ -55,13 +53,13 @@ function AccentSetting({ st, save }: SectionProps) {
           />
         ))}
       </div>
-      <div className={`set-picker${off ? " is-off" : ""}`} onPointerUp={() => commit(latest.current)}>
+      <div className="set-picker" onPointerUp={() => commit(latest.current)}>
         <HexColorPicker color={color} onChange={pick} />
       </div>
       <div className="set-hex">
         #
-        <HexColorInput color={color} onChange={pick} onBlur={() => commit(latest.current)} disabled={off} aria-label="색 값" />
-        <Button size="sm" disabled={off || st.accent === DEFAULT_ACCENT} onClick={() => (pick(DEFAULT_ACCENT), commit(DEFAULT_ACCENT))}>
+        <HexColorInput color={color} onChange={pick} onBlur={() => commit(latest.current)} aria-label="색 값" />
+        <Button size="sm" disabled={st.accent === DEFAULT_ACCENT} onClick={() => (pick(DEFAULT_ACCENT), commit(DEFAULT_ACCENT))}>
           기본으로 되돌리기
         </Button>
       </div>
@@ -85,7 +83,7 @@ const REFRESH_OPTS = [
 function RefreshSetting({ st, save }: SectionProps) {
   return (
     <>
-      <Seg size="sm" options={REFRESH_OPTS} value={String(st.refreshSec)} disabled={!st.canEdit} onChange={(v) => save({ refreshSec: Number(v) })} />
+      <Seg size="sm" options={REFRESH_OPTS} value={String(st.refreshSec)} onChange={(v) => save({ refreshSec: Number(v) })} />
       <p className="set-help">
         서버에 저장해서 다른 기기에서 보는 화면도 같은 간격으로 갱신됩니다. 끄면 머리말의 새로고침 아이콘으로만 갱신합니다.
       </p>
@@ -106,7 +104,7 @@ function LanSetting() {
 
 type Models = { models: Record<string, string>; roles: { id: string; name: string }[]; choices: { id: string; name: string }[] };
 
-function ModelSetting({ st }: SectionProps) {
+function ModelSetting() {
   const [data, setData] = useState<Models | null>(null);
   const [edit, setEdit] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -142,7 +140,6 @@ function ModelSetting({ st }: SectionProps) {
             <RadioGroup
               name={`model-${r.id}`}
               button
-              disabled={!st.canEdit}
               value={edit[r.id] ?? data.models[r.id]}
               options={data.choices.map((c) => ({ value: c.id, label: c.name }))}
               onChange={(v) => setEdit((e) => ({ ...e, [r.id]: v }))}
@@ -153,7 +150,7 @@ function ModelSetting({ st }: SectionProps) {
       <p className="set-help">
         바꾸면 각 역할의 다음 실행부터 새 모델을 씁니다. 지금 하던 실행은 그대로 끝납니다. 사무실의 카페 도비 창과 같은 설정입니다.
       </p>
-      <Button size="sm" variant="solid" busy={busy} disabled={!changed.length || !st.canEdit} onClick={saveModels}>
+      <Button size="sm" variant="solid" busy={busy} disabled={!changed.length} onClick={saveModels}>
         {changed.length ? `바뀐 ${changed.length}건 저장` : "바뀐 것 없음"}
       </Button>
     </>

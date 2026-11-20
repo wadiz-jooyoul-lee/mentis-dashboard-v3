@@ -64,10 +64,23 @@ export function unfinishedWorktrees(): { key: string; folder: string }[] {
 
 export type Lock = { locked: boolean; reasons: string[] };
 
+// 대시보드가 설정 파일보다 환경 변수를 먼저 읽는 항목
+const ENV_FIRST: Record<string, string[]> = {
+  ORCHESTRATION_META_PATH: ["ORCHESTRATION_META_PATH", "ORCHESTRATION_META_DIR"],
+  ...Object.fromEntries(
+    ["ORCHESTRATION_WORKSPACE", "ORCHESTRATION_REPOS_ROOT", "ORCHESTRATION_DOCS_ROOT", "ORCHESTRATION_DEFAULT_BASE", "ORCHESTRATION_BACKUP_DIR", "ORCHESTRATION_BACKUP_KEEP_DAYS"].map((k) => [k, [k]]),
+  ),
+};
+
 /** 등급별 잠금. 위험·주의는 돌고 있는 일이 있으면 잠그고, 작업 폴더는 진행 중 오더의 작업 폴더가 남아 있어도 잠근다. */
-export function lockFor(key: string, tier: Tier, busy: Busy[], worktrees: { key: string; folder: string }[]): Lock {
-  if (tier === "normal") return { locked: false, reasons: [] };
-  const reasons = busy.map((b) => `${b.key} ${b.what} 중`);
-  if (key === "ORCHESTRATION_WORKSPACE") reasons.push(...worktrees.map((w) => `${w.key} 작업 폴더가 남아 있음: ${w.folder}`));
+export function lockFor(key: string, tier: Tier, busy: Busy[], worktrees: { key: string; folder: string }[], dups: Set<string>): Lock {
+  const reasons: string[] = [];
+  if (dups.has(key)) reasons.push(`설정 파일에 ${key} 줄이 여러 개 있습니다. 파일을 직접 열어 한 줄만 남겨 주세요.`);
+  const env = (ENV_FIRST[key] ?? []).find((n) => process.env[n]?.trim());
+  if (env) reasons.push(`대시보드를 켤 때 환경 변수 ${env} 를 줬습니다. 대시보드는 그 값을 먼저 쓰므로 여기서 바꿔도 반영되지 않습니다.`);
+  if (tier !== "normal") {
+    reasons.push(...busy.map((b) => `${b.key} ${b.what} 중`));
+    if (key === "ORCHESTRATION_WORKSPACE") reasons.push(...worktrees.map((w) => `${w.key} 작업 폴더가 남아 있음: ${w.folder}`));
+  }
   return { locked: reasons.length > 0, reasons };
 }
