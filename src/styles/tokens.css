@@ -9,7 +9,7 @@
   --line: #e7e4dd;          /* 기본 테두리 */
   --accent: #c15f3c;        /* 포인트 1색(테라코타) */
   --accent-fg: #ffffff;     /* 포인트 위 글자 */
-  --accent-bg: #f8ece6;     /* 포인트의 옅은 바탕 */
+  --accent-bg: color-mix(in srgb, var(--accent) 12%, #ffffff); /* 포인트의 옅은 바탕. 설정 창에서 고른 색을 따라간다 */
   --ok-fg: #2e7d4f;  --ok-bg: #e9f3ec;
   --warn-fg: #96660f; --warn-bg: #faf0d8;
   --danger-fg: #b3261e; --danger-bg: #f9e5e3;

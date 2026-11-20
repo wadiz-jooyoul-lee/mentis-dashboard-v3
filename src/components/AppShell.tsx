@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import AutoRefresh from "@/components/AutoRefresh";
@@ -9,6 +10,10 @@ import { CanActProvider } from "@/components/CanAct";
 import LanToggle from "@/components/LanToggle";
 import DemoControls from "@/components/DemoControls";
 import MantisIcon from "@/components/MantisIcon";
+import V3Badge from "@/components/V3Badge";
+import SettingsDialog from "@/components/settings/SettingsDialog";
+import Note from "@/components/ui/Note";
+import Tip from "@/components/ui/Tip";
 
 /** 머리띠 가운데 메뉴. 경로가 바로 키다. */
 const NAV = [
@@ -35,9 +40,20 @@ function currentNavKey(pathname: string): string[] {
   return NAV.some((n) => n.key === pathname) ? [pathname] : [];
 }
 
-export default function AppShell({ children, demo = false }: { children: React.ReactNode; demo?: boolean }) {
+export default function AppShell({
+  children,
+  demo = false,
+  refreshSec = 5,
+  needRestart = false,
+}: {
+  children: React.ReactNode;
+  demo?: boolean;
+  refreshSec?: number;
+  needRestart?: boolean;
+}) {
   const pathname = usePathname();
   const current = currentNavKey(pathname);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   return (
     <CanActProvider>
     {/* 데모 모드에서는 메타가 fixture라 백업을 두드리지 않는다(서버도 409로 막는다). */}
@@ -47,13 +63,18 @@ export default function AppShell({ children, demo = false }: { children: React.R
       {/* 종이톤 반투명 머리띠. sticky + z-index 100 은 예전 antd Header 와 같다 —
           긴 화면에서 메뉴가 남고, antd 화면의 떠 있는 요소에 가려지지 않게. 모양은 ui.css .ui-nav */}
       <header className="ui-nav">
-        <Link href="/" className="ui-nav-brand">
-          {/* SVG 속성에는 var() 가 안 먹는 브라우저가 있어 currentColor 로 포인트색을 넘긴다. */}
-          <span className="ui-card-icon">
-            <MantisIcon size={24} color="currentColor" />
-          </span>
-          Mentis Dashboard
-        </Link>
+        <span className="ui-nav-brand">
+          {/* 사마귀 아이콘은 설정 창, 제목 글자는 홈. SVG 속성에는 var() 가 안 먹는 브라우저가 있어 currentColor 로 포인트색을 넘긴다. */}
+          <Tip title="설정">
+            <button type="button" className="ui-card-icon ui-nav-settings" aria-label="설정" onClick={() => setSettingsOpen(true)}>
+              <MantisIcon size={24} color="currentColor" />
+            </button>
+          </Tip>
+          <Link href="/" className="ui-nav-home">
+            Mentis Dashboard
+          </Link>
+          <V3Badge />
+        </span>
         {/*
           좌우(제목·도구)의 폭이 달라 space-between 으로는 가운데에 오지 않는다.
           머리띠가 position:sticky 라 좌표 기준이 되므로 절대 배치로 화면 가운데에 둔다(.ui-nav-menu).
@@ -72,9 +93,18 @@ export default function AppShell({ children, demo = false }: { children: React.R
         </nav>
         <span className="ui-nav-tools">
           <LanToggle />
-          <AutoRefresh intervalMs={5000} />
+          <AutoRefresh intervalMs={refreshSec * 1000} />
         </span>
       </header>
+      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      {needRestart && (
+        <Note
+          type="warning"
+          style={{ borderRadius: 0 }}
+          title="대시보드를 다시 켜야 바뀐 설정이 모두 반영됩니다"
+          description="메타 폴더를 바꿨습니다. 사무실 화면과 진행 소식 수신은 다시 켜기 전까지 옛 폴더를 봅니다. 터미널에서 pnpm serve 로 다시 켜 주세요."
+        />
+      )}
       {demo && <DemoControls />}
       <main style={{ padding: 24, maxWidth: 1440, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
         {children}
