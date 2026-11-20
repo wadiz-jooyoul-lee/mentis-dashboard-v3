@@ -49,7 +49,7 @@ function useMirror(target: React.RefObject<SVGGElement | null>) {
 export function TableZoomCard({ name, task, box, onClose }: { name: string; task: TaskState; box: Box; onClose: () => void }) {
   const closeRef = useRef<HTMLButtonElement>(null);
   const mirror = useRef<SVGGElement>(null);
-  const [mode, setMode] = useState<"table" | "crew">("table");
+  const [mode, setMode] = useState<"table" | "crew">("crew");
   const [asking, setAsking] = useState(false); // 카드 보기에서 연 질문 창
   useEffect(() => closeRef.current?.focus(), []);
   useMirror(mirror);
@@ -60,7 +60,7 @@ export function TableZoomCard({ name, task, box, onClose }: { name: string; task
       <div className="art-card zoom-card" role="dialog" aria-label={`${task.key} 탁자 크게 보기`} style={asking ? { display: "none" } : undefined}>
         <CloseX onClick={onClose} />
         <div className="zoom-tabs" role="tablist">
-          {([["table", "탁자 보기"], ["crew", "카드 보기"]] as const).map(([k, n]) => (
+          {([["crew", "카드 보기"], ["table", "탁자 보기"]] as const).map(([k, n]) => (
             <button key={k} type="button" role="tab" aria-selected={mode === k} className={mode === k ? "on" : undefined} onClick={() => setMode(k)}>
               {n}
             </button>

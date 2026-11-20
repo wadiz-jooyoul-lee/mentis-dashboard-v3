@@ -112,12 +112,14 @@ function CrewCard({ role, t, d, onAsk }: { role: TableRole; t: TaskState; d: Cre
   const tone = agent.asking ? "ask" : main ? toneOf(main.state) : live;
   const label = agent.asking ? "사람 답을 기다림" : main?.state || (live === "work" ? "작업중" : live === "wait" ? "기다림" : "쉬는 중");
   const fill = fillOf(t.table!.prog, role as SeatRole);
+  const working = live === "work" || tone === "work";
   const round = /^\d+$/.test(main?.round ?? "") && Number(main!.round) > 0 ? `${main!.round}회차` : "";
   return (
     <div className={`crew-card ${tone}`}>
       <div className="crew-top">
         <svg className="zoom-view crew-fig" viewBox="-26 -66 52 70" aria-hidden>
-          <OfficeAgent agent={agent} face="walk" walking busy={false} pose="stand" bind={noBind} />
+          {/* 일하는 사람만 서서 걷고, 나머지는 스툴에 앉아 있다 */}
+          {working ? <OfficeAgent agent={agent} face="walk" walking busy pose="walk" bind={noBind} /> : <OfficeAgent agent={agent} face="rest" walking={false} busy={false} pose="front" stool bind={noBind} />}
         </svg>
         <div className="crew-body">
           <div className="crew-who">
@@ -144,7 +146,7 @@ function CrewCard({ role, t, d, onAsk }: { role: TableRole; t: TaskState; d: Cre
           {onAsk && <AskButton onAsk={onAsk} />}
         </div>
       )}
-      {(live === "work" || tone === "work") && agent.doing && <div className="crew-doing">지금: {agent.doing}</div>}
+      {working && agent.doing && <div className="crew-doing">지금: {agent.doing}</div>}
       {fill !== undefined && (
         <div className="crew-prog">
           <span className="crew-bar">

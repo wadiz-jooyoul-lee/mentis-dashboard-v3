@@ -277,8 +277,15 @@ export function DobbyCard({ name, task, onClose }: { name: string; task: TaskSta
   const answered = !!n && !ask && n.action === "ask";
   const action = n && !ask && !answered ? n.action : "";
   const needEnv = action === "approve-deploy" || action === "deploy";
-  // 글 답은 옛 오더의 판단 요청(단계가 보류)에만 받는다
-  const canWrite = !!n && !ask && !action && !answered && n.kind === "decision" && n.cmd.startsWith("/do ");
+  // 글 답은 할 일 명령이 /do {키} 일 때 받는다. 답을 넣어 그 명령을 뒤에서 돌린다
+  const canWrite = !!n && !ask && !action && !answered && n.cmd.startsWith("/do ");
+  const [copied, setCopied] = useState(false);
+  const copyCmd = async () => {
+    try {
+      await navigator.clipboard.writeText(n!.cmd);
+      setCopied(true);
+    } catch {}
+  };
   const post = async (body: object) => {
     setBusy(true);
     setMsg("");
@@ -369,7 +376,7 @@ export function DobbyCard({ name, task, onClose }: { name: string; task: TaskSta
         <>
           <label>
             답
-            <textarea rows={4} value={answer} maxLength={2000} placeholder="판단이나 의견을 적으면 도비가 이어서 진행합니다" onChange={(e) => setAnswer(e.target.value)} />
+            <textarea rows={4} value={answer} maxLength={2000} placeholder="한 일이나 판단을 적으면 도비가 이어서 진행합니다" onChange={(e) => setAnswer(e.target.value)} />
           </label>
           <div className="row">
             <button type="button" className="primary" disabled={busy || !answer.trim()} onClick={() => void send({ answer })}>
@@ -388,17 +395,17 @@ export function DobbyCard({ name, task, onClose }: { name: string; task: TaskSta
         </p>
       )}
       {n && !ask && !answered && !action && !canWrite && !n.link && (
-        <p>
-          여기서 답할 수 있는 일이 아닙니다.
-          {n.cmd ? (
-            <>
-              {" "}
-              터미널에서 <code>{n.cmd}</code> 로 이어 가거나 대시보드에서 확인해 주세요.
-            </>
-          ) : (
-            " 대시보드에서 확인해 주세요."
-          )}
-        </p>
+        n.cmd ? (
+          // /dobby-ship·/dobby-release 처럼 사람에게 묻는 명령은 뒤에서 돌릴 수 없어 복사만 한다
+          <p className="ask-cmd">
+            터미널에서 이어 갈 명령: <code>{n.cmd}</code>
+            <button type="button" onClick={() => void copyCmd()}>
+              {copied ? "복사했습니다" : "명령 복사"}
+            </button>
+          </p>
+        ) : (
+          <p>위 안내대로 열려 있는 터미널 세션에서 이어 가 주세요.</p>
+        )
       )}
       {msg && <p role="alert">{msg}</p>}
       <div className="row">
