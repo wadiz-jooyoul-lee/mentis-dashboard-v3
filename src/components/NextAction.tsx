@@ -153,7 +153,7 @@ export function NextActionTag({ item }: { item?: NextItem }) {
     );
   return (
     <Tip title={item.since ? formatSince(item.since) : undefined}>
-      <Stack orientation="vertical" size={2}>
+      <Stack orientation="vertical" size={2} align="start">
         <Tag color={g.color} style={{ marginInlineEnd: 0 }}>
           {g.label}
         </Tag>
