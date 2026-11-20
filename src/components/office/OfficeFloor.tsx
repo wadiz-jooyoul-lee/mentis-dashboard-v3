@@ -189,7 +189,7 @@ const sameAt = (a: FolderAt, b: FolderAt) => a.kind === b.kind && (a.kind !== "a
 // 화면이 그린 서류철 위치. moving 은 누군가 머리에 이고 가는 중
 type Shown = FolderAt | { kind: "moving" };
 
-export function OfficeFloor({ onAgent, waitFor, dobby, onTable, onZoom, onRetroShelf, onHuman, onConfirm, onFlight, onPickup, onBoard, onGear, onModels, onHold, onPr, onShelf, onCabinet, onMonitor, jobsRunning, onDataMonitor, dataScreen, dataFresh, present }: { onAgent?: (a: AgentState, at: Pt, near: (Pt & { id: string })[]) => void; waitFor?: string; onPickup?: (t: TaskState) => void; dataScreen?: { text: string; tone?: string } | null; present?: { n: number; text: string }; dobby?: boolean; onMonitor?: () => void; jobsRunning?: boolean; onDataMonitor?: () => void; dataFresh?: number; onTable?: (t: TaskState) => void; onZoom?: (t: TaskState, box: Box) => void; onRetroShelf?: () => void; onHold?: (t: TaskState) => void; onShelf?: () => void; onCabinet?: () => void; onPr?: (t: TaskState) => void; onHuman?: (t: TaskState) => void; onConfirm?: (t: TaskState) => void; onFlight?: (key: string, on: boolean) => void; onBoard?: () => void; onGear?: (t: TaskState) => void; onModels?: () => void }) {
+export function OfficeFloor({ onAgent, waitFor, dobby, onZoom, onRetroShelf, onHuman, onConfirm, onFlight, onPickup, onBoard, onGear, onModels, onHold, onPr, onShelf, onCabinet, onMonitor, jobsRunning, onDataMonitor, dataScreen, dataFresh, present }: { onAgent?: (a: AgentState, at: Pt, near: (Pt & { id: string })[]) => void; waitFor?: string; onPickup?: (t: TaskState) => void; dataScreen?: { text: string; tone?: string } | null; present?: { n: number; text: string }; dobby?: boolean; onMonitor?: () => void; jobsRunning?: boolean; onDataMonitor?: () => void; dataFresh?: number; onZoom?: (t: TaskState, box: Box) => void; onRetroShelf?: () => void; onHold?: (t: TaskState) => void; onShelf?: () => void; onCabinet?: () => void; onPr?: (t: TaskState) => void; onHuman?: (t: TaskState) => void; onConfirm?: (t: TaskState) => void; onFlight?: (key: string, on: boolean) => void; onBoard?: () => void; onGear?: (t: TaskState) => void; onModels?: () => void }) {
   const state = useOffice((s) => s.state);
   const epoch = useOffice((s) => s.epoch);
   const seats = useRef<Seats>(newSeats());
@@ -1173,7 +1173,7 @@ export function OfficeFloor({ onAgent, waitFor, dobby, onTable, onZoom, onRetroS
     return at?.kind === "rest" ? RESTS[at.i].kind : undefined;
   };
   const flagEl = (t: TaskState) =>
-    t.table && seats.current.planted.has(t.id) ? <WorkFlag key={t.id} t={t} dobby={dobby} onAsk={onHuman} onHold={onHold} onOpen={onTable} onHover={setFlagHover} /> : null;
+    t.table && seats.current.planted.has(t.id) ? <WorkFlag key={t.id} t={t} dobby={dobby} onAsk={onHuman} onHold={onHold} onOpen={onZoom && ((x) => onZoom(x, zoomOf(x.table!, tableHit(x.table!))))} onHover={setFlagHover} /> : null;
   // 사람 하나. 테이블 자리에 앉아 있으면 역할 이름표와 전구를 단다(뒷모습 자리는 노트북을 가리지 않게 이름 아래)
   const person = (a: AgentState) => {
     const rk = restAt(a.id), at = tracks.current.get(a.id)?.at;
@@ -1605,6 +1605,12 @@ function DeskNotes({ tasks }: { tasks: TaskState[] }) {
 // 작업 테이블: 판, 앉은 사람 앞 노트북, 노트북 옆 간식. 아직 노트북을 이고 오는 사람의 자리는 비워 둔다
 export type Box = { x: number; y: number; w: number; h: number };
 // 확대 창에 보일 범위: 탁자, 둘러앉은 사람, 깃발까지
+// 탁자를 누를 자리. 모일 곳은 그 가구 자리다
+function tableHit(tb: WorkTable) {
+  const pl = placeOf(tb.place);
+  return pl ? { x: pl.box.x1, y: pl.box.y1, width: pl.box.x2 - pl.box.x1, height: pl.box.y2 - pl.box.y1 } : tableArt(tb);
+}
+
 function zoomOf(tb: WorkTable, hit: { x: number; y: number; width: number; height: number }): Box {
   const f = flagOf(tb), cx = clothX(f.x, f.side), top = f.y - (f.pole ?? FLAG.poleBottom - FLAG.poleTop);
   const x1 = Math.max(0, Math.min(hit.x, cx) - 40), x2 = Math.min(VW, Math.max(hit.x + hit.width, cx + FLAG.w) + 40);
@@ -1622,7 +1628,7 @@ function Tables({ tasks, carry, picked, onOpen }: { tasks: TaskState[]; carry: {
         const crew = Object.entries(tb.crew) as [SeatRole, string][];
         // 모일 곳은 이미 있는 가구라 테이블 그림 없이 앉은 사람 앞에 노트북만 놓는다
         const pl = placeOf(tb.place);
-        const hit = pl ? { x: pl.box.x1, y: pl.box.y1, width: pl.box.x2 - pl.box.x1, height: pl.box.y2 - pl.box.y1 } : tableArt(tb);
+        const hit = tableHit(tb);
         return (
           <g key={t.id}>
             {!pl && <image href="/sprites/work-table-narrow.webp" {...tableArt(tb)} />}

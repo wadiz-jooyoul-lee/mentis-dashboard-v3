@@ -4,7 +4,6 @@ import { useOfficeStream } from "@/lib/office/ui/useOfficeStream";
 import { useOffice } from "@/lib/office/ui/store";
 import { type AgentState, type Artifact, type Book, type OfficeState, type TaskState } from "@/lib/office/core/types";
 import { Bookshelf, type ActiveBook, type Tip } from "@/components/office/Bookshelf";
-import { OpenDashCard } from "@/components/office/HumanCard";
 import { RetroBook } from "@/components/office/RetroShelf";
 import type { RetroItem } from "@/lib/office/retro";
 import { HoldAskCard } from "@/components/office/HoldCard";
@@ -27,7 +26,7 @@ const CONN_LABEL = { connecting: "연결 중", live: "실시간", reconnecting: 
 const hhmmss = (t: number) => new Date(t).toTimeString().slice(0, 8);
 
 // 도비 사무실의 창들. 대시보드에 합치며 오피스 자체 오케스트레이터 창(작업 게시판·작업 설정·폐기·완료 확인·부록)은 가져오지 않았다
-type Asking = { kind: "human"; task: TaskState } | { kind: "active"; key: string } | { kind: "reports" } | { kind: "jobs" } | { kind: "data" } | { kind: "retro"; key: string } | { kind: "open"; task: TaskState; url: string } | { kind: "zoom"; task: TaskState; box: Box } | { kind: "hold"; task: TaskState } | { kind: "assign"; agent: AgentState; from: { x: number; y: number }; near: { id: string; x: number; y: number }[] } | { kind: "desk" } | { kind: "models" };
+type Asking = { kind: "human"; task: TaskState } | { kind: "active"; key: string } | { kind: "reports" } | { kind: "jobs" } | { kind: "data" } | { kind: "retro"; key: string } | { kind: "zoom"; task: TaskState; box: Box } | { kind: "hold"; task: TaskState } | { kind: "assign"; agent: AgentState; from: { x: number; y: number }; near: { id: string; x: number; y: number }[] } | { kind: "desk" } | { kind: "models" };
 // 진행 중인 작업을 펼친 책으로 열 때 쓸 책 정보와 지금 상황
 function liveBook(state: OfficeState, key: string): { book: Book; live: LiveInfo } | null {
   const t = state.tasks.find((x) => x.key === key);
@@ -215,7 +214,6 @@ export function OfficePage({ initialTask }: { initialTask?: string }) {
             dobby
             onAgent={(agent, from, near) => setAsking({ kind: "assign", agent, from, near })}
             waitFor={asking?.kind === "assign" ? asking.agent.id : undefined}
-            onTable={(task) => setAsking({ kind: "open", task, url: task.retroOf ? `${dashboardUrl(task.retroOf)}/retro` : dashboardUrl(task.key) })}
             onZoom={(task, box) => setAsking({ kind: "zoom", task, box })}
             onRetroShelf={() => (setDrawer(true), setFocusRetro(Date.now()))}
             onHuman={(task) => setAsking({ kind: "human", task })}
@@ -237,9 +235,7 @@ export function OfficePage({ initialTask }: { initialTask?: string }) {
           <DobbyDemoBar name={name} />
           {asking && (
             <div className={`floor-modal${asking.kind === "active" || asking.kind === "retro" || asking.kind === "data" ? " full" : ""}`} onClick={(e) => e.target === e.currentTarget && setAsking(null)}>
-              {asking.kind === "open" ? (
-                <OpenDashCard task={asking.task} url={asking.url} onClose={closeAsking} />
-              ) : asking.kind === "zoom" ? (
+              {asking.kind === "zoom" ? (
                 <TableZoomCard name={name} task={asking.task} box={asking.box} onClose={closeAsking} />
               ) : asking.kind === "jobs" ? (
                 <JobsMonitorCard name={name} onClose={closeAsking} />

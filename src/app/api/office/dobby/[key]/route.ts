@@ -1,6 +1,6 @@
 import { denyRemote } from "@/lib/localOnly";
 import { selfUrl } from "@/lib/office/self";
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { mkdirSync, openSync } from "node:fs";
 import { join } from "node:path";
 import { officeHome } from "@/lib/office/config";
@@ -31,7 +31,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ key: st
 
 // 물음표에 답한다. 오피스는 도비 메타를 쓰지 않는다. 상태를 바꾸는 일은 대시보드에 넘긴다
 // { action, env } 는 대시보드에 그대로 넘긴다. { action: "ask", value } 는 질문의 답으로 넘긴다
-// { answer } 는 옛 오더의 판단 요청(단계가 보류)에만 받아 오더 폴더에서 /do {키} 답 "…" 을 백그라운드로 돌린다
+// { answer } 는 할 일 명령이 /do {키} 인 사람 차례에 받아 오더 폴더에서 /do {키} 답 "…" 을 백그라운드로 돌린다
 export async function POST(req: Request, { params }: { params: Promise<{ key: string }> }) {
   const denied = denyRemote(req); if (denied) return denied;
   const { key: raw } = await params;
@@ -76,8 +76,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ key: st
   if (!answer || answer.length > 2000) return Response.json({ error: "답을 1~2000자로 적어 주세요." }, { status: 400 });
   // 답 없는 질문이 있으면 자동 실행이 그 답을 기다리는 중이다. 여기서 세션을 따로 띄우면 둘이 된다
   if (asking) return Response.json({ error: "답을 기다리는 질문이 있습니다. 질문 창에서 답해 주세요." }, { status: 409 });
-  if (n.kind !== "decision" || n.action || !n.cmd.startsWith("/do ")) return Response.json({ error: "이 할 일은 글로 답하지 않습니다." }, { status: 400 });
+  if (n.action || !n.cmd.startsWith("/do ")) return Response.json({ error: "이 할 일은 글로 답하지 않습니다." }, { status: 400 });
   if (!meta) return Response.json({ error: "go-dobby 설정을 찾지 못했습니다." }, { status: 500 });
+  if (doRunning(key)) return Response.json({ error: "이 오더의 /do 세션이 이미 돌고 있습니다. 끝난 뒤 다시 확인해 주세요." }, { status: 409 });
   const dir = join(officeHome(), "dobby-answers");
   mkdirSync(dir, { recursive: true });
   const out = openSync(join(dir, `${key}-${Date.now()}.log`), "a");
@@ -85,4 +86,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ key: st
   spawn("claude", ["-p", prompt, "--permission-mode", "auto"], { cwd: orderDir(meta, key), detached: true, stdio: ["ignore", out, out] }).unref();
   log(`${key} 물음표 답을 /do 로 넘김`);
   return Response.json({ ok: true });
+}
+
+// 같은 오더의 /do 세션이 떠 있는지(답을 두 번 보내 세션이 둘 뜨는 것을 막는다)
+function doRunning(key: string) {
+  try {
+    return execFileSync("ps", ["-axo", "command"], { encoding: "utf8" }).split("\n").some((l) => l.includes(`/do ${key} `) || l.endsWith(`/do ${key}`));
+  } catch {
+    return false;
+  }
 }
