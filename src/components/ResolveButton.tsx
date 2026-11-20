@@ -113,7 +113,6 @@ export default function ResolveButton({
         variant={resolved ? "ghost" : "soft"}
         icon={resolved ? <Undo2 size="1em" /> : <CircleCheck size="1em" />}
         busy={busy}
-        onClick={(e) => e.stopPropagation()}
       >
         {resolved ? "해결 취소" : "해결 처리"}
       </Button>
