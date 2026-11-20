@@ -1,4 +1,4 @@
-# Mentis Dashboard v2 (go-dobby)
+# Mentis Dashboard v3 (go-dobby)
 
 `go-dobby` 플러그인이 `$ORCHESTRATION_META/{키}/` 아래에 쌓는 **오더(이슈/작업) 메타 파일**을 읽어, 진행 상황을 보기 좋게 보여주는 로컬 대시보드입니다.
 
@@ -7,7 +7,7 @@
 - 데이터: 서버에서 파일시스템을 직접 읽음 (DB·API 불필요, 읽기 전용)
 
 > v1(`mentis-dashboard`)은 work-dobby의 `.issue-start/.issue-test/.issue-end/.agent-start` 분리 폴더를 읽습니다.
-> v2는 go-dobby의 **이슈당 폴더 1개 + 단일 status.md 인덱스** 모델을 읽습니다. 설계: [`docs/v2-design.md`](docs/v2-design.md).
+> v3는 go-dobby의 **이슈당 폴더 1개 + 단일 status.md 인덱스** 모델을 읽습니다. 설계: [`docs/v2-design.md`](docs/v2-design.md).
 
 ## 무엇을 읽나
 
@@ -53,7 +53,7 @@ $ORCHESTRATION_META/{키}/                # 키 = FE1-1187 (이슈) 또는 TASK-
 > ```bash
 > mkdir -p ~/.config/go-dobby
 > sed 's/DOBBY_/ORCHESTRATION_/g' ~/.config/work-dobby/config.env > ~/.config/go-dobby/config.env
-> # 이후 ORCHESTRATION_WORKSPACE / ORCHESTRATION_META_PATH 를 v2 전용 경로로 조정
+> # 이후 ORCHESTRATION_WORKSPACE / ORCHESTRATION_META_PATH 를 v3 전용 경로로 조정
 > ```
 
 ## 설치 & 실행

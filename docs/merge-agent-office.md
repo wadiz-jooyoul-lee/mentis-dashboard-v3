@@ -1,11 +1,11 @@
-# 설계: agent-office(도비 모드) → mentis-dashboard-v2 통합
+# 설계: agent-office(도비 모드) → mentis-dashboard-v3 통합
 
 > 실행: 새 세션에서 이 문서만 읽고 진행 가능하도록 작성됨. `/dobby-order {이 문서 경로}` 또는 `/do` 오더의 설계 입력으로 사용.
 > 작성: 2026-11-14 · 갱신: 2026-11-19(최신 소스로 전 항목 재검증). 아래 "검증된 사실"은 그 시점 코드 실측 — 착수 시 §8 체크로 재확인만 하면 됨.
 
 ## 1. 목표 / 비목표
 
-**목표**: 서버를 하나(:7253, mentis-dashboard-v2)로 통합한다.
+**목표**: 서버를 하나(:7253, mentis-dashboard-v3)로 통합한다.
 - 대시보드 전 화면(39개 라우트) 유지
 - agent-office의 **도비 모드만** 이식: 사무실 플로어 화면(`/office`), 메타 sync 티커, inbox(:6898), 보고서/회고/작업 책 뷰
 - agent-office의 자체 오케스트레이터 등 비도비 부분은 **폐기** (§7)
@@ -15,7 +15,7 @@
 
 ## 2. 대상 저장소와 전제
 
-- 뼈대: `~/work/mentis-dashboard-v2` (Next 16.4.6 · React 19.3 · antd v6 · pnpm, 포트 7253)
+- 뼈대: `~/work/mentis-dashboard-v3` (Next 16.4.6 · React 19.3 · antd v6 · pnpm, 포트 7253)
 - 이식원: `~/work/agent-office` (Next 16.4.6 · React 19.3 · 자체 CSS · pnpm, 포트 6897 + inbox 6898)
 - 두 앱의 Next/React/pnpm 버전이 동일 → 스택 마찰 없음
 - 메타 경로 규약은 양쪽 모두 `ORCHESTRATION_*` + `~/.config/go-dobby/config.env`
@@ -38,7 +38,7 @@
 ## 4. 타깃 구조
 
 ```
-mentis-dashboard-v2/src/
+mentis-dashboard-v3/src/
 ├── app/
 │   ├── (dashboard)/            ← 기존 화면 전부 이동. 루트 layout = 기존 layout.tsx(antd)
 │   │   ├── layout.tsx
