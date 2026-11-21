@@ -602,3 +602,321 @@
     opacity: 0.25;
   }
 }
+
+/* ⑦ 토큰 */
+.root {
+  --p-floor: #2a78d6;
+  --p-carry: #eb6834;
+  --p-grow: #1baf7a;
+}
+.h4 {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 14px 0 0;
+}
+.tkOld {
+  font-size: 14px;
+  color: var(--p-sub);
+  background: var(--p-soft);
+  border-style: dashed;
+}
+.tkTiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+.tkTiles .tile {
+  background: var(--p-card);
+  border: 1px solid var(--p-line);
+}
+.tkNote {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--p-faint);
+  line-height: 1.6;
+}
+.tkTag {
+  display: inline-block;
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--p-soft);
+  border: 1px solid var(--p-line);
+  color: var(--p-sub);
+  white-space: nowrap;
+  font-weight: 500;
+}
+.tkSpan {
+  background: var(--p-sub);
+  justify-content: center;
+  padding: 0 2px;
+}
+.tkLink {
+  position: absolute;
+  top: 50%;
+  height: 0;
+  border-top: 2px dotted var(--p-sub);
+  z-index: 1;
+}
+.tkHandoff {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1.5px solid var(--p-text);
+  opacity: 0.55;
+  pointer-events: auto;
+}
+.tkChips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 8px;
+}
+.tkChip {
+  background: var(--p-card);
+  border: 1px solid var(--p-line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.tkChipHead {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.tkChipNum {
+  color: var(--p-faint);
+  font-size: 13px;
+}
+.tkChipStage {
+  font-weight: 600;
+  font-size: 14px;
+}
+.tkChipMeta {
+  font-size: 12px;
+  color: var(--p-sub);
+  font-variant-numeric: tabular-nums;
+}
+.tkFloor {
+  background: var(--p-floor);
+}
+.tkCarry {
+  background: var(--p-carry);
+}
+.tkGrow {
+  background: var(--p-grow);
+}
+.tkPlain {
+  background: var(--p-base);
+}
+.tkBars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tkBarRow {
+  display: grid;
+  grid-template-columns: 120px 1fr 120px;
+  gap: 12px;
+  align-items: center;
+}
+.tkBarTotal {
+  border-top: 1px solid var(--p-line);
+  padding-top: 8px;
+}
+.tkBarName {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tkBarName small {
+  color: var(--p-faint);
+  margin-right: 6px;
+}
+.tkTrack {
+  height: 16px;
+  min-width: 0;
+}
+.tkTrackIn {
+  display: flex;
+  gap: 2px;
+  height: 100%;
+  min-width: 4px;
+}
+.tkSeg {
+  height: 100%;
+  border-radius: 2px;
+  min-width: 1px;
+}
+.tkBarVal {
+  font-size: 13px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.tkBarVal small {
+  color: var(--p-faint);
+}
+.tkScroll {
+  overflow-x: auto;
+}
+.tkTable {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 560px;
+  font-size: 13px;
+}
+.tkTable th,
+.tkTable td {
+  text-align: left;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--p-line);
+  vertical-align: top;
+}
+.tkTable th {
+  color: var(--p-faint);
+  font-weight: 500;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.tkTable td:first-child,
+.tkTable td:nth-child(2) {
+  white-space: nowrap;
+}
+.tkTable tbody tr:last-child td {
+  border-bottom: 0;
+}
+.tkTable .tkR {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.tkCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
+}
+.tkCard {
+  background: var(--p-card);
+  border: 1px solid var(--p-line);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.tkCardHead {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+.tkSvg {
+  width: 100%;
+  height: auto;
+  display: block;
+  touch-action: pan-y;
+}
+.tkGrid {
+  stroke: var(--p-line);
+}
+.tkAxisText {
+  fill: var(--p-faint);
+}
+.tkBaseLine {
+  stroke: var(--p-faint);
+}
+.tkCross {
+  stroke: var(--p-text);
+  stroke-width: 1;
+  pointer-events: none;
+}
+.tkFillFloor {
+  fill: var(--p-floor);
+}
+.tkFillCarry {
+  fill: var(--p-carry);
+}
+.tkFillGrow {
+  fill: var(--p-grow);
+}
+.tkFillPlain {
+  fill: var(--p-base);
+}
+.tkDotRewrite {
+  fill: var(--p-carry);
+  stroke: var(--p-card);
+  stroke-width: 2;
+}
+.tkDotCompact {
+  fill: var(--p-card);
+  stroke: var(--p-text);
+  stroke-width: 2;
+}
+.tkKeyDot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  vertical-align: -1px;
+  margin: 0 3px 0 6px;
+}
+.tkKeyDot:first-child {
+  margin-left: 0;
+}
+.tkKeyCompact {
+  background: var(--p-card);
+  border: 2px solid var(--p-text);
+}
+.tkHover {
+  font-size: 11.5px;
+  color: var(--p-faint);
+  min-height: 17px;
+  font-variant-numeric: tabular-nums;
+}
+.tkDl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 10px;
+  font-size: 12.5px;
+}
+.tkDl dt {
+  color: var(--p-faint);
+}
+.tkDl dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.tkCalc span {
+  white-space: nowrap;
+}
+.tkCalc {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--p-sub);
+  border-top: 1px solid var(--p-line);
+  padding-top: 8px;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 560px) {
+  .tkBarRow {
+    grid-template-columns: 1fr max-content;
+    gap: 4px 12px;
+  }
+  .tkTrack {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+}
